@@ -464,6 +464,8 @@ def scorer_outcomes(fixture_id: int, player_goals: pd.DataFrame, goal_events: pd
         ["minute", "extra_minute"], na_position="first"
     )
     first = ev_.iloc[0] if len(ev_) else None
+    if first is not None and first["detail"] != "Own Goal" and pd.isna(first["player_id"]):
+        return res  # scorer of the first goal unknown (missing in the API data): first goalscorer stays unsettled
     first_scorer = None if first is None or first["detail"] == "Own Goal" else str(int(first["player_id"]))
     for r in pg.itertuples(index=False):
         res[("scorer_first", str(r.player_id), None)] = str(r.player_id) == first_scorer

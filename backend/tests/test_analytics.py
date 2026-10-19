@@ -179,3 +179,22 @@ def test_hit_rate_picks():
     assert (
         result.loc["clean_sheet", "hit"] and abs(result.loc["clean_sheet", "pick_probability"] - 0.7) < 1e-9
     )
+
+
+def test_scorer_outcomes_with_unknown_first_scorer():
+    """API data without player for the first goal: first goalscorer stays unsettled, anytime is settled."""
+    from quotenfabrik.analytics.service import scorer_outcomes
+
+    players = pd.DataFrame({"fixture_id": [1, 1, 2, 2], "player_id": [10, 11, 10, 11], "goals": [1, 0, 1, 0]})
+    goals = pd.DataFrame({
+        "fixture_id": [1, 1, 2],
+        "player_id": [np.nan, 10.0, 10.0],
+        "minute": [5, 30, 12],
+        "extra_minute": [np.nan, np.nan, np.nan],
+        "detail": ["Normal Goal", "Normal Goal", "Normal Goal"],
+    })  # fmt: skip
+    unknown = scorer_outcomes(1, players, goals)
+    assert unknown[("scorer_anytime", "10", None)] is True
+    assert ("scorer_first", "10", None) not in unknown
+    known = scorer_outcomes(2, players, goals)
+    assert known[("scorer_first", "10", None)] is True and known[("scorer_first", "11", None)] is False
