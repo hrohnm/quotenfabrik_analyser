@@ -49,6 +49,7 @@ Details zum Seed: `seed/README.md`.
 |---|---|---|
 | `qf status` | Quota und Abo-Ende (warnt 7 Tage vorher) | 0 |
 | `qf ingest football-data --seasons 2015-2026` | CSVs laden, roh speichern, normalisieren | 0 |
+| `qf ingest results [--seasons aktuell] [--league 39]` | Nur Ergebnisse der Stärke-Ligen (Einstellungsseite → „Stärke-Ligen“), ohne Details | 1 pro Saison und Liga |
 | `qf ingest api-football --seasons 2015-2026 [--half-stats] [--no-details] [--no-injuries]` | Spielplan, Ergebnisse, Events, Lineups, Team-/Spieler-Stats, Ausfälle; bereits geladene Details werden übersprungen | ≈20 pro Saison (+≈306 mit `--half-stats` ab 2024) |
 | `qf map-teams` | football-data-Teamnamen ↔ API-Team-IDs, Spiele verknüpfen, Report | 0 |
 | `qf odds snapshot` | aktuelle Quoten (nur Betano/Pinnacle/Bet365, nur Änderungen) | 2–4 |
@@ -110,6 +111,7 @@ Einstellungsseite (`/api/admin/*`):
 | `GET /api/admin/leagues/search?q=` | Liga bei API-Football suchen (**1 Request**, roh gespeichert) |
 | `GET /api/admin/football-data/codes`, `GET /api/admin/oddspapi/tournaments?q=` | Kürzel-Liste / Turniersuche (kostenlos, aus Rohdaten bzw. `quotenfabrik/data/oddspapi_tournaments.json`) |
 | `GET /api/admin/leagues/estimate?first_season&last_season` | geschätzte API-Football-Requests für den Import |
+| `GET /api/admin/leagues/presets`, `POST /api/admin/leagues/ratings` | 27 erste Ligen Europas (`quotenfabrik/data/european_leagues.json`, IDs gegen API-Football geprüft) / als Stärke-Ligen anlegen und Ergebnisse laden (Job `add_ratings`) |
 | `POST /api/admin/leagues` | Liga anlegen und Job `add_league` starten |
 | `POST /api/admin/jobs`, `GET /api/admin/jobs[/{id}]` | Job starten (`models`, `picks`, `backup`, `add_league`) / Fortschritt |
 | `GET /api/admin/backups[/{name}]` | Backups auflisten / herunterladen |

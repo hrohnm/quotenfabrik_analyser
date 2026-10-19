@@ -6,6 +6,7 @@ import type { Job, JobStep } from "./types";
 
 const KIND_LABELS: Record<Job["kind"], string> = {
   add_league: "Liga hinzufügen",
+  add_ratings: "Stärke-Ligen importieren",
   models: "Modelle neu berechnen",
   picks: "Tipps neu berechnen",
   backup: "Backup",
@@ -25,7 +26,8 @@ const time = (iso: string | null) => (iso ? new Date(iso).toLocaleString("de-DE"
 function JobView({ job, open, busy, onRetry }: { job: Job; open: boolean; busy: boolean; onRetry?: (job: Job) => void }) {
   const [expanded, setExpanded] = useState(open);
   const s = STATUS[job.status];
-  const league = job.params.league_id ? ` · Liga ${job.params.league_id}` : "";
+  const ids = Array.isArray(job.params.league_ids) ? job.params.league_ids : null;
+  const league = job.params.league_id ? ` · Liga ${job.params.league_id}` : ids ? ` · ${ids.length} ${ids.length === 1 ? "Liga" : "Ligen"}` : "";
   return (
     <li className="py-2">
       <button type="button" onClick={() => setExpanded(!expanded)} className="flex w-full items-center justify-between gap-2 text-left text-sm">
@@ -53,7 +55,7 @@ function JobView({ job, open, busy, onRetry }: { job: Job; open: boolean; busy: 
               </li>
             );
           })}
-          {job.status === "failed" && job.kind === "add_league" && onRetry && (
+          {job.status === "failed" && (job.kind === "add_league" || job.kind === "add_ratings") && onRetry && (
             <li>
               <button type="button" disabled={busy} onClick={() => onRetry(job)} className="rounded-md bg-slate-900 px-3 py-1 text-xs text-white disabled:opacity-40" title={busy ? "Es läuft bereits ein Hintergrund-Job" : undefined}>
                 Erneut ausführen (lädt nur Fehlendes nach)

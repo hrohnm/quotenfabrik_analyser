@@ -83,6 +83,8 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 - Wahrscheinlichkeiten intern immer als Dezimalwert 0–1, Quoten als Dezimalquote. Zeiten in UTC (`timestamptz`).
 - **Ligen und Einstellungen kommen aus der DB** (`app.leagues`, `app.settings`, Zugriff nur über `quotenfabrik/app_config.py`);
   `QF_LEAGUES` & Co. sind nur Fallback. Neue Schwellen/Parameter als `SettingDef` in `app_config.SETTINGS` ergänzen.
+  Ligaarten: `full` (alles, `app_config.league_ids()`) und `ratings` (nur Ergebnisse für die Stärkeskala,
+  `app_config.ratings_leagues()`) – Stärke-Ligen nie in Frontend, Quoten-Snapshots oder Prognose-Schleifen aufnehmen.
 - **Nach jedem Liga-Import entsteht automatisch ein Backup** (`backups/`, ersetzt standardmäßig den Seed), damit
   verbrauchte Requests nicht verloren gehen.
 - Teams werden intern über die **API-Football Team-ID** identifiziert; football-data-Namen werden über

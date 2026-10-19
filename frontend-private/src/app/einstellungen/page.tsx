@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, apiSend } from "@/lib/api";
 import { JobsCard } from "@/components/settings/JobsCard";
 import { LeaguesCard } from "@/components/settings/LeaguesCard";
+import { RatingsLeaguesCard } from "@/components/settings/RatingsLeaguesCard";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import { StatusCard } from "@/components/settings/StatusCard";
 import type { ApiStatus, ConfiguredLeague, Job, SettingField } from "@/components/settings/types";
@@ -43,9 +44,9 @@ export default function SettingsPage() {
     return () => clearInterval(t);
   }, [jobRunning, loadAll]);
 
-  const startJob = async (kind: "picks" | "models" | "backup" | "add_league", leagueId?: number) => {
+  const startJob = async (kind: Job["kind"], leagueId?: number, leagueIds?: number[]) => {
     try {
-      await apiSend("POST", "/admin/jobs", { kind, league_id: leagueId });
+      await apiSend("POST", "/admin/jobs", { kind, league_id: leagueId, league_ids: leagueIds });
       setError(null);
       loadJobs();
     } catch (e) {
@@ -69,9 +70,20 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <JobsCard jobs={jobs} onRetry={(j) => startJob("add_league", Number(j.params.league_id))} />
+      <JobsCard
+        jobs={jobs}
+        onRetry={(j) => (j.kind === "add_ratings" ? startJob("add_ratings", undefined, j.params.league_ids as number[]) : startJob("add_league", Number(j.params.league_id)))}
+      />
       <StatusCard status={status} onBackup={() => startJob("backup")} busy={jobRunning} />
       <LeaguesCard leagues={leagues} status={status} jobRunning={jobRunning} onChanged={loadAll} onReload={(id) => startJob("add_league", id)} onError={setError} />
+      <RatingsLeaguesCard
+        leagues={leagues.filter((l) => l.kind === "ratings")}
+        status={status}
+        jobRunning={jobRunning}
+        onChanged={loadAll}
+        onReload={(ids) => startJob("add_ratings", undefined, ids)}
+        onError={setError}
+      />
       <SettingsForm fields={fields} jobRunning={jobRunning} onSaved={setFields} onStartJob={startJob} onError={setError} />
     </div>
   );

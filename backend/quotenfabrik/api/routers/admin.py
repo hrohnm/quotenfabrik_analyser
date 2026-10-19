@@ -25,6 +25,7 @@ from quotenfabrik.models import AppLeague, Job, OddsPapiResponse
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 TOURNAMENTS_FILE = Path(__file__).resolve().parents[2] / "data" / "oddspapi_tournaments.json"
+PRESETS_FILE = Path(__file__).resolve().parents[2] / "data" / "european_leagues.json"
 
 # football-data.co.uk codes (main leagues with results and closing odds since 2000s)
 FOOTBALL_DATA_CODES = {
@@ -135,6 +136,7 @@ def leagues() -> list[dict]:
         out.append({
             "id": lg.id, "name": lg.name, "country": lg.country, "logo": league_logo(lg.id), "fd_code": lg.fd_code,
             "oddspapi_tournament": lg.oddspapi_tournament, "first_season": lg.first_season, "active": lg.active,
+            "kind": lg.kind,
             "fixtures": int(c["fixtures"]) if c is not None else 0,
             "finished": int(c["finished"]) if c is not None else 0,
             "seasons": [int(c["first_season"]), int(c["last_season"])] if c is not None else None,
@@ -254,6 +256,45 @@ def add_league(body: NewLeague) -> dict:
     return _start("add_league", params)
 
 
+@router.get("/leagues/presets")
+def league_presets() -> list[dict]:
+    """European top divisions for the strength scale (bundled list, IDs checked against API-Football)."""
+    configured = {lg.id: lg.kind for lg in app_config.all_leagues()}
+    data = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))["leagues"]
+    return [{**lg, "configured": configured.get(lg["id"])} for lg in data]
+
+
+class NewRatingsLeagues(BaseModel):
+    ids: list[int] = Field(min_length=1)
+    first_season: int = Field(ge=2010, le=2100)
+
+
+@router.post("/leagues/ratings")
+def add_ratings_leagues(body: NewRatingsLeagues) -> dict:
+    """Stores results-only leagues (strength scale) and imports their results: 1 request per season and league."""
+    if not get_settings().api_football_key:
+        raise HTTPException(409, "API_FOOTBALL_KEY fehlt – ohne Key können keine Daten geladen werden")
+    presets = {lg["id"]: lg for lg in json.loads(PRESETS_FILE.read_text(encoding="utf-8"))["leagues"]}
+    unknown = [i for i in body.ids if i not in presets]
+    if unknown:
+        raise HTTPException(422, f"Nicht in der Liste der europäischen Ligen: {unknown}")
+    with Session(get_engine()) as session, session.begin():
+        try:
+            jobs.ensure_idle(session)
+        except jobs.JobConflict as exc:
+            raise HTTPException(409, str(exc)) from None
+        new = [i for i in body.ids if session.get(AppLeague, i) is None]
+        if not new:
+            raise HTTPException(409, "Alle ausgewählten Ligen sind bereits konfiguriert")
+        for i in new:
+            p = presets[i]
+            session.add(AppLeague(id=i, name=p["name"], country=p["country"], first_season=max(body.first_season, p["seasons_from"]),
+                                  active=True, kind="ratings"))  # fmt: skip
+    app_config.invalidate()
+    return _start("add_ratings", {"league_ids": new, "first_season": body.first_season,
+                                  "last_season": jobs.current_season()})  # fmt: skip
+
+
 class LeaguePatch(BaseModel):
     active: bool | None = None
     fd_code: str | None = None
@@ -270,7 +311,10 @@ def patch_league(league_id: int, body: LeaguePatch) -> dict:
             setattr(lg, field, value)
         if (
             not lg.active
-            and not session.scalars(select(AppLeague).where(AppLeague.active, AppLeague.id != lg.id)).first()
+            and lg.kind == "full"
+            and not session.scalars(
+                select(AppLeague).where(AppLeague.active, AppLeague.kind == "full", AppLeague.id != lg.id)
+            ).first()
         ):
             raise HTTPException(409, "Mindestens eine Liga muss aktiv bleiben")
     app_config.invalidate()
@@ -294,18 +338,29 @@ class JobRequest(BaseModel):
     league_id: int | None = (
         None  # add_league: re-run the import of a configured league (loads what is missing)
     )
+    league_ids: list[int] | None = None  # add_ratings: re-run the results import of these leagues
 
 
 @router.post("/jobs")
 def start_job(body: JobRequest) -> dict:
+    if body.kind == "add_ratings":
+        known = {lg.id: lg for lg in app_config.all_leagues() if lg.kind == "ratings"}
+        ids = [i for i in (body.league_ids or []) if i in known]
+        if not ids:
+            raise HTTPException(404, "Keine konfigurierten Stärke-Ligen angegeben")
+        return _start("add_ratings", {"league_ids": ids, "first_season": min(known[i].first_season for i in ids),
+                                      "last_season": jobs.current_season()})  # fmt: skip
     if body.kind == "add_league":
         lg = next((lg for lg in app_config.all_leagues() if lg.id == body.league_id), None)
         if lg is None:
             raise HTTPException(404, "Liga nicht konfiguriert")
+        if lg.kind == "ratings":
+            return _start("add_ratings", {"league_ids": [lg.id], "first_season": lg.first_season,
+                                          "last_season": jobs.current_season()})  # fmt: skip
         return _start("add_league", {"league_id": lg.id, "first_season": lg.first_season,
                                      "last_season": jobs.current_season()})  # fmt: skip
     if body.kind not in {"models", "picks", "backup"}:
-        raise HTTPException(422, "Erlaubt: add_league, models, picks, backup")
+        raise HTTPException(422, "Erlaubt: add_league, add_ratings, models, picks, backup")
     return _start(body.kind, {})
 
 

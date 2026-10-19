@@ -35,6 +35,8 @@ class AppLeague(Base):
     oddspapi_tournament: Mapped[int | None] = mapped_column(Integer)
     first_season: Mapped[int] = mapped_column(Integer)
     active: Mapped[bool] = mapped_column(Boolean, server_default="true")
+    # 'full' = everything (details, odds, forecasts, picks); 'ratings' = results only, for the strength scale
+    kind: Mapped[str] = mapped_column(Text, server_default="full")
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

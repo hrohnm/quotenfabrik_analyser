@@ -9,6 +9,8 @@ Kinds:
   models + picks, reports, final backup
 - ``models``: backtest + forecast (incl. picks) for all active leagues (after changing model parameters)
 - ``picks``: rebuild picks for all active leagues (after changing pick thresholds)
+- ``add_ratings``: results-only import of several leagues for the strength scale (1 request per season and
+  league), then a backup
 - ``backup``: database backup
 """
 
@@ -53,6 +55,7 @@ STEP_LABELS = {
     "football_data": "football-data.co.uk (Historie, kostenlos)",
     "api_football": "API-Football (Spiele, Details, Halbzeit-Stats, Ausfälle)",
     "map_teams": "Teams zuordnen",
+    "results": "API-Football: Ergebnisse (1 Request pro Saison und Liga)",
     "oddspapi_fixtures": "OddsPapi-Spielplan (1 Request)",
     "oddspapi_history": "Betano/Pinnacle-Quotenverläufe (kostenlos)",
     "backup_data": "Backup der abgerufenen Daten",
@@ -68,6 +71,8 @@ def steps_for(kind: str, params: dict) -> list[str]:
     if kind == "add_league":
         return ["football_data", "api_football", "map_teams", "oddspapi_fixtures", "oddspapi_history",
                 "backup_data", "backtest", "forecast", "reports", "backup"]  # fmt: skip
+    if kind == "add_ratings":
+        return ["results", "backup_data"]
     if kind == "models":
         return ["backtest", "forecast"]
     if kind == "picks":
@@ -231,6 +236,17 @@ def _handlers() -> dict[str, Handler]:
                 session, client, params["league_id"], _seasons(params), log=log
             )
 
+    def results(params, log):
+        with Session(engine) as session, ApiFootballClient(on_response=raw_response_saver(engine)) as client:
+            for league_id in params["league_ids"]:
+                name = app_config.league(league_id).name
+                pipeline.api_football_seasons(
+                    session, client, league_id, _seasons(params), details=False, half_stats=False,
+                    injuries=False, log=lambda m, name=name: log(f"{name}: {m}"),
+                )  # fmt: skip
+            n, used, left = len(params["league_ids"]), client.requests_made, client.quota_remaining
+        return f"{n} Ligen, {used} Requests, verbleibend heute {left}"
+
     def map_teams(params, log):
         _needs_fd(params)
         with Session(engine) as session:
@@ -310,6 +326,7 @@ def _handlers() -> dict[str, Handler]:
         "football_data": football_data,
         "api_football": api_football,
         "map_teams": map_teams,
+        "results": results,
         "oddspapi_fixtures": oddspapi_fixtures,
         "oddspapi_history": oddspapi_history,
         "backup_data": backup_step("nach_import"),
