@@ -1,0 +1,16 @@
+# Quotenfabrik – Zeitplan des Cron-Containers (supercronic, Zeiten in UTC).
+# Ein Lauf startet nicht, solange der vorige noch läuft. Ligen: aktive Ligen aus den Einstellungen.
+
+# Quoten-Archiv API-Football alle 3 Stunden (verpasste Quoten sind nicht nachholbar)
+5 */3 * * *     qf odds snapshot
+# Betano-Quotenverläufe (OddsPapi, kostenlos) alle 3 Stunden, Spielplan max. 1x/Woche
+15 */3 * * *    qf oddspapi update
+# Aktuelle Saison nachziehen (Ergebnisse, Details, Halbzeit-Stats, Ausfälle; Saisonwechsel im Juli automatisch)
+30 4 * * *      qf ingest api-football --seasons aktuell --half-stats
+45 4 * * 2      qf ingest football-data --seasons aktuell && qf map-teams
+# Ergebnisse abrechnen, Prognosen + Tipps für die nächsten 10 Tage
+0 6,12,18 * * * qf model settle && qf model forecast
+# Spielernamen für Torschützen-Märkte an Spieltagen (Fr/Sa/So, je 1 OddsPapi-Request)
+0 10 * * 5,6,0  qf oddspapi players
+# Nächtliches Backup (Volume qf_backups, Anzahl: Einstellung "Backups behalten")
+30 2 * * *      qf backup --reason nacht

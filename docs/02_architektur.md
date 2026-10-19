@@ -125,7 +125,7 @@ Schutz: Basic Auth / einzelner Login hinter Reverse Proxy, nicht öffentlich ind
 | ORM/Migrationen | SQLAlchemy 2 + Alembic | Standard, typisiert |
 | Frontends | TypeScript, **Next.js** (React) | Entschieden: Next.js für beide Frontends, gemeinsame UI-Komponenten; SSR/SEO für das öffentliche Frontend |
 | Lokale Umgebung | Docker Compose (Postgres, später Backend + Frontends) | reproduzierbar |
-| Deployment | offen (z. B. ein VPS mit Docker Compose oder Managed Postgres + Container-Hosting) | Entscheidung vor Phase 4 |
+| Deployment | eigener VPS (Hostinger) mit Docker Compose: db, api, cron (supercronic), frontend, caddy (HTTPS + Passwort) | `docs/13_deployment_vps.md` |
 
 ## Sicherheit
 

@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../backend"
 PY=.venv/bin/python
 
-for _ in $(seq 1 120); do
+for _ in $(seq 1 300); do   # up to 10 minutes (seed restore on first start)
   if $PY -c "from quotenfabrik.db import get_engine; get_engine().connect().close()" 2>/dev/null; then break; fi
   sleep 2
 done

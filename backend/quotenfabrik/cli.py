@@ -37,10 +37,14 @@ app.add_typer(seed_app, name="seed")
 
 
 def _seasons(spec: str) -> list[int]:
-    """'2015-2026' or '2024,2026' -> list of season start years."""
+    """'2015-2026', '2024,2026' or 'aktuell' (season running now) -> list of season start years."""
     seasons: list[int] = []
     for part in spec.split(","):
-        if "-" in part:
+        if part.strip().lower() in ("aktuell", "current"):
+            from quotenfabrik.jobs import current_season
+
+            seasons.append(current_season())
+        elif "-" in part:
             start, end = part.split("-")
             seasons.extend(range(int(start), int(end) + 1))
         elif part.strip():
@@ -91,7 +95,7 @@ def status() -> None:
 
 @ingest_app.command("football-data")
 def ingest_football_data(
-    seasons: str = typer.Option("2015-2026", help="Saison-Startjahre, z. B. 2015-2026"),
+    seasons: str = typer.Option("2015-2026", help="Saison-Startjahre, z. B. 2015-2026 oder aktuell"),
     league: int | None = typer.Option(None, help="API-Liga-ID (Standard: konfigurierte Ligen)"),
 ) -> None:
     """Historische Ergebnisse + Quoten von football-data.co.uk (keine API-Quota)."""
@@ -103,7 +107,7 @@ def ingest_football_data(
 
 @ingest_app.command("api-football")
 def ingest_api_football(
-    seasons: str = typer.Option("2015-2026", help="Saison-Startjahre, z. B. 2015-2026"),
+    seasons: str = typer.Option("2015-2026", help="Saison-Startjahre, z. B. 2015-2026 oder aktuell"),
     league: int | None = typer.Option(None, help="API-Liga-ID (Standard: konfigurierte Ligen)"),
     details: bool = typer.Option(True, help="Events, Lineups, Stats und Spieler-Stats laden"),
     half_stats: bool = typer.Option(False, "--half-stats", help="Halbzeit-Stats ab 2024 (1 Request/Spiel)"),

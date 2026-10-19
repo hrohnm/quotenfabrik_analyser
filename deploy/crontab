@@ -9,10 +9,9 @@ LOG=/home/qf/logs
 5 */3 * * *     flock -n /tmp/qf-odds.lock $QF odds snapshot >> $LOG/odds.log 2>&1
 # Betano-Quotenverläufe (OddsPapi, kostenlos) alle 3 Stunden, Spielplan max. 1x/Woche
 15 */3 * * *    flock -n /tmp/qf-oddspapi.lock $QF oddspapi update >> $LOG/oddspapi.log 2>&1
-# Aktuelle Saison täglich nachziehen (Ergebnisse, Details, Halbzeit-Stats, Ausfälle).
-# Saison = Startjahr: ab Juli 2027 auf 2027 ändern (auch in der Zeile darunter).
-30 4 * * *      flock -n /tmp/qf-ingest.lock $QF ingest api-football --seasons 2026 --half-stats >> $LOG/ingest.log 2>&1
-45 4 * * 2      flock -n /tmp/qf-ingest.lock bash -c "$QF ingest football-data --seasons 2026 && $QF map-teams" >> $LOG/ingest.log 2>&1
+# Aktuelle Saison täglich nachziehen (Ergebnisse, Details, Halbzeit-Stats, Ausfälle; Saisonwechsel im Juli automatisch)
+30 4 * * *      flock -n /tmp/qf-ingest.lock $QF ingest api-football --seasons aktuell --half-stats >> $LOG/ingest.log 2>&1
+45 4 * * 2      flock -n /tmp/qf-ingest.lock bash -c "$QF ingest football-data --seasons aktuell && $QF map-teams" >> $LOG/ingest.log 2>&1
 # Ergebnisse abrechnen, Prognosen + Tipps für die nächsten 10 Tage
 0 6,12,18 * * * flock -n /tmp/qf-model.lock bash -c "$QF model settle && $QF model forecast" >> $LOG/model.log 2>&1
 # Spielernamen für Torschützen-Märkte an Spieltagen (Fr/Sa/So, je 1 OddsPapi-Request)
