@@ -32,8 +32,12 @@
       Halbzeit-Modelle, offene Pattern (Ruhetage, Schiedsrichter, Ausfälle), Torschützen: Elfmeterschützen
 
 ## Phase 3 – Value-Suche mit Quoten
-- [ ] Margenentfernung, Edge/EV, Kelly
-- [ ] Backtest 1X2 und Ü/U 2.5 gegen football-data-Quoten (inkl. Pinnacle-Schlussquote)
+- [x] Margenentfernung (Shin/Power/proportional), Edge/EV, Kelly, CLV (`analytics/value.py`)
+- [x] Backtest 1X2 und Ü/U 2.5 gegen football-data-Quoten (inkl. Pinnacle-Schlussquote) → `10_quoten_backtest.md`:
+      **kein Value mit `dc-v1`** – Modell schlechter als der Markt, negativer CLV
+- [ ] Marktbasiertes Modell: Torerwartungen aus Betano-/Pinnacle-Hauptmärkten (1X2, Ü/U) ableiten und damit
+      Nebenmärkte (Team-Tore, Halbzeiten, BTTS, Torschützen) gegen Betano-Quoten aus dem OddsPapi-Archiv prüfen
+- [ ] Modell um Informationen erweitern, die es noch nicht nutzt (Aufstellungen, Ausfälle, xG) und erneut gegen den Markt testen
 - [ ] Übrige Märkte gegen das eigene Snapshot-Archiv (CLV)
 - [ ] Value-Erkennung + Paper-Trading-Protokoll
 

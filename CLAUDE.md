@@ -49,6 +49,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/07_entwicklung.md` | Setup, Befehle, Konventionen |
 | `docs/08_betano_quellen.md` | Betano-Quoten über OddsPapi (Test, Umsetzung, Quota) |
 | `docs/09_modell_evaluation.md` | Automatisch erzeugter Evaluationsbericht der Modelle (Phase 2) |
+| `docs/10_quoten_backtest.md` | Automatisch erzeugter Quoten-Backtest 1X2 / Ü/U 2,5 gegen football-data (Phase 3) |
 
 ## Harte Regeln
 
@@ -102,6 +103,7 @@ qf oddspapi update                            # Betano-Verläufe über OddsPapi 
 qf model evaluate --seasons 2022-2026         # Walk-Forward-Evaluation → docs/09_modell_evaluation.md
 qf model forecast && qf model show <id>       # Prognosen für kommende Spiele
 qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebnisse eintragen
+qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
 qf seed import                                # Datenbank aus seed/quotenfabrik_seed.dump (statt API-Abruf)
 uvicorn quotenfabrik.api.main:app --port 8000 # REST-API für das Frontend
 cd ../frontend-private && npm run dev          # privates Frontend auf :3000
@@ -116,7 +118,8 @@ pytest && ruff check . && ruff format --check .
 - `quotenfabrik/sources/oddspapi.py`, `ingest/oddspapi*.py` – Betano-Quotenverläufe (OddsPapi), Spiel-/Team-Mapping
 - `quotenfabrik/markets.py` – welche Wettarten zu welcher Marktgruppe gehören, für API-Football und OddsPapi
   (asiatische Märkte ausgeschlossen)
-- `quotenfabrik/analytics/` – Modelle (Dixon-Coles, Halbzeiten, Torschützen), Märkte, Pattern, Evaluation
+- `quotenfabrik/analytics/` – Modelle (Dixon-Coles, Halbzeiten, Torschützen), Märkte, Pattern, Evaluation,
+  Value-Rechnung (`value.py`: Margenentfernung, EV, Kelly, CLV) und Quoten-Backtest (`odds_backtest.py`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, explorer, stats), Labels in `api/labels.py`
 - `frontend-private/` – Next.js App Router (`src/app/spieltage`, `spiel/[id]`, `explorer`, `auswertung`)
