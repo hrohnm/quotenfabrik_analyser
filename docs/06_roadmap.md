@@ -25,7 +25,7 @@
 
 ## Phase 3 – Value-Suche mit Quoten
 - [ ] Margenentfernung, Edge/EV, Kelly
-- [ ] Backtest 1X2, Ü/U 2.5, Asian Handicap gegen football-data-Quoten (inkl. Pinnacle-Schlussquote)
+- [ ] Backtest 1X2 und Ü/U 2.5 gegen football-data-Quoten (inkl. Pinnacle-Schlussquote)
 - [ ] Übrige Märkte gegen das eigene Snapshot-Archiv (CLV)
 - [ ] Value-Erkennung + Paper-Trading-Protokoll
 

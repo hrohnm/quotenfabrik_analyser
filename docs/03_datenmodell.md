@@ -124,7 +124,6 @@ core.historical_matches (
   avgc_h numeric, avgc_d numeric, avgc_a numeric,
   b365_o25 numeric, b365_u25 numeric, ps_o25 numeric, ps_u25 numeric,
   avg_o25 numeric, avg_u25 numeric, psc_o25 numeric, psc_u25 numeric, avgc_o25 numeric, avgc_u25 numeric,
-  ah_line numeric, ps_ahh numeric, ps_aha numeric, ahc_line numeric, psc_ahh numeric, psc_aha numeric,
   raw_row jsonb not null,                              -- komplette Originalzeile
   unique (league_code, season_code, match_date, home_alias, away_alias)
 );
@@ -135,7 +134,7 @@ core.odds_snapshots (
   bookmaker_id int not null,
   bet_id       int not null,
   selection    text not null,             -- 'Home', 'Over 2.5', Spielername …
-  handicap     text not null default '',  -- '' wenn keine Linie
+  handicap     text not null default '',  -- '' wenn keine Linie (z. B. europäisches Handicap '-1')
   odd          numeric(8,3) not null,
   is_main      boolean,
   captured_at  timestamptz not null,

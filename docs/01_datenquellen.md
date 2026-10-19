@@ -76,8 +76,8 @@ Bet-IDs für unsere Marktgruppen (`/odds/bets` liefert 338 Märkte):
 
 | Marktgruppe | Bet-IDs |
 |---|---|
-| 1X2 | 1 Match Winner, 12 Double Chance, 2 Home/Away (DNB), 4 Asian Handicap, 9 Handicap Result |
-| Ü/U gesamt | 5 Goals Over/Under, 50/336 Goal Line, 38 Exact Goals Number, 8 Both Teams Score, 25 Result/Total Goals |
+| 1X2 | 1 Match Winner, 12 Double Chance, 2 Home/Away (DNB), 9 Handicap Result (europäisch, 3-Weg) |
+| Ü/U gesamt | 5 Goals Over/Under, 38 Exact Goals Number, 8 Both Teams Score, 25 Result/Total Goals |
 | Ü/U pro Team | 16 Total - Home, 17 Total - Away, 40/41 Home/Away Team Exact Goals, 27/28 Clean Sheet |
 | Ü/U Halbzeit | 6 Goals O/U First Half, 26 Goals O/U Second Half, 105–108 Team Total Goals 1st/2nd Half, 11 Highest Scoring Half, 13 First Half Winner, 34/35 BTTS 1st/2nd Half |
 | Torschützen | 92 Anytime Goal Scorer, 93 First Goal Scorer, 94 Last Goal Scorer, 95 To Score Two or More, 231/218 Home/Away Anytime |
@@ -100,7 +100,8 @@ als Ersatz für Märkte, die Pinnacle nicht anbietet (Torschützen, viele Halbze
 Wichtig:
 - Pinnacle (sharpster Buchmacher, Referenz für „faire“ Quoten) bietet nur 12 Märkte – für Team-Totals, Halbzeiten
   und Torschützen ist **Bet365** die Hauptquelle.
-- Asiatische Linien: mehrere Werte mit `handicap`; `main: true` markiert die Hauptlinie.
+- **Asiatische Märkte werden ignoriert** (Bet-IDs 4, 19, 50, 72, 104, 336 u. a.), da Betano sie in Deutschland nicht anbietet.
+  Bei Ü/U-Märkten werden nur x.5-Linien gespeichert.
 - Da die Historie nur 7 Tage beträgt, **muss der Snapshot-Job ab Tag 1 laufen**. Jeder verpasste Spieltag fehlt für immer im Archiv.
 
 ### Quota-Budget (Bundesliga-PoV)
@@ -141,7 +142,7 @@ Wichtig:
 | 1X2 Eröffnung | B365H/D/A, PSH/D/A (Pinnacle), BFE (Betfair Exchange), Max, Avg … | |
 | 1X2 Schluss | B365CH…, PSCH…, MaxC…, AvgC… | **Closing Odds = wichtigster Benchmark** |
 | Ü/U 2.5 | B365>2.5, P>2.5, Max>2.5, Avg>2.5 (+ Schluss mit `C`) | nur Linie 2.5 |
-| Asian Handicap | AHh, B365AHH/A, PAHH/A, … (+ Schluss) | |
+| Asian Handicap | AHh, B365AHH/A, PAHH/A, … (+ Schluss) | wird nicht importiert (nur in `raw_row`) |
 
 - Spaltennamen ändern sich über die Saisons (z. B. ältere Dateien: `Bb*`-Aggregatspalten, `IW`, `WH`, `VC`;
   neuere: `BFD`, `BMGM`, `CL`). Der Parser mappt bekannte Spalten auf ein festes Schema und legt **die komplette Zeile

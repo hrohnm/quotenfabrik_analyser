@@ -36,7 +36,7 @@ class MarketAnalyzer(Protocol):
 ## 1. 1X2 (Spielausgang)
 
 **Modell:** Dixon-Coles (Poisson mit Korrektur für niedrige Ergebnisse, Zeitgewichtung) → Ergebnismatrix → P(1), P(X), P(2).
-Daraus auch Doppelte Chance, Draw No Bet, Asian Handicap.
+Daraus auch Doppelte Chance, Draw No Bet und europäisches Handicap (3-Weg). Keine asiatischen Märkte (bei Betano DE nicht verfügbar).
 
 **Pattern:**
 - Punkte pro Spiel (gesamt, Heim/Auswärts), Last-5/10-Form
@@ -51,7 +51,7 @@ Daraus auch Doppelte Chance, Draw No Bet, Asian Handicap.
 
 ## 2. Über/Unter Tore gesamt
 
-**Modell:** Gleiche Ergebnismatrix; Summe der Tore → Ü/U 0.5 … 5.5, Asian-Goal-Lines (x.25/x.75), exakte Toranzahl, BTTS.
+**Modell:** Gleiche Ergebnismatrix; Summe der Tore → Ü/U 0.5 … 5.5 (nur x.5-Linien), exakte Toranzahl, BTTS.
 
 **Pattern:**
 - Ü-Quote je Linie (1.5/2.5/3.5) beider Teams, Heim/Auswärts-spezifisch, vs. Liga-Baseline

@@ -39,7 +39,8 @@ Siehe `04_analysepattern.md`, Abschnitt 5. Kalibrierung: Summe aller Spieler-λ 
 | Kelly-Anteil | `(p × quote − 1) / (quote − 1)`, in der Praxis **¼-Kelly** und Kappung (z. B. max. 2 % Bankroll) |
 | CLV | `quote_genommen / quote_closing − 1` (Closing = Pinnacle bzw. letzte Snapshot-Quote vor Anpfiff) |
 
-Asiatische Linien (x.25 / x.75) werden als halbe Einsätze auf die Nachbarlinien abgerechnet.
+Asiatische Märkte (Asian Handicap, Asian Goal Lines x.0/x.25/x.75) werden **nicht** betrachtet: Betano bietet sie in
+Deutschland nicht an. Berücksichtigt werden nur x.5-Linien und das europäische (3-Weg-)Handicap.
 
 ## 6. Backtesting
 
@@ -67,7 +68,6 @@ Asiatische Linien (x.25 / x.75) werden als halbe Einsätze auf die Nachbarlinien
 | Team-Totals | ❌ | Kalibrierung; Archiv |
 | Halbzeit-Märkte | ❌ | Kalibrierung; Archiv |
 | Torschützen | ❌ | Kalibrierung; Archiv |
-| Asian Handicap | ✅ football-data (Hauptlinie) | ROI + CLV |
 
 Für Märkte ohne historische Quoten zählt zunächst: **Ist das Modell gut kalibriert?** Sobald einige Spieltage im
 Snapshot-Archiv liegen, wird gemessen, ob Modell-Value-Wetten positiven CLV gegen die Schlussquote erzielen –

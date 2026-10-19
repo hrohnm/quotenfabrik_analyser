@@ -65,7 +65,9 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 - **Zielbuchmacher ist Betano** (API-ID 32). Referenz: Pinnacle (ID 4), Ersatz für fehlende Märkte: Bet365 (ID 8).
   Andere Buchmacher werden nicht gespeichert. API-Football liefert aktuell keine Betano-Quoten für die Bundesliga
   (siehe `docs/01_datenquellen.md`).
-- Historische Quoten für Backtests kommen aus **football-data.co.uk** (1X2, Ü/U 2.5, Asian Handicap,
+- **Keine asiatischen Märkte** (Asian Handicap, Asian Goal Lines mit x.0/x.25/x.75): Betano bietet sie in Deutschland
+  nicht an. Nur x.5-Linien und europäisches Handicap.
+- Historische Quoten für Backtests kommen aus **football-data.co.uk** (1X2, Ü/U 2.5,
   jeweils Eröffnungs- und Schlussquote). Für alle anderen Märkte gibt es nur unser eigenes Snapshot-Archiv.
 - Wahrscheinlichkeiten intern immer als Dezimalwert 0–1, Quoten als Dezimalquote. Zeiten in UTC (`timestamptz`).
 - Teams werden intern über die **API-Football Team-ID** identifiziert; football-data-Namen werden über
