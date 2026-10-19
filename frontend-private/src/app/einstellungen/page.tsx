@@ -17,7 +17,7 @@ export default function SettingsPage() {
 
   const jobRunning = jobs.some((j) => j.status === "running" || j.status === "queued");
 
-  const loadJobs = useCallback(() => api<Job[]>("/admin/jobs", { limit: 5 }).then(setJobs), []);
+  const loadJobs = useCallback(() => api<Job[]>("/admin/jobs", { limit: 10 }).then(setJobs), []);
   const loadAll = useCallback(() => {
     Promise.all([
       api<ApiStatus>("/admin/status").then(setStatus),
@@ -33,7 +33,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!jobRunning) return;
     const t = setInterval(() => {
-      api<Job[]>("/admin/jobs", { limit: 5 })
+      api<Job[]>("/admin/jobs", { limit: 10 })
         .then((next) => {
           setJobs(next);
           if (!next.some((j) => j.status === "running" || j.status === "queued")) loadAll();
@@ -71,7 +71,7 @@ export default function SettingsPage() {
 
       <JobsCard jobs={jobs} onRetry={(j) => startJob("add_league", Number(j.params.league_id))} />
       <StatusCard status={status} onBackup={() => startJob("backup")} busy={jobRunning} />
-      <LeaguesCard leagues={leagues} status={status} jobRunning={jobRunning} onChanged={loadAll} onError={setError} />
+      <LeaguesCard leagues={leagues} status={status} jobRunning={jobRunning} onChanged={loadAll} onReload={(id) => startJob("add_league", id)} onError={setError} />
       <SettingsForm fields={fields} jobRunning={jobRunning} onSaved={setFields} onStartJob={startJob} onError={setError} />
     </div>
   );

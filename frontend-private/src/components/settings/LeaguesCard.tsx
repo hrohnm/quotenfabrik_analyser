@@ -11,10 +11,11 @@ type Props = {
   status: ApiStatus | null;
   jobRunning: boolean;
   onChanged: () => void;
+  onReload: (leagueId: number) => void;
   onError: (msg: string) => void;
 };
 
-export function LeaguesCard({ leagues, status, jobRunning, onChanged, onError }: Props) {
+export function LeaguesCard({ leagues, status, jobRunning, onChanged, onReload, onError }: Props) {
   const [adding, setAdding] = useState(false);
 
   const toggle = async (lg: ConfiguredLeague) => {
@@ -24,6 +25,13 @@ export function LeaguesCard({ leagues, status, jobRunning, onChanged, onError }:
     } catch (e) {
       onError(String(e instanceof Error ? e.message : e));
     }
+  };
+
+  const reload = (lg: ConfiguredLeague) => {
+    const ok = window.confirm(
+      `${lg.name}: Import erneut ausführen?\n\nLädt nur Fehlendes nach (bereits gespeicherte Spiele werden übersprungen) und berechnet danach Prognosen und Tipps neu.\nKosten: ca. 2 API-Football-Requests pro Saison und 1 OddsPapi-Request. Dauer: einige Minuten.`,
+    );
+    if (ok) onReload(lg.id);
   };
 
   return (
@@ -53,6 +61,15 @@ export function LeaguesCard({ leagues, status, jobRunning, onChanged, onError }:
                 <td className="py-2 font-mono text-xs">{lg.oddspapi_tournament ?? "–"}</td>
                 <td className="py-2 text-xs text-slate-500">
                   {lg.seasons ? `${lg.seasons[0]}/${String((lg.seasons[0] + 1) % 100).padStart(2, "0")} – ${lg.seasons[1]}/${String((lg.seasons[1] + 1) % 100).padStart(2, "0")} · ${lg.finished.toLocaleString("de-DE")} Spiele` : "noch keine Daten"}
+                  <button
+                    type="button"
+                    disabled={jobRunning}
+                    onClick={() => reload(lg)}
+                    className="ml-2 text-emerald-700 hover:underline disabled:text-slate-300 disabled:no-underline"
+                    title={jobRunning ? "Es läuft bereits ein Hintergrund-Job" : "Import erneut ausführen (lädt nur Fehlendes nach)"}
+                  >
+                    nachladen
+                  </button>
                 </td>
                 <td className="py-2 text-right">
                   <button
