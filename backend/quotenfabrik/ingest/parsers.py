@@ -74,7 +74,7 @@ def parse_fixture(item: dict[str, Any], now: datetime) -> dict[str, Any]:
             "matchday": matchday_from_round(league.get("round")),
             "kickoff_utc": parse_datetime(fx["date"]),
             "status": status,
-            "venue_id": venue.get("id"),
+            "venue_id": venue.get("id") or None,  # the API sometimes sends id 0 for unknown venues
             "referee": fx.get("referee"),
             "home_team_id": teams["home"]["id"],
             "away_team_id": teams["away"]["id"],

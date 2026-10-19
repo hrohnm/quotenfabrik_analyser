@@ -89,7 +89,7 @@ def map_and_link(session: Session, league_id: int, league_code: str) -> MappingR
     report.aliases_new = len(new_aliases)
     report.aliases_total = len(existing)
     report.unmapped_aliases = sorted(
-        {r.home_alias for r in rows} | {r.away_alias for r in rows} - set(existing)
+        ({r.home_alias for r in rows} | {r.away_alias for r in rows}) - set(existing)
     )
 
     # 2) link rows via (home id, away id, date +/- 1 day)

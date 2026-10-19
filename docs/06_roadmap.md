@@ -12,7 +12,8 @@
 - [x] football-data.co.uk 2015/16–2026/27 importieren
 - [x] Team-Mapping + Verknüpfung, Datenqualitäts-Report (fehlende Spiele, ungemappte Teams, xG-Abdeckung)
 - [x] Quoten-Snapshot-Job gebaut (`qf odds snapshot`, nur Archivaufbau, ≈30 Requests/Tag – wird erst in Phase 3 ausgewertet)
-- [ ] Snapshot-Job und tägliche Aktualisierung dauerhaft einplanen (Cron/Server – braucht eine dauerhaft laufende Umgebung)
+- [ ] **Dauerhafte Umgebung**: PostgreSQL + Snapshot-Job + tägliche Aktualisierung auf einem dauerhaft laufenden Rechner/Server
+      (die Cloud-Entwicklungsumgebung ist flüchtig – die dort importierten Daten gehen beim Beenden verloren)
 - [ ] Betano-Quelle testen (OddsPapi Free Tier, siehe `08_betano_quellen.md`)
 
 ## Phase 2 – Pattern & Modelle trainieren (Fokus, ohne Quoten)

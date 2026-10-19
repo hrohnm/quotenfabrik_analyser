@@ -10,7 +10,11 @@ _SQL = text(
         from core.fixtures f where f.league_id = :league
     ),
     goals as (
-        select e.fixture_id, count(*) filter (where e.type = 'Goal' and e.detail <> 'Missed Penalty') as n
+        -- regular time only (minute <= 90 incl. stoppage time), as betting markets settle after 90 minutes
+        select e.fixture_id,
+               count(*) filter (
+                   where e.type = 'Goal' and e.detail <> 'Missed Penalty' and e.minute <= 90
+               ) as n
         from core.fixture_events e join f on f.id = e.fixture_id group by e.fixture_id
     ),
     xg as (

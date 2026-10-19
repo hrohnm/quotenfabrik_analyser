@@ -167,7 +167,28 @@ football-data hat keine IDs, nur Teamnamen („Bayern Munich“, „Ein Frankfur
 3. Danach Zeilen über (Datum, Heim-ID, Gast-ID) eindeutig mit `core.fixtures` verknüpfen.
 4. Nicht verknüpfte Zeilen landen in einem Report und werden manuell gemappt.
 
-## 4. Was die Daten *nicht* hergeben
+## 4. Ergebnis des ersten Imports (19.10.2026)
+
+| Saison | Spiele | mit Details | Halbzeit-Stats | mit xG | mit football-data verknüpft |
+|---|---|---|---|---|---|
+| 2015–2017 | je 306 | alle | – | – | alle |
+| 2018–2021 | je 308 (inkl. 2 Relegationsspiele) | alle (2018: 1 Spiel ohne Spieler-Stats) | – | – | je 306 |
+| 2022 | 308 | alle | – | 171 | 306 |
+| 2023 | 308 | alle | – | 306 | 306 |
+| 2024–2025 | je 308 | alle | alle | 306 | 306 |
+| 2026 (laufend) | 306 (54 gespielt) | 54 | 54 | 53 | 45 (CSV wird wöchentlich aktualisiert) |
+
+- Gesamt: 3.688 Spiele, 51.023 Events (10.631 Tore), 118.497 Spieler-Einsätze, 12.835 Ausfall-Einträge,
+  3.411 football-data-Spiele (alle verknüpft, 31 Team-Aliase automatisch gemappt). Verbrauch: ≈ 900 API-Requests.
+- **Relegationsspiele** (`round = 'Relegation Round'`) gehören in der API zu Liga 78, nicht aber in football-data D1.
+  Für Modelle der Bundesliga nur `Regular Season` verwenden; Relegationsspiele haben z. T. Verlängerung/Elfmeterschießen.
+- **`ft_home/ft_away` = Stand nach 90 Minuten** (inkl. Nachspielzeit). Tore in der Verlängerung (Minute > 90 ohne
+  `extra_minute`) und im Elfmeterschießen (`comments = 'Penalty Shootout'`) sind nur in den Events enthalten.
+  Wettmärkte werden auf 90 Minuten abgerechnet.
+- Torzahlen aus Events stimmen in allen Spielen mit dem Endstand überein (Qualitätscheck `qf quality`).
+- Erster Quoten-Snapshot: 18 Spiele, Pinnacle 464 und Bet365 6.483 Quoten in unseren Marktgruppen, **Betano 0**.
+
+## 5. Was die Daten *nicht* hergeben
 
 - Historische Quoten für Team-Totals, Halbzeit-Märkte und Torschützen → nur über eigenes Archiv ab jetzt.
 - Bestätigte Aufstellungen erst 20–40 min vor Anpfiff → Torschützen-Modell arbeitet vorher mit erwarteten Einsatzminuten.

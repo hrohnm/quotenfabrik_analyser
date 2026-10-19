@@ -84,3 +84,10 @@ def test_to_decimal_is_lenient():
     assert parsers.to_decimal("55%") == Decimal("55")
     for bad in ("–", "-", "", None, "NaN"):
         assert parsers.to_decimal(bad) is None
+
+
+def test_venue_id_zero_means_unknown():
+    item = load_json("fixture_detail.json")["response"][0]
+    item["fixture"]["venue"] = {"id": 0, "name": None, "city": None}
+    p = parsers.parse_fixture(item, NOW)
+    assert p["fixture"]["venue_id"] is None and p["venue"] is None
