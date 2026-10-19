@@ -119,7 +119,7 @@ Schutz: Basic Auth / einzelner Login hinter Reverse Proxy, nicht öffentlich ind
 | Datenbank | **PostgreSQL 16** | JSONB für Rohdaten, Partitionierung für Quoten-Snapshots, parallele Jobs, Mehrbenutzerbetrieb für das öffentliche Frontend |
 | Backend | Python + FastAPI | Statistik-Ökosystem (scipy, pandas) und API in einer Sprache |
 | ORM/Migrationen | SQLAlchemy 2 + Alembic | Standard, typisiert |
-| Frontends | TypeScript, React | Offen: Vite-SPA für privat (einfach) vs. Next.js für beide (SSR/SEO für öffentlich). Vorschlag: **Next.js für beide**, gemeinsame UI-Komponenten |
+| Frontends | TypeScript, **Next.js** (React) | Entschieden: Next.js für beide Frontends, gemeinsame UI-Komponenten; SSR/SEO für das öffentliche Frontend |
 | Lokale Umgebung | Docker Compose (Postgres, später Backend + Frontends) | reproduzierbar |
 | Deployment | offen (z. B. ein VPS mit Docker Compose oder Managed Postgres + Container-Hosting) | Entscheidung vor Phase 4 |
 

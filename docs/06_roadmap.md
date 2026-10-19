@@ -8,19 +8,28 @@
 
 ## Phase 1 – Daten (Bundesliga)
 - [ ] API-Football-Client (Drosselung, Quota-Wächter, Roh-Speicherung)
-- [ ] **Quoten-Snapshot-Job sofort produktiv nehmen** (jeder Tag ohne Snapshots ist verlorenes Archiv)
 - [ ] Backfill API-Football 2015–2026: Fixtures, Events, Lineups, Team- und Spieler-Stats, Injuries
 - [ ] football-data.co.uk 2015/16–2026/27 importieren
 - [ ] Team-Mapping + Verknüpfung, Datenqualitäts-Report (fehlende Spiele, ungemappte Teams, xG-Abdeckung)
+- [ ] Quoten-Snapshot-Job im Hintergrund starten (nur Archivaufbau, ≈30 Requests/Tag – wird erst in Phase 3 ausgewertet)
 
-## Phase 2 – Analytik
-- [ ] Dixon-Coles-Modell + Walk-Forward-Backtest 1X2 und Ü/U 2.5 gegen Pinnacle-Schlussquoten
-- [ ] Märkte Team-Totals und Halbzeiten (Modelle + Kalibrierung)
+## Phase 2 – Pattern & Modelle trainieren (Fokus, ohne Quoten)
+- [ ] Feature-Basis: Rolling-Form, Heim/Auswärts-Splits, Halbzeit-Anteile, Tor-Timing, Spieler-Anteile
+- [ ] Dixon-Coles-Modell (1X2, Ü/U gesamt, Team-Totals) mit Walk-Forward-Training
+- [ ] Halbzeitmodelle (1. / 2. HZ)
 - [ ] Torschützen-Modell
 - [ ] Pattern-Bibliothek je Marktgruppe (`04_analysepattern.md`)
+- [ ] Bewertung **ohne Quoten**: Log-Loss, Brier, Kalibrierungskurven je Markt und Linie, Vergleich gegen
+      einfache Baselines (Ligaschnitt, Heim/Auswärts-Quoten); Pattern-Trefferquoten out-of-sample
+- [ ] Hyperparameter (Zeitgewichtung, Regularisierung, Fenster) per Validierungsperiode wählen
+
+## Phase 3 – Value-Suche mit Quoten
+- [ ] Margenentfernung, Edge/EV, Kelly
+- [ ] Backtest 1X2, Ü/U 2.5, Asian Handicap gegen football-data-Quoten (inkl. Pinnacle-Schlussquote)
+- [ ] Übrige Märkte gegen das eigene Snapshot-Archiv (CLV)
 - [ ] Value-Erkennung + Paper-Trading-Protokoll
 
-## Phase 3 – Privates Frontend
+## Phase 3b – Privates Frontend (Next.js)
 - [ ] REST-API (`/internal/*`)
 - [ ] Spieltags-Dashboard, Spiel-Detail mit Tabs je Marktgruppe
 - [ ] Wett-Tracking mit ROI/CLV-Auswertung
@@ -36,10 +45,14 @@
 - [ ] Auth, Abo-Stufen, Zahlungsanbieter, Paywall
 - [ ] Öffentliche API-Routen mit Rollenprüfung
 
+## Getroffene Entscheidungen
+- Datenbank: PostgreSQL 16
+- Frontends: Next.js (React, TypeScript) für privat und öffentlich
+- Reihenfolge: erst Pattern/Modelle trainieren und kalibrieren, danach Value-Suche mit Quoten
+
 ## Offene Entscheidungen
 | Thema | Optionen | Vorschlag |
 |---|---|---|
-| Frontend-Framework | Vite-SPA / Next.js | Next.js für beide Frontends |
 | Hosting | VPS + Docker Compose / Managed Services | VPS für PoV |
 | Scheduler | APScheduler im Prozess / Cron + CLI / Queue | APScheduler, später Queue |
 | Abo-Verlängerung API-Football | Abo endet 15.11.2026, keine Auto-Verlängerung | rechtzeitig verlängern, sonst stoppt der Snapshot-Job (Free = 100 Req/Tag) |

@@ -8,6 +8,10 @@ Ein Analyse-Tool zur Optimierung und Auswertung von Sportwetten. Für jede Markt
 spezialisierte Analysepattern berechnet, mit Buchmacherquoten verglichen (Value) und per Backtest
 validiert. **Proof of Value (PoV): nur 1. Bundesliga** (API-Football `league=78`, football-data.co.uk `D1`).
 
+**Vorgehen:** Zuerst Pattern und Modelle trainieren und auf Ergebnisdaten validieren (Kalibrierung).
+Erst danach folgt die Value-Suche mit Quoten. Der Quoten-Snapshot-Job läuft trotzdem früh im Hintergrund,
+damit das Archiv wächst (verpasste Quoten sind nicht nachholbar).
+
 Marktgruppen (Reihenfolge = Priorität):
 1. 1X2 (Spielausgang)
 2. Über/Unter Tore gesamt
@@ -30,7 +34,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 - **Python 3.12+**, FastAPI, SQLAlchemy 2.x (typed ORM), Alembic (Migrationen), psycopg 3
 - **PostgreSQL 16** – Schemas `raw`, `core`, `analytics` (siehe `docs/03_datenmodell.md`)
 - pandas / numpy / scipy für Modelle, pytest, ruff (Lint + Format)
-- Frontends: TypeScript + React/Next.js (Entscheidung siehe `docs/02_architektur.md`)
+- Frontends: TypeScript + Next.js (React) für privates und öffentliches Frontend
 
 ## Dokumentation (zuerst lesen, bevor du etwas änderst)
 
