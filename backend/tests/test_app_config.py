@@ -135,3 +135,52 @@ def test_stale_job_is_marked_failed(engine, monkeypatch):
         jobs.refresh_stale(session)
     with engine.connect() as conn:
         assert conn.execute(text("select status from app.jobs")).scalar_one() == "failed"
+
+
+def test_ratings_leagues_are_kept_out_of_full_league_lists(monkeypatch):
+    rows = [
+        (78, "Bundesliga", "Germany", "D1", 35, 2015, True, "full"),
+        (39, "Premier League", "England", None, None, 2017, True, "ratings"),
+        (88, "Eredivisie", "Netherlands", None, None, 2017, False, "ratings"),
+    ]
+    monkeypatch.setattr(app_config, "_query", lambda sql, engine=None: rows)
+    app_config.invalidate()
+    assert app_config.league_ids() == [78]  # frontend, forecasts, odds snapshots, cron updates
+    assert [lg.id for lg in app_config.ratings_leagues()] == [39]  # inactive ratings league is left out
+    assert [lg.id for lg in app_config.all_leagues()] == [78, 39, 88]
+    assert jobs.steps_for("add_ratings", {}) == ["results", "backup_data"]
+
+
+def test_presets_are_verified_european_top_divisions():
+    import json
+
+    from quotenfabrik.api.routers.admin import PRESETS_FILE
+
+    leagues = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))["leagues"]
+    by_id = {lg["id"]: lg for lg in leagues}
+    assert len(by_id) == len(leagues) >= 20
+    assert by_id[39]["name"] == "Premier League" and by_id[39]["country"] == "England"
+    assert by_id[218]["country"] == "Austria"
+    assert all(lg["seasons_from"] <= 2018 for lg in leagues)
+
+
+def test_load_matches_all_rounds(engine):
+    """Results-only leagues keep championship/relegation rounds (no matchday) for the strength scale."""
+    from quotenfabrik.analytics.data import load_leagues, load_matches
+
+    with engine.begin() as conn:
+        conn.execute(
+            text("insert into core.leagues (id, name, country) values (179, 'Premiership', 'Scotland')")
+        )
+        for tid in (1, 2):
+            conn.execute(
+                text("insert into core.teams (id, name) values (:i, :n)"), {"i": tid, "n": f"T{tid}"}
+            )
+        for fid, rnd in ((1, "Regular Season - 33"), (2, "Championship Round - 1")):
+            conn.execute(text(
+                """insert into core.fixtures (id, league_id, season, round, matchday, kickoff_utc, status,
+                       home_team_id, away_team_id, ft_home, ft_away, ht_home, ht_away, updated_at)
+                   values (:id, 179, 2025, :r, null, now(), 'FT', 1, 2, 1, 0, 0, 0, now())"""), {"id": fid, "r": rnd})  # fmt: skip
+    assert list(load_matches(engine, 179)["fixture_id"]) == [1]
+    assert sorted(load_matches(engine, 179, all_rounds=True)["fixture_id"]) == [1, 2]
+    assert sorted(load_leagues(engine, [179], all_rounds={179})["fixture_id"]) == [1, 2]

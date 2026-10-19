@@ -8,6 +8,8 @@
 # Aktuelle Saison nachziehen (Ergebnisse, Details, Halbzeit-Stats, Ausfälle; Saisonwechsel im Juli automatisch)
 30 4 * * *      qf ingest api-football --seasons aktuell --half-stats
 45 4 * * 2      qf ingest football-data --seasons aktuell && qf map-teams
+# Stärke-Ligen (nur Ergebnisse, 1 Request pro Liga)
+15 5 * * *      qf ingest results
 # Ergebnisse abrechnen, Prognosen + Tipps für die nächsten 10 Tage
 0 6,12,18 * * * qf model settle && qf model forecast
 # Spielernamen für Torschützen-Märkte an Spieltagen (Fr/Sa/So, je 1 OddsPapi-Request)

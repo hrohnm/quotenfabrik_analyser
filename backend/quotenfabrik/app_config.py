@@ -181,9 +181,13 @@ def model_pool(engine, league_id: int):
     from quotenfabrik.analytics.data import connected_leagues, load_leagues, load_matches
 
     if get("model.joint"):
-        linked = connected_leagues(engine, league_id, [lg.id for lg in all_leagues()])
+        candidates = [lg.id for lg in all_leagues() if lg.kind == "full"] + [
+            lg.id for lg in ratings_leagues()
+        ]
+        linked = connected_leagues(engine, league_id, candidates)
         if len(linked) > 1:
-            return load_leagues(engine, linked)
+            ratings = {lg.id for lg in ratings_leagues()}
+            return load_leagues(engine, linked, all_rounds=ratings)
     return load_matches(engine, league_id)
 
 
@@ -224,6 +228,7 @@ class LeagueConfig:
     oddspapi_tournament: int | None
     first_season: int
     active: bool = True
+    kind: str = "full"  # 'ratings' = results only (strength scale), not shown and not forecast
 
 
 def _env_leagues() -> list[LeagueConfig]:
@@ -240,7 +245,7 @@ def all_leagues() -> list[LeagueConfig]:
 
     def load():
         rows = _query(
-            """select id, name, country, fd_code, oddspapi_tournament, first_season, active
+            """select id, name, country, fd_code, oddspapi_tournament, first_season, active, kind
                from app.leagues order by added_at, id"""
         )
         return [LeagueConfig(*r) for r in rows] or _env_leagues()
@@ -249,7 +254,13 @@ def all_leagues() -> list[LeagueConfig]:
 
 
 def leagues() -> list[LeagueConfig]:
-    return [lg for lg in all_leagues() if lg.active]
+    """Active full leagues: shown in the frontend, forecast, odds snapshots, cron updates."""
+    return [lg for lg in all_leagues() if lg.active and lg.kind == "full"]
+
+
+def ratings_leagues() -> list[LeagueConfig]:
+    """Active results-only leagues (strength scale for the joint model)."""
+    return [lg for lg in all_leagues() if lg.active and lg.kind == "ratings"]
 
 
 def league_ids() -> list[int]:

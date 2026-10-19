@@ -61,7 +61,8 @@
 - [x] 2. Bundesliga (Liga 79 / D2 / OddsPapi 44): Daten 2015–2026, Modelle, Tipps, Berichte je Liga, Ligafilter im Frontend
 - [ ] Weitere Ligen (Premier League, …) – jetzt über die Einstellungsseite hinzufügbar
 - [x] Ligaübergreifende Teamstärke: gemeinsames Modell mit Ligaebenen (`model.joint`, `docs/14_gemeinsames_modell.md`)
-- [ ] Weitere europäische Ligen über football-data.co.uk (kostenlos) für eine gemeinsame Stärkeskala
+- [x] Stärke-Ligen: 27 erste Ligen Europas als „nur Ergebnisse“ (1 Request pro Saison, Einstellungsseite), tägliches
+  Nachladen (`qf ingest results`); werden über Europapokalspiele mit den eigenen Ligen verbunden
 - [ ] Europapokal (Champions League 2, Europa League 3, Conference League 848): Pokalrunden laden, Abrechnung nach
   90 Minuten, Hin-/Rückspiel, eigener Heimvorteil international; Backtest ab 2019
 - [ ] Modell-Verbesserungen (xG-Integration, Stacking, Marktmischung)

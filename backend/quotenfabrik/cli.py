@@ -126,6 +126,28 @@ def ingest_api_football(
             typer.secho(f"Abgebrochen: {exc}", fg="red")
 
 
+@ingest_app.command("results")
+def ingest_results(
+    seasons: str = typer.Option("aktuell", help="Saison-Startjahre, z. B. aktuell oder 2017-2026"),
+    league: int | None = typer.Option(None, help="API-Liga-ID (Standard: aktive Stärke-Ligen)"),
+) -> None:
+    """Nur Ergebnisse (Spielplan) der Stärke-Ligen: 1 Request pro Saison und Liga, ohne Details."""
+    ids = [league] if league else [lg.id for lg in app_config.ratings_leagues()]
+    if not ids:
+        typer.echo("Keine Stärke-Ligen konfiguriert.")
+        return
+    with Session(get_engine()) as session, _client() as client:
+        try:
+            for league_id in ids:
+                result = pipeline.api_football_seasons(
+                    session, client, league_id, _seasons(seasons), details=False, half_stats=False,
+                    injuries=False,
+                )  # fmt: skip
+                typer.echo(f"Liga {league_id}: {result}")
+        except QuotaExhausted as exc:
+            typer.secho(f"Abgebrochen: {exc}", fg="red")
+
+
 @app.command("map-teams")
 def map_teams(league: int | None = typer.Option(None)) -> None:
     """football-data-Teamnamen auf API-Team-IDs mappen und Spiele verknüpfen."""

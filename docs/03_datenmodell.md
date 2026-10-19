@@ -211,8 +211,9 @@ app.settings (key text pk, value jsonb, updated_at timestamptz)    -- nur Abweic
 app.leagues (                       -- konfigurierte Ligen; leer → Fallback auf QF_LEAGUES / QF_FD_LEAGUES / …
   id bigint pk,                     -- API-Football league id
   name text, country text, fd_code text, oddspapi_tournament bigint,
-  first_season int, active bool, added_at timestamptz
-)
+  first_season int, active bool, added_at timestamptz,
+  kind text                        -- 'full' | 'ratings' (Migration 0007): nur Ergebnisse für die Stärkeskala,
+)                                  -- nicht im Frontend, keine Prognosen/Quoten
 app.jobs (                          -- Hintergrund-Jobs der Einstellungsseite (Liga hinzufügen, Neuberechnung, Backup)
   id bigserial pk, kind text, params jsonb, status text,   -- queued | running | done | failed
   steps jsonb,                      -- [{name, label, status, message, log[], started_at, finished_at}]

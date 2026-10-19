@@ -294,7 +294,7 @@ crontab -l                                      # sollte leer sein – sonst Ein
 crontab ~/quotenfabrik_analyser/deploy/crontab
 ```
 
-Enthält: Quoten-Snapshots (alle 3 h), Betano-Verläufe (alle 3 h), tägliches Nachladen der Saison, Prognosen +
+Enthält: Quoten-Snapshots (alle 3 h), Betano-Verläufe (alle 3 h), tägliches Nachladen der Saison und der Stärke-Ligen, Prognosen +
 Tipps (6/12/18 Uhr), Spielernamen an Spieltagen, nächtliches Backup. Logs unter `~/logs/`.
 Die Saison (`--seasons aktuell`) wechselt im Juli automatisch.
 

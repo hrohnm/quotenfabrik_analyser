@@ -15,7 +15,7 @@ _MATCHES_SQL = text(
            on sh.fixture_id = f.id and sh.team_id = f.home_team_id and sh.period = 'FT'
     left join core.fixture_team_stats sa
            on sa.fixture_id = f.id and sa.team_id = f.away_team_id and sa.period = 'FT'
-    where f.league_id = :league and f.round like 'Regular Season%'
+    where f.league_id = :league and (f.round like 'Regular Season%' or :all_rounds)
     order by f.kickoff_utc, f.id
     """
 )
@@ -35,9 +35,13 @@ def with_league(markdown: str, name: str) -> str:
     return f"{title} · {name}\n{rest}"
 
 
-def load_matches(engine: Engine, league_id: int) -> pd.DataFrame:
-    """All regular-season fixtures (finished and upcoming). Goal columns are NaN for unplayed fixtures."""
-    df = pd.read_sql(_MATCHES_SQL, engine, params={"league": league_id})
+def load_matches(engine: Engine, league_id: int, all_rounds: bool = False) -> pd.DataFrame:
+    """All regular-season fixtures (finished and upcoming). Goal columns are NaN for unplayed fixtures.
+
+    ``all_rounds``: also championship/relegation rounds and play-offs (results-only leagues for the strength
+    scale; these rounds have no matchday).
+    """
+    df = pd.read_sql(_MATCHES_SQL, engine, params={"league": league_id, "all_rounds": all_rounds})
     df["kickoff"] = pd.to_datetime(df["kickoff"], utc=True)
     df["finished"] = df["status"].isin(FINISHED) & df["hg"].notna() & df["hthg"].notna()
     df["h2g"] = df["hg"] - df["hthg"]
@@ -101,9 +105,10 @@ def connected_leagues(engine: Engine, league_id: int, candidates: list[int]) -> 
     return sorted(found)
 
 
-def load_leagues(engine: Engine, league_ids: list[int]) -> pd.DataFrame:
-    """Regular-season matches of several leagues with a ``league_id`` column (input of the joint model)."""
-    frames = [load_matches(engine, lg).assign(league_id=lg) for lg in league_ids]
+def load_leagues(engine: Engine, league_ids: list[int], all_rounds: set[int] = frozenset()) -> pd.DataFrame:
+    """Matches of several leagues with a ``league_id`` column (input of the joint model); leagues in
+    ``all_rounds`` with all rounds, the others regular season only."""
+    frames = [load_matches(engine, lg, lg in all_rounds).assign(league_id=lg) for lg in league_ids]
     return pd.concat(frames, ignore_index=True).sort_values(["kickoff", "fixture_id"], ignore_index=True)
 
 

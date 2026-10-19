@@ -11,7 +11,7 @@ export type Backup = { name: string; size: number; created_at: string };
 export type JobStep = { name: string; label: string; status: "pending" | "running" | "done" | "skipped" | "failed"; message: string | null; log: string[] };
 export type Job = {
   id: number;
-  kind: "add_league" | "models" | "picks" | "backup";
+  kind: "add_league" | "add_ratings" | "models" | "picks" | "backup";
   params: Record<string, unknown>;
   status: "queued" | "running" | "done" | "failed";
   steps: JobStep[];
@@ -30,6 +30,7 @@ export type ConfiguredLeague = {
   oddspapi_tournament: number | null;
   first_season: number;
   active: boolean;
+  kind: "full" | "ratings";
   fixtures: number;
   finished: number;
   seasons: [number, number] | null;
@@ -48,6 +49,8 @@ export type LeagueSearchResult = {
   configured: boolean;
   suggested_fd_code: string | null;
 };
+
+export type LeaguePreset = { id: number; name: string; country: string; logo: string; seasons_from: number; configured: "full" | "ratings" | null };
 
 export type Tournament = { id: number; name: string; category: string };
 
