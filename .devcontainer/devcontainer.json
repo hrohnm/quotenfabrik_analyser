@@ -4,16 +4,31 @@
   "service": "app",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
   },
-  "forwardPorts": [3000, 8000],
+  "forwardPorts": [
+    3000,
+    8000
+  ],
   "portsAttributes": {
-    "3000": { "label": "Frontend", "onAutoForward": "openBrowser" },
-    "8000": { "label": "API", "onAutoForward": "silent" }
+    "3000": {
+      "label": "Frontend",
+      "onAutoForward": "openBrowser"
+    },
+    "8000": {
+      "label": "API",
+      "onAutoForward": "silent"
+    }
   },
   "secrets": {
-    "API_FOOTBALL_KEY": { "description": "API-Football Key (nur für neue Datenabrufe nötig)" },
-    "ODDSPAPI_API_KEY": { "description": "OddsPapi Key für Betano-Quoten (nur für neue Datenabrufe nötig)" }
+    "API_FOOTBALL_KEY": {
+      "description": "API-Football Key (nur für neue Datenabrufe nötig)"
+    },
+    "ODDSPAPI_API_KEY": {
+      "description": "OddsPapi Key für Betano-Quoten (nur für neue Datenabrufe nötig)"
+    }
   },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "postStartCommand": "bash .devcontainer/start.sh",
@@ -26,5 +41,6 @@
         "bradlc.vscode-tailwindcss"
       ]
     }
-  }
+  },
+  "postAttachCommand": "bash .devcontainer/start.sh"
 }
