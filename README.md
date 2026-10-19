@@ -25,7 +25,8 @@ API-Keys sind zum Ansehen nicht nötig; für neue Datenabrufe als Codespaces-Sec
 `ODDSPAPI_API_KEY` hinterlegen.
 
 Start-Status: `cat /tmp/qf-services.log` (Logs der Dienste: `/tmp/api.log`, `/tmp/frontend.log`).
-Dienste (neu) starten: `bash .devcontainer/start.sh` – startet nur, was noch nicht läuft. Setup erneut ausführen:
+Dienste starten: `bash .devcontainer/start.sh` – startet nur, was noch nicht läuft. Neu starten (z. B. nach `git pull`):
+`bash .devcontainer/restart.sh`. Setup erneut ausführen:
 `bash .devcontainer/post-create.sh`.
 
 **Lokal mit Docker:**

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getFixture } from "@/lib/api";
+import { ApiError, getFixture } from "@/lib/api";
 import { Hero } from "@/components/match/Hero";
 import { MatchTabs } from "@/components/match/MatchTabs";
 import { Summary } from "@/components/match/Summary";
@@ -13,8 +13,9 @@ export default async function FixturePage({ params }: { params: Promise<{ id: st
   let data: FixtureDetail;
   try {
     data = await getFixture(id);
-  } catch {
-    notFound();
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) notFound();
+    throw e;
   }
   const { fixture: f, prediction } = data;
   const day = new Date(f.kickoff).toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
