@@ -25,6 +25,9 @@ API-Keys sind zum Ansehen nicht nötig; für neue Datenabrufe als Codespaces-Sec
 `ODDSPAPI_API_KEY` hinterlegen.
 
 Start-Status: `cat /tmp/qf-services.log` (Logs der Dienste: `/tmp/api.log`, `/tmp/frontend.log`).
+Neuer Seed nach `git pull`: `cd backend && .venv/bin/qf seed import --force` (ersetzt die Datenbank; der
+PostgreSQL-Client 16 ist im Devcontainer installiert, in älteren Codespaces vorher
+`sudo bash .devcontainer/install-pg-client.sh`). Ist die Datenbank leer, spielt der Start den Seed automatisch ein.
 Dienste starten: `bash .devcontainer/start.sh` – startet nur, was noch nicht läuft. Neu starten (z. B. nach `git pull`):
 `bash .devcontainer/restart.sh`. Setup erneut ausführen:
 `bash .devcontainer/post-create.sh`.

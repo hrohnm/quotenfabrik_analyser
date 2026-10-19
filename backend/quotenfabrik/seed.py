@@ -61,6 +61,12 @@ def export_seed(path: Path = SEED_FILE) -> Path:
     return path
 
 
+def require_tools(*names: str) -> None:
+    """Fails early (before anything is dropped) if the PostgreSQL client tools are missing."""
+    for name in names:
+        _binary(name)
+
+
 def database_is_empty() -> bool:
     with get_engine().connect() as conn:
         return not conn.execute(
