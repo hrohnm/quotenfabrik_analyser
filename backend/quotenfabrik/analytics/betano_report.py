@@ -10,6 +10,7 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from quotenfabrik.analytics import betano_value as bv
+from quotenfabrik.analytics.data import league_name, with_league
 from quotenfabrik.api.labels import MARKET_LABELS
 from quotenfabrik.models import ModelRun
 
@@ -40,7 +41,8 @@ def run_betano_value(engine: Engine, league_id: int, report_path: Path | None = 
         session.commit()
         run_id = run.id
     if report_path:
-        report_path.write_text(render_report(run_id, evaluations, summary), encoding="utf-8")
+        text = with_league(render_report(run_id, evaluations, summary), league_name(engine, league_id))
+        report_path.write_text(text, encoding="utf-8")
     return {
         "model_run_id": run_id,
         "fixtures": summary["fixtures"],

@@ -13,7 +13,13 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from quotenfabrik.analytics import evaluation as ev
-from quotenfabrik.analytics.data import load_goal_events, load_matches, load_player_matches
+from quotenfabrik.analytics.data import (
+    league_name,
+    load_goal_events,
+    load_matches,
+    load_player_matches,
+    with_league,
+)
 from quotenfabrik.analytics.markets import GROUPS
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.poisson import PoissonParams
@@ -191,7 +197,7 @@ def run_evaluation(
 
     if report_path:
         report_path.write_text(
-            render_report(run_id, seasons, params, scorer_params, binary, multi, scorer_summary, signals, per_season, results),
+            with_league(render_report(run_id, seasons, params, scorer_params, binary, multi, scorer_summary, signals, per_season, results), league_name(engine, league_id)),
             encoding="utf-8",
         )  # fmt: skip
     return {

@@ -7,6 +7,7 @@ from pathlib import Path
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from quotenfabrik.analytics.data import league_name, with_league
 from quotenfabrik.analytics.odds_backtest import (
     BOOK_LABELS,
     MARKETS,
@@ -54,7 +55,10 @@ def run_odds_backtest(
         session.commit()
         run_id = run.id
     if report_path:
-        report_path.write_text(render_report(run_id, results, validation_until, method), encoding="utf-8")
+        text = with_league(
+            render_report(run_id, results, validation_until, method), league_name(engine, league_id)
+        )
+        report_path.write_text(text, encoding="utf-8")
     return {"model_run_id": run_id, **{r.spec.key: {"matches": r.n, "bets": len(r.bets)} for r in results}}
 
 

@@ -9,12 +9,12 @@
 |---|---|---|
 | `API_FOOTBALL_KEY` | – | API-Key von api-sports.io |
 | `DATABASE_URL` | `postgresql+psycopg://qf:qf@localhost:5432/quotenfabrik` | DB-Verbindung |
-| `QF_LEAGUES` | `78` | aktive Ligen (API-IDs) |
-| `QF_FD_LEAGUES` | `D1` | football-data.co.uk-Kürzel |
+| `QF_LEAGUES` | `78,79` | aktive Ligen (API-IDs: 78 = Bundesliga, 79 = 2. Bundesliga) |
+| `QF_FD_LEAGUES` | `D1,D2` | football-data.co.uk-Kürzel, gleiche Reihenfolge wie `QF_LEAGUES` |
 | `QF_API_MAX_RPS` | `4` | Drosselung API-Football |
 | `QF_API_QUOTA_RESERVE` | `500` | Requests, die nie verbraucht werden (Reserve für Snapshots) |
 | `ODDSPAPI_API_KEY` | – | OddsPapi-Key (Betano-Quoten); `API_OddsPap` wird ebenfalls akzeptiert |
-| `QF_ODDSPAPI_TOURNAMENTS` | `35` | OddsPapi-Turnier-IDs, gleiche Reihenfolge wie `QF_LEAGUES` |
+| `QF_ODDSPAPI_TOURNAMENTS` | `35,44` | OddsPapi-Turnier-IDs, gleiche Reihenfolge wie `QF_LEAGUES` |
 | `QF_ODDSPAPI_BOOKMAKERS` | `betano.de,pinnacle` | Buchmacher für Quotenverläufe (max. 3) |
 | `QF_ODDSPAPI_REQUEST_RESERVE` | `20` | abrechenbare Requests pro Monat, die nie verbraucht werden |
 

@@ -8,11 +8,14 @@ import type { ComboRate, Fixture, Meta, PickRate, PickStats } from "@/lib/types"
 import { Card, Select, StatTile, TeamLogo } from "@/components/ui";
 import { Segmented } from "@/components/match/Segmented";
 import { PickList, comboOutcome } from "@/components/picks/PickList";
+import { Logo } from "@/components/Logo";
+import { leagueLogo } from "@/lib/media";
 
 export default function TipsPage() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [profile, setProfile] = useState("ausgewogen");
   const [season, setSeason] = useState("");
+  const [league, setLeague] = useState("");
   const [upcoming, setUpcoming] = useState<Fixture[]>([]);
   const [recent, setRecent] = useState<Fixture[]>([]);
   const [stats, setStats] = useState<PickStats | null>(null);
@@ -27,16 +30,16 @@ export default function TipsPage() {
   useEffect(() => {
     const today = berlinToday();
     Promise.all([
-      api<Fixture[]>("/fixtures", { from: today, to: addDays(today, 10), profile }),
-      api<Fixture[]>("/fixtures", { from: addDays(today, -10), to: addDays(today, -1), profile }),
+      api<Fixture[]>("/fixtures", { from: today, to: addDays(today, 10), profile, league: league || undefined }),
+      api<Fixture[]>("/fixtures", { from: addDays(today, -10), to: addDays(today, -1), profile, league: league || undefined }),
     ])
       .then(([u, r]) => { setUpcoming(u.filter((f) => !f.finished)); setRecent(r.filter((f) => f.finished).reverse()); })
       .catch((e) => setError(String(e)));
-  }, [profile]);
+  }, [profile, league]);
 
   useEffect(() => {
-    api<PickStats>("/stats/picks", { profile, season: season || undefined }).then(setStats).catch((e) => setError(String(e)));
-  }, [profile, season]);
+    api<PickStats>("/stats/picks", { profile, season: season || undefined, league: league || undefined }).then(setStats).catch((e) => setError(String(e)));
+  }, [profile, season, league]);
 
   const profiles = meta?.pick_profiles ?? [];
   const current = profiles.find((p) => p.key === profile);
@@ -53,7 +56,12 @@ export default function TipsPage() {
             (je Gruppe höchstens einer). Bevorzugt werden Tipps, bei denen das Modell deutlich vom Ligaschnitt abweicht.
           </p>
         </div>
-        {profiles.length > 0 && <Segmented options={profiles.map((p) => ({ key: p.key, label: p.label }))} value={profile} onChange={setProfile} />}
+        <div className="flex flex-wrap items-center gap-2">
+          {meta && meta.leagues.length > 1 && (
+            <Segmented options={[{ key: "", label: "Alle Ligen" }, ...meta.leagues.map((l) => ({ key: String(l.id), label: l.name }))]} value={league} onChange={setLeague} />
+          )}
+          {profiles.length > 0 && <Segmented options={profiles.map((p) => ({ key: p.key, label: p.label }))} value={profile} onChange={setProfile} />}
+        </div>
       </div>
       {current && <p className="-mt-3 text-xs text-slate-400">Profil {current.label}: Tipps mit {pct(current.min_p, 0)} – {pct(current.max_p, 0)} Wahrscheinlichkeit.</p>}
 
@@ -99,7 +107,8 @@ function FixturePicks({ f }: { f: Fixture }) {
           <div className="flex items-center gap-2 text-sm font-medium"><TeamLogo team={f.home} size={18} /><span className="truncate">{f.home.name}</span></div>
           <div className="flex items-center gap-2 text-sm font-medium"><TeamLogo team={f.away} size={18} /><span className="truncate">{f.away.name}</span></div>
         </div>
-        <div className="shrink-0 text-right text-xs text-slate-500">
+        <div className="flex shrink-0 flex-col items-end text-right text-xs text-slate-500">
+          <Logo src={f.league?.logo ?? leagueLogo(f.league_id)} alt={f.league?.name ?? "Liga"} size={16} className="mb-1" />
           {f.finished ? <span className="text-lg font-semibold tabular-nums text-slate-900">{f.score.ft[0]}:{f.score.ft[1]}</span> : <span>{weekday(f.kickoff.slice(0, 10))} {dateShort(f.kickoff)}</span>}
           <div>{f.finished ? dateShort(f.kickoff) : `${time(f.kickoff)} Uhr`}</div>
         </div>

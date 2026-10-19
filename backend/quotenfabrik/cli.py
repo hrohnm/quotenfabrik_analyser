@@ -1,6 +1,7 @@
 """Command line interface ``qf``."""
 
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -53,6 +54,16 @@ def _seasons(spec: str) -> list[int]:
 
 def _leagues(league: int | None) -> list[int]:
     return [league] if league else get_settings().leagues
+
+
+def _report(path: Path | None, league_id: int) -> Path | None:
+    """The first configured league writes ``path``; other leagues get a suffix (``…_2_bundesliga.md``)."""
+    if path is None or league_id == get_settings().leagues[0]:
+        return path
+    from quotenfabrik.analytics.data import league_name
+
+    slug = re.sub(r"[^a-z0-9]+", "_", league_name(get_engine(), league_id).lower()).strip("_")
+    return path.with_name(f"{path.stem}_{slug}{path.suffix}")
 
 
 def _client() -> ApiFootballClient:
@@ -305,10 +316,9 @@ def model_evaluate(
     from quotenfabrik.analytics.service import run_evaluation
 
     for league_id in _leagues(league):
-        result = run_evaluation(get_engine(), league_id, _seasons(seasons), report_path=report)
-        typer.echo(f"Liga {league_id}: {result}")
-    if report:
-        typer.echo(f"Bericht: {report}")
+        path = _report(report, league_id)
+        result = run_evaluation(get_engine(), league_id, _seasons(seasons), report_path=path)
+        typer.echo(f"Liga {league_id}: {result}" + (f" · Bericht: {path}" if path else ""))
 
 
 @model_app.command("forecast")
@@ -373,10 +383,9 @@ def value_backtest(
     from quotenfabrik.analytics.odds_report import run_odds_backtest
 
     for league_id in _leagues(league):
-        result = run_odds_backtest(get_engine(), league_id, validation_until, method, report)
-        typer.echo(f"Liga {league_id}: {result}")
-    if report:
-        typer.echo(f"Bericht: {report}")
+        path = _report(report, league_id)
+        result = run_odds_backtest(get_engine(), league_id, validation_until, method, path)
+        typer.echo(f"Liga {league_id}: {result}" + (f" · Bericht: {path}" if path else ""))
 
 
 @value_app.command("betano")
@@ -388,9 +397,9 @@ def value_betano(
     from quotenfabrik.analytics.betano_report import run_betano_value
 
     for league_id in _leagues(league):
-        typer.echo(f"Liga {league_id}: {run_betano_value(get_engine(), league_id, report)}")
-    if report:
-        typer.echo(f"Bericht: {report}")
+        path = _report(report, league_id)
+        result = run_betano_value(get_engine(), league_id, path)
+        typer.echo(f"Liga {league_id}: {result}" + (f" · Bericht: {path}" if path else ""))
 
 
 # --------------------------------------------------------------------------- picks
@@ -421,8 +430,9 @@ def picks_report(
     from quotenfabrik.analytics.picks_report import write_report
 
     for league_id in _leagues(league):
-        write_report(get_engine(), league_id, validation_until, report)
-    typer.echo(f"Bericht: {report}")
+        path = _report(report, league_id)
+        write_report(get_engine(), league_id, validation_until, path)
+        typer.echo(f"Liga {league_id}: Bericht {path}")
 
 
 # --------------------------------------------------------------------------- seed

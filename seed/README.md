@@ -8,11 +8,14 @@ ohne API-Requests.
 
 | Inhalt | Umfang |
 |---|---|
-| Bundesliga-Spiele 2015/16 – 2026/27 (API-Football) inkl. Events, Aufstellungen, Team-/Spieler-Statistiken, Ausfälle | 3.688 Spiele |
-| football-data.co.uk (Ergebnisse, Statistiken, 1X2- und Ü/U-2,5-Quoten) | 3.411 Spiele |
-| Rohantworten API-Football (`raw.api_responses`) | 871 |
-| Betano- und Pinnacle-Quotenverläufe (OddsPapi, `core.odds_history`) | 1,32 Mio. Preisänderungen, ab April 2026 |
-| Prognosen (`analytics.predictions`): Backtest 2016/17 – 2026/27 + aktuelle Prognose | ≈ 499.000 |
+| Spiele 2015/16 – 2026/27 (API-Football) inkl. Events, Aufstellungen, Team-/Spieler-Statistiken, Ausfälle | Bundesliga 3.688, 2. Bundesliga 3.686 |
+| football-data.co.uk D1 + D2 (Ergebnisse, Statistiken, 1X2- und Ü/U-2,5-Quoten) | 6.840 Spiele |
+| Rohantworten API-Football (`raw.api_responses`) | 1.757 |
+| Betano- und Pinnacle-Quotenverläufe (OddsPapi, `core.odds_history`) | 2,16 Mio. Preisänderungen, ab April 2026 |
+| Prognosen (`analytics.predictions`): Backtest 2016/17 – 2026/27 + aktuelle Prognose, beide Ligen | ≈ 994.000 |
+| Tipps (`analytics.picks`): 3 pro Spiel und Profil | ≈ 56.000 |
+
+Größe ≈ 63 MB (Schema-Revision in `quotenfabrik_seed.revision`).
 
 Nicht enthalten: `raw.oddspapi_responses` (gzip-Rohantworten, ≈ 60 MB) – bei Bedarf kostenlos neu abrufbar
 (`qf oddspapi history` nach Zurücksetzen von `history_final`).

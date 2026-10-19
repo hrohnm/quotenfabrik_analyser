@@ -31,6 +31,6 @@ export async function api<T>(path: string, params?: Record<string, string | numb
 }
 
 export const getMeta = () => api<Meta>("/meta");
-export const getDays = (from: string, to: string) => api<Day[]>("/days", { from, to });
-export const getFixtures = (date: string) => api<Fixture[]>("/fixtures", { date });
+export const getDays = (from: string, to: string, league?: string) => api<Day[]>("/days", { from, to, league });
+export const getFixtures = (date: string, league?: string) => api<Fixture[]>("/fixtures", { date, league });
 export const getFixture = (id: number | string) => api<FixtureDetail>(`/fixtures/${id}`);

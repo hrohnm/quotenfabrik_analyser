@@ -23,6 +23,18 @@ _MATCHES_SQL = text(
 FINISHED = ("FT", "AET", "PEN", "AWD", "WO")
 
 
+def league_name(engine: Engine, league_id: int) -> str:
+    with engine.connect() as conn:
+        name = conn.execute(text("select name from core.leagues where id = :id"), {"id": league_id}).scalar()
+    return name or f"Liga {league_id}"
+
+
+def with_league(markdown: str, name: str) -> str:
+    """Adds the league to the report title (first line)."""
+    title, _, rest = markdown.partition("\n")
+    return f"{title} · {name}\n{rest}"
+
+
 def load_matches(engine: Engine, league_id: int) -> pd.DataFrame:
     """All regular-season fixtures (finished and upcoming). Goal columns are NaN for unplayed fixtures."""
     df = pd.read_sql(_MATCHES_SQL, engine, params={"league": league_id})

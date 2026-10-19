@@ -4,7 +4,7 @@ Analyse-Tool zur Optimierung und Auswertung von Sportwetten. Für jede Marktgrup
 Über/Unter pro Team, Über/Unter pro Halbzeit und Torschützen – werden spezialisierte Analysepattern berechnet,
 mit Buchmacherquoten verglichen und per Backtest validiert.
 
-**Proof of Value:** 1. Bundesliga, Daten von [API-Football](https://www.api-football.com/) (Pro Plan) und
+**Proof of Value:** 1. und 2. Bundesliga, Daten von [API-Football](https://www.api-football.com/) (Pro Plan) und
 [football-data.co.uk](https://www.football-data.co.uk/) (historische Ergebnisse und Quoten seit 2015/16).
 
 ## Aufbau
@@ -52,5 +52,8 @@ cd frontend-private && npm install && npm run dev           # http://localhost:3
 10. [Quoten-Backtest](docs/10_quoten_backtest.md) – 1X2 und Ü/U 2,5 gegen historische Quoten (Phase 3, automatisch erzeugt)
 11. [Betano-Nebenmärkte](docs/11_betano_nebenmaerkte.md) – Betano-Quoten gegen faire Preise aus Pinnacle (Phase 3, automatisch erzeugt)
 12. [Tipps](docs/12_tipps.md) – 3 Tipps pro Spiel, Trefferquote einzeln und als Kombi (automatisch erzeugt)
+
+Die Berichte 09–12 gibt es je Liga: ohne Suffix für die Bundesliga, mit `_2_bundesliga` für die 2. Bundesliga
+(z. B. [`docs/12_tipps_2_bundesliga.md`](docs/12_tipps_2_bundesliga.md)).
 
 Hinweise für KI-gestützte Entwicklung: [CLAUDE.md](CLAUDE.md)
