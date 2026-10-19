@@ -30,6 +30,9 @@ qf = "quotenfabrik.cli:app"
 [tool.setuptools.packages.find]
 include = ["quotenfabrik*"]
 
+[tool.setuptools.package-data]
+quotenfabrik = ["data/*.json"]
+
 [tool.ruff]
 line-length = 110
 target-version = "py312"
@@ -54,6 +57,7 @@ known-third-party = ["alembic"]
 "quotenfabrik/analytics/picks_report.py" = ["E501"]
 # tabular market / pattern definitions
 "quotenfabrik/analytics/picks.py" = ["E501"]
+"quotenfabrik/app_config.py" = ["E501"]
 "tests/*.py" = ["E501"]
 # SQL strings and compact response dicts
 "quotenfabrik/api/routers/*.py" = ["E501"]

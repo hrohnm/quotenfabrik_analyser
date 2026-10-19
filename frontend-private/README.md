@@ -9,6 +9,7 @@ Analyse-Oberfläche für den eigenen Gebrauch. Spricht nur mit der Backend-API (
 | `/tipps` | 3 Tipps pro Spiel (Profile Sicher / Ausgewogen / Mutig) für die nächsten Spiele, letzte Ergebnisse und Trefferquote einzeln und als Kombi |
 | `/explorer` | Daten-Explorer: ein Markt über alle Spiele (Saison, Team, Heim/Auswärts, Wahrscheinlichkeitsbereich, Ergebnis), inkl. vergangener Spiele (Backtest) |
 | `/auswertung` | Trefferquoten pro Liga, Saison, Marktgruppe und Markt; Trefferquote nach Konfidenz, je Saison, Kalibrierung, Torschützen |
+| `/einstellungen` | API-Kontingent, Backups (Download, „Backup jetzt“), Ligen (aktiv schalten, hinzufügen mit Request-Schätzung), Einstellungen (Schwellen der Tipp-Profile, Modellparameter, Reserven), Fortschritt der Hintergrund-Jobs |
 
 Vergangene Spiele zeigen die **rückwirkende Walk-Forward-Prognose** (`qf model backtest`): Das Modell wurde für jeden
 Spieltag nur mit Spielen davor trainiert. Kommende Spiele zeigen die letzte Prognose vor Anpfiff (`qf model forecast`).

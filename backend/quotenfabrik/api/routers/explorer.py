@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, Query
 
+from quotenfabrik import app_config
 from quotenfabrik.api.data import chosen_runs_cte, df
 from quotenfabrik.api.routers.fixtures import FINISHED, _clean
-from quotenfabrik.config import get_settings
 
 router = APIRouter(prefix="/api", tags=["explorer"])
 
@@ -33,7 +33,7 @@ def explorer(
     where = ["p.market = :market", "p.selection = :selection", "f.league_id = any(:leagues)",
              "p.probability between :min_p and :max_p"]  # fmt: skip
     params: dict = {"market": market, "selection": selection, "min_p": min_p, "max_p": max_p,
-                    "leagues": [league] if league else get_settings().leagues}  # fmt: skip
+                    "leagues": [league] if league else app_config.league_ids()}  # fmt: skip
     where.append("p.line is null" if line is None else "p.line = :line")
     if line is not None:
         params["line"] = line

@@ -26,7 +26,7 @@ Marktgruppen (Reihenfolge = Priorität):
 | Bereich | Ordner | Status |
 |---|---|---|
 | 1. Backend (Ingest, DB, Analytik, REST-API) | `backend/` | in Arbeit |
-| 2. Privates Frontend (eigene Analyse & Wett-Tracking) | `frontend-private/` | in Arbeit (Spieltage, Detail, Explorer, Auswertung) |
+| 2. Privates Frontend (eigene Analyse & Wett-Tracking) | `frontend-private/` | in Arbeit (Spieltage, Detail, Explorer, Auswertung, Einstellungen) |
 | 3. Öffentliches Frontend (Login, Abo-Modell) | `frontend-public/` | später |
 
 Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquellen, nur mit der Backend-API.
@@ -34,7 +34,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 ## Tech-Stack
 
 - **Python 3.12+**, FastAPI, SQLAlchemy 2.x (typed ORM), Alembic (Migrationen), psycopg 3
-- **PostgreSQL 16** – Schemas `raw`, `core`, `analytics` (siehe `docs/03_datenmodell.md`)
+- **PostgreSQL 16** – Schemas `raw`, `core`, `analytics`, `app` (Konfiguration; siehe `docs/03_datenmodell.md`)
 - pandas / numpy / scipy für Modelle, pytest, ruff (Lint + Format)
 - Frontends: TypeScript + Next.js (React) für privates und öffentliches Frontend
 
@@ -79,6 +79,10 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 - Historische Quoten für Backtests kommen aus **football-data.co.uk** (1X2, Ü/U 2.5,
   jeweils Eröffnungs- und Schlussquote). Für alle anderen Märkte gibt es nur unser eigenes Snapshot-Archiv.
 - Wahrscheinlichkeiten intern immer als Dezimalwert 0–1, Quoten als Dezimalquote. Zeiten in UTC (`timestamptz`).
+- **Ligen und Einstellungen kommen aus der DB** (`app.leagues`, `app.settings`, Zugriff nur über `quotenfabrik/app_config.py`);
+  `QF_LEAGUES` & Co. sind nur Fallback. Neue Schwellen/Parameter als `SettingDef` in `app_config.SETTINGS` ergänzen.
+- **Nach jedem Liga-Import entsteht automatisch ein Backup** (`backups/`, ersetzt standardmäßig den Seed), damit
+  verbrauchte Requests nicht verloren gehen.
 - Teams werden intern über die **API-Football Team-ID** identifiziert; football-data-Namen werden über
   `core.team_aliases` gemappt.
 
@@ -111,6 +115,7 @@ qf value backtest                             # Prognosen gegen historische Quot
 qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md
 qf picks build && qf picks report             # 3 Tipps pro Spiel speichern / Trefferquote → docs/12_tipps.md
 qf seed import                                # Datenbank aus seed/quotenfabrik_seed.dump (statt API-Abruf)
+qf backup                                     # Backup nach backups/ (auch automatisch nach Liga-Import)
 uvicorn quotenfabrik.api.main:app --port 8000 # REST-API für das Frontend
 cd ../frontend-private && npm run dev          # privates Frontend auf :3000
 pytest && ruff check . && ruff format --check .
@@ -129,8 +134,11 @@ pytest && ruff check . && ruff format --check .
   marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
   (`betano_value.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
-- `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, explorer, stats), Labels in `api/labels.py`
-- `frontend-private/` – Next.js App Router (`src/app/spieltage`, `tipps`, `spiel/[id]`, `explorer`, `auswertung`)
+- `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)
+- `quotenfabrik/pipeline.py` – Import-Schritte je Liga (CLI und Jobs); `jobs.py` – Hintergrund-Jobs (`app.jobs`,
+  Prozess `qf jobs run <id>`); `backup.py` – Backups; `reports.py` – Berichtspfade je Liga
+- `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, explorer, stats, admin = Einstellungsseite), Labels in `api/labels.py`
+- `frontend-private/` – Next.js App Router (`src/app/spieltage`, `tipps`, `spiel/[id]`, `explorer`, `auswertung`, `einstellungen`)
 - `.devcontainer/` – GitHub Codespaces: App-Container + PostgreSQL, Seed beim ersten Start, startet API und Frontend
 - `seed/` – Datenbank-Seed (pg_dump); nur bewusst neu erzeugen (`qf seed export`), jede Version vergrößert die Git-Historie
 - Tests: `backend/tests/`, Beispielantworten unter `backend/tests/data/` – Tests machen nie echte API-Requests

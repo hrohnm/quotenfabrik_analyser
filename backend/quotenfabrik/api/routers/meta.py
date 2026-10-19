@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
-from quotenfabrik.analytics.picks import DEFAULT_PROFILE, PROFILES
+from quotenfabrik import app_config
+from quotenfabrik.analytics.picks import default_profile, profiles
 from quotenfabrik.api.data import df, records
 from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS, league_logo
-from quotenfabrik.config import get_settings
 
 router = APIRouter(prefix="/api", tags=["meta"])
 
@@ -12,17 +12,17 @@ router = APIRouter(prefix="/api", tags=["meta"])
 def meta() -> dict:
     leagues = df(
         "select id, name, country from core.leagues where id = any(:ids) order by id",
-        ids=get_settings().leagues,
+        ids=app_config.league_ids(),
     )
     seasons = df(
         "select distinct season from core.fixtures where league_id = any(:ids) order by season desc",
-        ids=get_settings().leagues,
+        ids=app_config.league_ids(),
     )
     teams = df(
         """select distinct t.id, t.name, t.logo_url from core.teams t
            join core.fixtures f on t.id in (f.home_team_id, f.away_team_id)
            where f.league_id = any(:ids) order by t.name""",
-        ids=get_settings().leagues,
+        ids=app_config.league_ids(),
     )
     markets = df(
         """select p.market_group, p.market, p.line, array_agg(distinct p.selection) as selections
@@ -35,13 +35,19 @@ def meta() -> dict:
            where kind in ('forecast', 'backtest') order by id desc limit 5"""
     )
     return {
-        "leagues": [{**lg, "logo": league_logo(lg["id"])} for lg in records(leagues)],
+        "leagues": _league_list(records(leagues)),
         "seasons": [int(s) for s in seasons["season"]],
         "teams": records(teams),
         "groups": GROUP_LABELS,
         "pick_profiles": [
-            {"key": k, "label": p.label, "min_p": p.min_p, "max_p": p.max_p, "default": k == DEFAULT_PROFILE}
-            for k, p in PROFILES.items()
+            {
+                "key": k,
+                "label": p.label,
+                "min_p": p.min_p,
+                "max_p": p.max_p,
+                "default": k == default_profile(),
+            }
+            for k, p in profiles().items()
         ],
         "market_labels": MARKET_LABELS,
         "selection_labels": SELECTION_LABELS,
@@ -56,3 +62,16 @@ def meta() -> dict:
         ],  # fmt: skip
         "runs": records(runs),
     }
+
+
+def _league_list(rows: list[dict]) -> list[dict]:
+    """Configured order; leagues with the same name get their country (e.g. two "Bundesliga")."""
+    order = {lid: i for i, lid in enumerate(app_config.league_ids())}
+    names = [r["name"] for r in rows]
+    out = []
+    for r in sorted(rows, key=lambda r: order.get(r["id"], 99)):
+        name = (
+            f"{r['name']} ({r['country']})" if names.count(r["name"]) > 1 and r.get("country") else r["name"]
+        )
+        out.append({**r, "name": name, "logo": league_logo(r["id"])})
+    return out

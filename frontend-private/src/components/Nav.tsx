@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/tipps", label: "Tipps" },
   { href: "/explorer", label: "Daten-Explorer" },
   { href: "/auswertung", label: "Auswertung" },
+  { href: "/einstellungen", label: "Einstellungen" },
 ];
 
 export function Nav() {

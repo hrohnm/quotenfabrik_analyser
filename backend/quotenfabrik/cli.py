@@ -1,27 +1,23 @@
 """Command line interface ``qf``."""
 
 import logging
-import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-import httpx
 import typer
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from quotenfabrik import app_config, pipeline
 from quotenfabrik.config import get_settings
 from quotenfabrik.db import get_engine
-from quotenfabrik.ingest import api_football, football_data, odds, oddspapi, quality, rebuild, team_mapping
+from quotenfabrik.ingest import odds, oddspapi, quality, rebuild
 from quotenfabrik.ingest.db_utils import raw_response_saver
 from quotenfabrik.models import OddsPapiFixture
+from quotenfabrik.reports import BETANO_REPORT, ODDS_REPORT, PICKS_REPORT, report_path
+from quotenfabrik.reports import EVALUATION_REPORT as DEFAULT_REPORT
 from quotenfabrik.sources.api_football import ApiFootballClient, QuotaExhausted
 from quotenfabrik.sources.oddspapi import OddsPapiClient, OddsPapiQuotaExhausted
-
-DEFAULT_REPORT = Path(__file__).resolve().parents[2] / "docs" / "09_modell_evaluation.md"
-ODDS_REPORT = Path(__file__).resolve().parents[2] / "docs" / "10_quoten_backtest.md"
-BETANO_REPORT = Path(__file__).resolve().parents[2] / "docs" / "11_betano_nebenmaerkte.md"
-PICKS_REPORT = Path(__file__).resolve().parents[2] / "docs" / "12_tipps.md"
 
 app = typer.Typer(help="Quotenfabrik Analyser", no_args_is_help=True)
 ingest_app = typer.Typer(help="Daten importieren", no_args_is_help=True)
@@ -53,17 +49,11 @@ def _seasons(spec: str) -> list[int]:
 
 
 def _leagues(league: int | None) -> list[int]:
-    return [league] if league else get_settings().leagues
+    return [league] if league else app_config.league_ids()
 
 
 def _report(path: Path | None, league_id: int) -> Path | None:
-    """The first configured league writes ``path``; other leagues get a suffix (``…_2_bundesliga.md``)."""
-    if path is None or league_id == get_settings().leagues[0]:
-        return path
-    from quotenfabrik.analytics.data import league_name
-
-    slug = re.sub(r"[^a-z0-9]+", "_", league_name(get_engine(), league_id).lower()).strip("_")
-    return path.with_name(f"{path.stem}_{slug}{path.suffix}")
+    return report_path(path, league_id)
 
 
 def _client() -> ApiFootballClient:
@@ -102,62 +92,42 @@ def status() -> None:
 @ingest_app.command("football-data")
 def ingest_football_data(
     seasons: str = typer.Option("2015-2026", help="Saison-Startjahre, z. B. 2015-2026"),
-    league: int | None = typer.Option(None, help="API-Liga-ID (Standard: QF_LEAGUES)"),
+    league: int | None = typer.Option(None, help="API-Liga-ID (Standard: konfigurierte Ligen)"),
 ) -> None:
     """Historische Ergebnisse + Quoten von football-data.co.uk (keine API-Quota)."""
-    settings = get_settings()
-    with Session(get_engine()) as session, httpx.Client(timeout=60, follow_redirects=True) as http:
+    with Session(get_engine()) as session:
         for league_id in _leagues(league):
-            code = settings.fd_code_for(league_id)
-            total = sum(football_data.sync_season(session, code, s, http) for s in _seasons(seasons))
-            typer.echo(f"{code}: {total} Spiele importiert")
+            result = pipeline.football_data_seasons(session, league_id, _seasons(seasons), log=typer.echo)
+            typer.echo(f"Liga {league_id}: {result}")
 
 
 @ingest_app.command("api-football")
 def ingest_api_football(
     seasons: str = typer.Option("2015-2026", help="Saison-Startjahre, z. B. 2015-2026"),
-    league: int | None = typer.Option(None, help="API-Liga-ID (Standard: QF_LEAGUES)"),
+    league: int | None = typer.Option(None, help="API-Liga-ID (Standard: konfigurierte Ligen)"),
     details: bool = typer.Option(True, help="Events, Lineups, Stats und Spieler-Stats laden"),
     half_stats: bool = typer.Option(False, "--half-stats", help="Halbzeit-Stats ab 2024 (1 Request/Spiel)"),
     injuries: bool = typer.Option(True, help="Verletzungen/Ausfälle (ab 2021)"),
 ) -> None:
     """Spielplan, Ergebnisse und Spieldetails von API-Football."""
     with Session(get_engine()) as session, _client() as client:
-        client.status()
         try:
             for league_id in _leagues(league):
-                for season in _seasons(seasons):
-                    n = api_football.sync_season(session, client, league_id, season)
-                    msg = f"Liga {league_id} {season}: {n} Spiele"
-                    if details:
-                        missing = api_football.fixtures_missing_details(session, league_id, season)
-                        msg += f", Details {api_football.sync_details(session, client, missing)}"
-                    if half_stats:
-                        missing = api_football.fixtures_missing_half_stats(session, league_id, season)
-                        msg += f", Halbzeit-Stats {api_football.sync_half_stats(session, client, missing)}"
-                    if injuries and season >= 2021:
-                        msg += f", Ausfälle {api_football.sync_injuries(session, client, league_id, season)}"
-                    typer.echo(msg)
+                result = pipeline.api_football_seasons(
+                    session, client, league_id, _seasons(seasons), details=details, half_stats=half_stats,
+                    injuries=injuries, log=lambda m, lid=league_id: typer.echo(f"Liga {lid} {m}"),
+                )  # fmt: skip
+                typer.echo(f"Liga {league_id}: {result}")
         except QuotaExhausted as exc:
             typer.secho(f"Abgebrochen: {exc}", fg="red")
-        typer.echo(f"API-Requests: {client.requests_made}, verbleibend heute: {client.quota_remaining}")
 
 
 @app.command("map-teams")
 def map_teams(league: int | None = typer.Option(None)) -> None:
     """football-data-Teamnamen auf API-Team-IDs mappen und Spiele verknüpfen."""
-    settings = get_settings()
     with Session(get_engine()) as session:
         for league_id in _leagues(league):
-            r = team_mapping.map_and_link(session, league_id, settings.fd_code_for(league_id))
-            typer.echo(
-                f"Liga {league_id}: {r.aliases_total} Aliase ({r.aliases_new} neu), "
-                f"{r.rows_linked} Spiele verknüpft, {r.rows_unlinked} offen"
-            )
-            if r.unmapped_aliases:
-                typer.secho(f"  Nicht gemappt: {', '.join(r.unmapped_aliases)}", fg="yellow")
-            for example in r.unlinked_examples:
-                typer.echo(f"  offen: {example}")
+            typer.echo(f"Liga {league_id}: {pipeline.map_teams(session, league_id, log=typer.echo)}")
 
 
 @odds_app.command("snapshot")
@@ -219,19 +189,12 @@ def oddspapi_fixtures(
     league: int | None = typer.Option(None),
 ) -> None:
     """Spielplan von OddsPapi laden und mit API-Football verknüpfen (1 Request pro Liga)."""
-    settings = get_settings()
     start = datetime.fromisoformat(date_from).replace(tzinfo=UTC)
-    end = (
-        datetime.fromisoformat(date_to).replace(tzinfo=UTC)
-        if date_to
-        else datetime.now(UTC) + timedelta(days=60)
-    )
+    end = datetime.fromisoformat(date_to).replace(tzinfo=UTC) if date_to else None
     with Session(get_engine()) as session, OddsPapiClient() as client:
         for league_id in _leagues(league):
-            tournament = settings.oddspapi_tournament_for(league_id)
-            count = oddspapi.sync_fixtures(session, client, tournament, start, end)
-            typer.echo(f"Liga {league_id} / Turnier {tournament}: {count} Spiele")
-            _oddspapi_map(session, league_id, tournament)
+            result = pipeline.oddspapi_fixtures(session, client, league_id, start, end, log=typer.echo)
+            typer.echo(f"Liga {league_id}: {result}")
         _oddspapi_echo_quota(client)
 
 
@@ -248,29 +211,22 @@ def oddspapi_history(
     limit: int | None = typer.Option(None, help="Maximal so viele Spiele (Test)"),
 ) -> None:
     """Quotenverläufe (Betano + Pinnacle) aller offenen Spiele seit 01/2026 laden (kostenlos, 5 s/Spiel)."""
-    settings = get_settings()
     with Session(get_engine()) as session, OddsPapiClient() as client:
-        if not oddspapi.tracked_market_ids(session):
-            typer.echo("Marktkatalog fehlt, lade ihn zuerst (1 Request)")
-            oddspapi.sync_markets(session, client)
         for league_id in _leagues(league):
-            tournament = settings.oddspapi_tournament_for(league_id)
-            fixtures = oddspapi.fixtures_needing_history(session, tournament, limit=limit)
-            typer.echo(f"Liga {league_id}: {len(fixtures)} Spiele, ca. {len(fixtures) * 5 // 60 + 1} Minuten")
-            stats = oddspapi.sync_history(session, client, fixtures, settings.oddspapi_bookmakers)
-            typer.echo(
-                f"  {stats['fixtures']} Verläufe geladen ({stats['final']} abgeschlossen, "
-                f"{stats['not_found']} ohne Daten), {stats['rows']} Preisänderungen verarbeitet"
-            )
+            result = pipeline.oddspapi_history(session, client, league_id, limit, typer.echo)
+            typer.echo(f"Liga {league_id}: {result}")
 
 
 @oddspapi_app.command("players")
 def oddspapi_players(league: int | None = typer.Option(None)) -> None:
     """Spielernamen für Torschützen-Märkte der kommenden Spiele (1 Request pro Liga)."""
-    settings = get_settings()
+    get_settings()
     with Session(get_engine()) as session, OddsPapiClient() as client:
         for league_id in _leagues(league):
-            count = oddspapi.sync_player_names(session, client, settings.oddspapi_tournament_for(league_id))
+            tournament = app_config.oddspapi_tournament_for(league_id)
+            if not tournament:
+                continue
+            count = oddspapi.sync_player_names(session, client, tournament)
             typer.echo(f"Liga {league_id}: {count} Spielernamen")
         _oddspapi_echo_quota(client)
 
@@ -282,7 +238,9 @@ def oddspapi_update(league: int | None = typer.Option(None)) -> None:
     with Session(get_engine()) as session, OddsPapiClient() as client:
         try:
             for league_id in _leagues(league):
-                tournament = settings.oddspapi_tournament_for(league_id)
+                tournament = app_config.oddspapi_tournament_for(league_id)
+                if not tournament:
+                    continue
                 last = session.scalar(
                     select(func.max(OddsPapiFixture.updated_at)).where(
                         OddsPapiFixture.tournament_id == tournament
@@ -433,6 +391,29 @@ def picks_report(
         path = _report(report, league_id)
         write_report(get_engine(), league_id, validation_until, path)
         typer.echo(f"Liga {league_id}: Bericht {path}")
+
+
+# --------------------------------------------------------------------------- jobs / backup
+
+jobs_app = typer.Typer(help="Hintergrund-Jobs der Konfigurationsseite", no_args_is_help=True)
+app.add_typer(jobs_app, name="jobs")
+
+
+@jobs_app.command("run")
+def jobs_run(job_id: int = typer.Argument(..., help="ID aus app.jobs")) -> None:
+    """Job ausführen (wird von der Konfigurationsseite als eigener Prozess gestartet)."""
+    from quotenfabrik import jobs
+
+    typer.echo(f"Job {job_id}: {jobs.run(job_id)}")
+
+
+@app.command("backup")
+def backup_cmd(reason: str = typer.Option("manuell", help="Kurzbeschreibung im Dateinamen")) -> None:
+    """Datenbank-Backup nach backups/ (und je nach Einstellung auch seed/ aktualisieren)."""
+    from quotenfabrik.backup import create_backup
+
+    path = create_backup(reason)
+    typer.echo(f"Backup: {path} ({path.stat().st_size / 1e6:.1f} MB)")
 
 
 # --------------------------------------------------------------------------- seed

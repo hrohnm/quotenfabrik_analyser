@@ -7,7 +7,7 @@ import pandas as pd
 from sqlalchemy import Engine, text
 
 from quotenfabrik.analytics.data import league_name, with_league
-from quotenfabrik.analytics.picks import ALLOWED, DEFAULT_PROFILE, PICKS_PER_FIXTURE, PROFILES, evaluate_picks
+from quotenfabrik.analytics.picks import ALLOWED, PICKS_PER_FIXTURE, default_profile, evaluate_picks, profiles
 from quotenfabrik.analytics.service import MODEL_VERSION
 from quotenfabrik.api.data import CHOSEN_RUNS_SQL
 from quotenfabrik.api.labels import pick_label
@@ -33,13 +33,14 @@ def load_settled(engine: Engine, league_id: int) -> pd.DataFrame:
 
 def write_report(engine: Engine, league_id: int, validation_until: int, path: Path) -> None:
     data = load_settled(engine, league_id)
+    profs = profiles()
     periods = {
         "Validierung": data[data["season"] <= validation_until],
         "Test": data[data["season"] > validation_until],
     }
     results = {(name, prof): evaluate_picks(frame[frame["profile"] == prof])
-               for name, frame in periods.items() for prof in PROFILES}  # fmt: skip
-    full = {prof: evaluate_picks(data[data["profile"] == prof]) for prof in PROFILES}
+               for name, frame in periods.items() for prof in profs}  # fmt: skip
+    full = {prof: evaluate_picks(data[data["profile"] == prof]) for prof in profs}
     path.write_text(
         with_league(render(results, full, data, validation_until), league_name(engine, league_id)),
         encoding="utf-8",
@@ -59,9 +60,10 @@ def _season(s: int) -> str:
 
 
 def render(results: dict, full: dict, data: pd.DataFrame, validation_until: int) -> str:
+    profs, default_key = profiles(), default_profile()
     seasons = sorted(data["season"].unique())
-    default = full[DEFAULT_PROFILE]
-    test = {prof: results[("Test", prof)] for prof in PROFILES}
+    default = full[default_key]
+    test = {prof: results[("Test", prof)] for prof in profs}
     markets = ", ".join(sorted(ALLOWED))
     lines = [
         "# 12 – 3 Tipps pro Spiel: Trefferquote einzeln und als Kombi",
@@ -89,7 +91,7 @@ def render(results: dict, full: dict, data: pd.DataFrame, validation_until: int)
         "|---|---|---|",
         *[
             f"| {p.label} | {_pct(p.min_p, 0)} – {_pct(p.max_p, 0)} | {f'{p.lift_weight:g}'.replace('.', ',')} |"
-            for p in PROFILES.values()
+            for p in profs.values()
         ],
         "",
         "## Ergebnis",
@@ -97,7 +99,7 @@ def render(results: dict, full: dict, data: pd.DataFrame, validation_until: int)
         "| Profil | Zeitraum | Tipps | Trefferquote | erwartet | Kombis | Kombi getroffen | Kombi rechnerisch* | faire Kombi-Quote (Median) |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
-    for prof, p in PROFILES.items():
+    for prof, p in profs.items():
         for period in ("Validierung", "Test"):
             r = results[(period, prof)]
             s, c = r["singles"], r["combo"]
@@ -105,7 +107,7 @@ def render(results: dict, full: dict, data: pd.DataFrame, validation_until: int)
                 f"| {p.label} | {period} | {s['n']} | **{_pct(s['hit_rate'])}** | {_pct(s['expected'])} | {c.get('n', 0)} | "
                 f"**{_pct(c.get('hit_rate'))}** | {_pct(c.get('expected_naive'))} | {_odd(c.get('fair_odd_median'))} |"
             )
-    t = test[DEFAULT_PROFILE]
+    t = test[default_key]
     lines += [
         "",
         "\\* Produkt der drei Einzelwahrscheinlichkeiten – so rechnet eine gewöhnliche Kombiwette. Die Kombi trifft "
@@ -129,7 +131,7 @@ def render(results: dict, full: dict, data: pd.DataFrame, validation_until: int)
         f"{_pct(default['reasons']['without']['hit_rate'])} (erwartet {_pct(default['reasons']['without']['expected'])}). "
         "Pattern erklären den Tipp, verbessern ihn aber nicht messbar – das Modell kennt die Information bereits.",
         "",
-        f"## Details Profil „{PROFILES[DEFAULT_PROFILE].label}“ (alle Saisons)",
+        f"## Details Profil „{profs[default_key].label}“ (alle Saisons)",
         "",
         "### Wie viele der drei Tipps treffen?",
         "",

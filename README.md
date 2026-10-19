@@ -12,7 +12,7 @@ mit Buchmacherquoten verglichen und per Backtest validiert.
 | Bereich | Ordner | Status |
 |---|---|---|
 | Backend: Datenimport, PostgreSQL, Analytik, REST-API | `backend/` | in Arbeit |
-| Privates Frontend: Spieltage, Tipps, Spiel-Detail, Daten-Explorer, Auswertung | `frontend-private/` | in Arbeit |
+| Privates Frontend: Spieltage, Tipps, Spiel-Detail, Daten-Explorer, Auswertung, Einstellungen | `frontend-private/` | in Arbeit |
 | Öffentliches Frontend: Login & Abo-Modell | `frontend-public/` | später |
 
 ## Schnellstart
@@ -31,6 +31,11 @@ PostgreSQL-Client 16 ist im Devcontainer installiert, in älteren Codespaces vor
 Dienste starten: `bash .devcontainer/start.sh` – startet nur, was noch nicht läuft. Neu starten (z. B. nach `git pull`):
 `bash .devcontainer/restart.sh`. Setup erneut ausführen:
 `bash .devcontainer/post-create.sh`.
+
+**Einstellungen & neue Ligen:** Seite `/einstellungen` – Schwellen der Tipps, Modellparameter, Reserven, Ligen
+hinzufügen (Import, Modelle, Tipps laufen als Hintergrund-Job). Nach jedem Import entsteht automatisch ein Backup unter
+`backups/`; standardmäßig wird auch `seed/quotenfabrik_seed.dump` ersetzt – erst ein `git commit` + `git push` des Seeds
+sichert die neuen Daten dauerhaft, auch wenn der Codespace gelöscht wird.
 
 **Lokal mit Docker:**
 

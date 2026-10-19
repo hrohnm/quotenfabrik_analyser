@@ -3,11 +3,11 @@
 import pandas as pd
 
 from quotenfabrik.analytics.picks import (
-    PROFILES,
     Profile,
     combos,
     evaluate_picks,
     is_candidate,
+    profiles,
     select_picks,
     supported_key,
 )
@@ -57,7 +57,7 @@ def test_candidates_and_support():
     assert supported_key("combined_o25", "low") == ("ou_ft", "under", 2.5)
     assert supported_key("home_win_rate_home", "low") is None
     assert supported_key("unknown", "high") is None
-    assert set(PROFILES) == {"sicher", "ausgewogen", "mutig"}
+    assert set(profiles()) == {"sicher", "ausgewogen", "mutig"}
 
 
 def test_pick_labels():

@@ -52,16 +52,17 @@
 - [x] Auswertung: Trefferquoten pro Liga/Saison/Markt, Konfidenz, Kalibrierung, Torschützen
 - [x] Seed der Datenbank im Repository (`seed/`, `qf seed import`)
 - [x] 3 Tipps pro Spiel (Profile Sicher/Ausgewogen/Mutig) mit Trefferquote einzeln und als Kombi (`12_tipps.md`, Seite `/tipps`)
+- [x] Einstellungsseite (`/einstellungen`): Schwellen der Tipps, Modellparameter, Reserven; Ligen hinzufügen mit automatischem Import und Backup
 - [ ] Wett-Tracking mit ROI/CLV-Auswertung
 - [ ] Betano-/Pinnacle-Quoten im Spiel-Detail (nach Markt-Mapping OddsPapi ↔ eigene Märkte, Phase 3)
 - [ ] Datenqualitäts-Ansicht
 
 ## Phase 4 – Erweiterung
 - [x] 2. Bundesliga (Liga 79 / D2 / OddsPapi 44): Daten 2015–2026, Modelle, Tipps, Berichte je Liga, Ligafilter im Frontend
-- [ ] Weitere Ligen (Premier League, …) – Quota reicht problemlos
+- [ ] Weitere Ligen (Premier League, …) – jetzt über die Einstellungsseite hinzufügbar
 - [ ] Ligaübergreifende Teamstärke (Auf-/Absteiger mit Daten aus der anderen Liga statt festem Prior)
 - [ ] Modell-Verbesserungen (xG-Integration, Stacking, Marktmischung)
-- [ ] Hosting/Deployment, Backups, Monitoring
+- [ ] Hosting/Deployment, Monitoring (Backups: `qf backup`, automatisch nach jedem Liga-Import)
 
 ## Phase 5 – Öffentliches Frontend mit Abo
 - [ ] Rechtliche Prüfung (siehe unten)

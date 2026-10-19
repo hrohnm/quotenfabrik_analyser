@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 
-from quotenfabrik.config import Settings, get_settings
+from quotenfabrik.config import Settings
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +49,11 @@ class ApiFootballClient:
         transport: httpx.BaseTransport | None = None,
         max_retries: int = 4,
     ) -> None:
-        self.settings = settings or get_settings()
+        if settings is None:
+            from quotenfabrik.app_config import effective_settings  # reserves from the configuration page
+
+            settings = effective_settings()
+        self.settings = settings
         if not self.settings.api_football_key:
             raise ApiFootballError("API_FOOTBALL_KEY is not set")
         self._http = httpx.Client(
