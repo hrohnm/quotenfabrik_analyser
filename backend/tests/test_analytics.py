@@ -156,3 +156,26 @@ def test_scorer_model_uses_minutes_and_lineup():
     defender = model.player_lambda(11, 1, 2.0, True)
     assert striker_start > defender > 0
     assert striker_start > 3 * striker_bench
+
+
+def test_hit_rate_picks():
+    from quotenfabrik.api.routers.stats import picks
+
+    rows = [
+        # 1X2: pick = H (0.5), outcome D -> miss
+        (1, "1x2", "H", np.nan, 0.5, False),
+        (1, "1x2", "D", np.nan, 0.3, True),
+        (1, "1x2", "A", np.nan, 0.2, False),
+        # O/U 2.5: pick = over (0.6), outcome over -> hit
+        (1, "ou_ft", "over", 2.5, 0.6, True), (1, "ou_ft", "under", 2.5, 0.4, False),
+        # single-selection market: clean sheet home 30 % -> "no" call, outcome False -> hit
+        (1, "clean_sheet", "home", np.nan, 0.3, False),
+    ]  # fmt: skip
+    data = pd.DataFrame(rows, columns=["fixture_id", "market", "selection", "line", "probability", "outcome"])
+    data["market_group"], data["season"] = "x", 2025
+    result = picks(data).set_index("market")
+    assert not result.loc["1x2", "hit"] and result.loc["1x2", "selection"] == "H"
+    assert result.loc["ou_ft", "hit"] and result.loc["ou_ft", "pick_probability"] == 0.6
+    assert (
+        result.loc["clean_sheet", "hit"] and abs(result.loc["clean_sheet", "pick_probability"] - 0.7) < 1e-9
+    )

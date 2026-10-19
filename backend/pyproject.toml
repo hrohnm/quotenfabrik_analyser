@@ -38,7 +38,7 @@ target-version = "py312"
 select = ["E", "F", "I", "B", "UP", "SIM"]
 
 [tool.ruff.lint.flake8-bugbear]
-extend-immutable-calls = ["typer.Option", "typer.Argument"]
+extend-immutable-calls = ["typer.Option", "typer.Argument", "fastapi.Query"]
 
 [tool.ruff.lint.isort]
 known-third-party = ["alembic"]
@@ -49,6 +49,8 @@ known-third-party = ["alembic"]
 "quotenfabrik/analytics/patterns.py" = ["E501"]
 # German report texts
 "quotenfabrik/analytics/service.py" = ["E501"]
+# SQL strings and compact response dicts
+"quotenfabrik/api/routers/*.py" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

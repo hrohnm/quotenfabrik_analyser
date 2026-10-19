@@ -24,10 +24,12 @@ ingest_app = typer.Typer(help="Daten importieren", no_args_is_help=True)
 odds_app = typer.Typer(help="Quoten-Archiv (API-Football)", no_args_is_help=True)
 oddspapi_app = typer.Typer(help="Betano-Quoten über OddsPapi", no_args_is_help=True)
 model_app = typer.Typer(help="Modelle, Prognosen und Evaluation (Phase 2)", no_args_is_help=True)
+seed_app = typer.Typer(help="Datenbank-Seed exportieren/importieren", no_args_is_help=True)
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(odds_app, name="odds")
 app.add_typer(oddspapi_app, name="oddspapi")
 app.add_typer(model_app, name="model")
+app.add_typer(seed_app, name="seed")
 
 
 def _seasons(spec: str) -> list[int]:
@@ -314,12 +316,63 @@ def model_forecast(
         typer.echo(f"Liga {league_id}: {run_forecast(get_engine(), league_id, days)}")
 
 
+@model_app.command("backtest")
+def model_backtest(
+    seasons: str = typer.Option("2016-2026", help="Saisons mit rückwirkenden Prognosen (Walk-Forward)"),
+    league: int | None = typer.Option(None),
+) -> None:
+    """Rückwirkende Prognosen aller beendeten Spiele speichern (für Daten-Explorer und Auswertung)."""
+    from quotenfabrik.analytics.service import run_backtest
+
+    for league_id in _leagues(league):
+        typer.echo(f"Liga {league_id}: {run_backtest(get_engine(), league_id, _seasons(seasons))}")
+
+
+@model_app.command("settle")
+def model_settle(league: int | None = typer.Option(None)) -> None:
+    """Ergebnis (zugetroffen ja/nein) für Prognosen beendeter Spiele eintragen."""
+    from quotenfabrik.analytics.service import settle_predictions
+
+    for league_id in _leagues(league):
+        typer.echo(f"Liga {league_id}: {settle_predictions(get_engine(), league_id)} Prognosen abgerechnet")
+
+
 @model_app.command("show")
 def model_show(fixture: int = typer.Argument(..., help="API-Football Fixture-ID")) -> None:
     """Letzte Prognose eines Spiels anzeigen (Hauptmärkte, Top-Torschützen, Pattern-Signale)."""
     from quotenfabrik.analytics.service import show_fixture
 
     typer.echo(show_fixture(get_engine(), fixture))
+
+
+# --------------------------------------------------------------------------- seed
+
+
+@seed_app.command("export")
+def seed_export() -> None:
+    """Datenbank (raw, core, analytics) nach seed/quotenfabrik_seed.dump schreiben."""
+    from quotenfabrik.seed import export_seed
+
+    path = export_seed()
+    typer.echo(f"Seed geschrieben: {path} ({path.stat().st_size / 1e6:.1f} MB)")
+
+
+@seed_app.command("import")
+def seed_import(
+    force: bool = typer.Option(False, "--force", help="Vorhandene Schemas raw/core/analytics löschen"),
+) -> None:
+    """Seed in eine leere Datenbank einspielen (statt Import über die APIs)."""
+    from quotenfabrik.seed import SEED_FILE, database_is_empty, drop_schemas, import_seed
+
+    if not database_is_empty():
+        if not force:
+            typer.secho(
+                "Datenbank enthält bereits Daten. Mit --force werden raw/core/analytics gelöscht.", fg="red"
+            )
+            raise typer.Exit(1)
+        drop_schemas()
+    import_seed(SEED_FILE)
+    typer.echo("Seed eingespielt und Schema auf aktuellen Stand gesetzt (alembic stamp head).")
 
 
 @app.command("rebuild")

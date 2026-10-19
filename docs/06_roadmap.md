@@ -38,10 +38,14 @@
 - [ ] Value-Erkennung + Paper-Trading-Protokoll
 
 ## Phase 3b – Privates Frontend (Next.js)
-- [ ] REST-API (`/internal/*`)
-- [ ] Spieltags-Dashboard, Spiel-Detail mit Tabs je Marktgruppe
+- [x] REST-API (`/api/*`, FastAPI)
+- [x] Spieltagsübersicht (Spiele pro Tag), Spiel-Detail mit allen Märkten je Marktgruppe, Pattern, Statistik
+- [x] Daten-Explorer inkl. rückwirkender Prognosen vergangener Spiele (`qf model backtest`)
+- [x] Auswertung: Trefferquoten pro Liga/Saison/Markt, Konfidenz, Kalibrierung, Torschützen
+- [x] Seed der Datenbank im Repository (`seed/`, `qf seed import`)
 - [ ] Wett-Tracking mit ROI/CLV-Auswertung
-- [ ] Backtest- und Datenqualitäts-Ansicht
+- [ ] Betano-/Pinnacle-Quoten im Spiel-Detail (nach Markt-Mapping OddsPapi ↔ eigene Märkte, Phase 3)
+- [ ] Datenqualitäts-Ansicht
 
 ## Phase 4 – Erweiterung
 - [ ] Weitere Ligen (2. Bundesliga, Premier League, …) – Quota reicht problemlos

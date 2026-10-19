@@ -3,7 +3,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Index, Integer, Numeric, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Index, Integer, Numeric, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,7 +17,7 @@ class ModelRun(Base):
     __table_args__ = ANALYTICS
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    kind: Mapped[str] = mapped_column(Text)  # 'forecast' or 'evaluation'
+    kind: Mapped[str] = mapped_column(Text)  # 'forecast', 'backtest' or 'evaluation'
     model_version: Mapped[str] = mapped_column(Text)
     league_id: Mapped[int] = mapped_column(Integer)
     as_of: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -39,6 +39,9 @@ class Prediction(Base):
     line: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     probability: Mapped[float] = mapped_column(Float)
     fair_odd: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    # time the prediction refers to (model fitted on data before it); backtests: first kickoff of the matchday
+    predicted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    outcome: Mapped[bool | None] = mapped_column(Boolean)  # set once the match is finished (qf model settle)
 
 
 class PatternResultRow(Base):

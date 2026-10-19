@@ -24,7 +24,7 @@ Marktgruppen (Reihenfolge = Priorität):
 | Bereich | Ordner | Status |
 |---|---|---|
 | 1. Backend (Ingest, DB, Analytik, REST-API) | `backend/` | in Arbeit |
-| 2. Privates Frontend (eigene Analyse & Wett-Tracking) | `frontend-private/` | geplant |
+| 2. Privates Frontend (eigene Analyse & Wett-Tracking) | `frontend-private/` | in Arbeit (Spieltage, Detail, Explorer, Auswertung) |
 | 3. Öffentliches Frontend (Login, Abo-Modell) | `frontend-public/` | später |
 
 Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquellen, nur mit der Backend-API.
@@ -100,6 +100,10 @@ qf odds snapshot                              # Quoten-Snapshot API-Football (Cr
 qf oddspapi update                            # Betano-Verläufe über OddsPapi (Cron alle 3 h, kostenlos)
 qf model evaluate --seasons 2022-2026         # Walk-Forward-Evaluation → docs/09_modell_evaluation.md
 qf model forecast && qf model show <id>       # Prognosen für kommende Spiele
+qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebnisse eintragen
+qf seed import                                # Datenbank aus seed/quotenfabrik_seed.dump (statt API-Abruf)
+uvicorn quotenfabrik.api.main:app --port 8000 # REST-API für das Frontend
+cd ../frontend-private && npm run dev          # privates Frontend auf :3000
 pytest && ruff check . && ruff format --check .
 ```
 
@@ -113,4 +117,7 @@ pytest && ruff check . && ruff format --check .
   (asiatische Märkte ausgeschlossen)
 - `quotenfabrik/analytics/` – Modelle (Dixon-Coles, Halbzeiten, Torschützen), Märkte, Pattern, Evaluation
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
+- `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, explorer, stats), Labels in `api/labels.py`
+- `frontend-private/` – Next.js App Router (`src/app/spieltage`, `spiel/[id]`, `explorer`, `auswertung`)
+- `seed/` – Datenbank-Seed (pg_dump); nur bewusst neu erzeugen (`qf seed export`), jede Version vergrößert die Git-Historie
 - Tests: `backend/tests/`, Beispielantworten unter `backend/tests/data/` – Tests machen nie echte API-Requests

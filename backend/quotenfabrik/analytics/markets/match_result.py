@@ -47,6 +47,9 @@ def outcomes(m) -> Outcomes:
         ("dc", "1X", None): diff >= 0,
         ("dc", "X2", None): diff <= 0,
         ("dc", "12", None): diff != 0,
+        # draw no bet: None = stake returned
+        ("dnb", "H", None): None if diff == 0 else diff > 0,
+        ("dnb", "A", None): None if diff == 0 else diff < 0,
     }
     for hc in EUROPEAN_HANDICAPS:
         res[("eh", "H", hc)] = diff + hc > 0

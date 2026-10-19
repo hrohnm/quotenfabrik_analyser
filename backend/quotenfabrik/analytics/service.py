@@ -117,6 +117,8 @@ def run_forecast(
                         "signal": p.signal, "details": p.details or None,
                     }
                 )  # fmt: skip
+        for row in predictions:
+            row["predicted_at"] = as_of.to_pydatetime()
         upsert(session, Prediction, predictions, update=False)
         upsert(session, PatternResultRow, patterns, update=False)
         run.summary = {"fixtures": len(upcoming), "predictions": len(predictions), "patterns": len(patterns)}
@@ -440,3 +442,132 @@ def show_fixture(engine: Engine, fixture_id: int) -> str:
     out += [f"  [{r.signal:4}] {r.label}: {r.value * 100:.0f} % (n={r.n}, Liga {r.baseline * 100:.0f} %)"
             for r in signals.itertuples()]  # fmt: skip
     return "\n".join(out)
+
+
+# --------------------------------------------------------------------------- backtest + settlement
+
+
+def scorer_outcomes(fixture_id: int, player_goals: pd.DataFrame, goal_events: pd.DataFrame) -> dict:
+    """{(market, player_id_str, None): bool} for anytime and first goalscorer of one finished fixture."""
+    res = {}
+    pg = player_goals[player_goals["fixture_id"] == fixture_id]
+    for r in pg.itertuples(index=False):
+        res[("scorer_anytime", str(r.player_id), None)] = bool(r.goals > 0)
+    ev_ = goal_events[goal_events["fixture_id"] == fixture_id].sort_values(
+        ["minute", "extra_minute"], na_position="first"
+    )
+    first = ev_.iloc[0] if len(ev_) else None
+    first_scorer = None if first is None or first["detail"] == "Own Goal" else str(int(first["player_id"]))
+    for r in pg.itertuples(index=False):
+        res[("scorer_first", str(r.player_id), None)] = str(r.player_id) == first_scorer
+    return res
+
+
+def _key(market: str, selection: str, line) -> tuple:
+    if line is None or (isinstance(line, float) and math.isnan(line)):
+        return (market, selection, None)
+    return (market, selection, float(line))
+
+
+def match_outcomes(match) -> dict:
+    out = {}
+    for module in GROUPS.values():
+        for (market, selection, line), hit in module.outcomes(match).items():
+            out[_key(market, selection, line)] = None if hit is None else bool(hit)
+    return out
+
+
+def run_backtest(
+    engine: Engine,
+    league_id: int,
+    seasons: Iterable[int],
+    params: PoissonParams | None = None,
+    scorer_params: ScorerParams | None = None,
+) -> dict:
+    """Walk-forward predictions for all finished matches of ``seasons`` incl. outcomes (replaces older backtests).
+
+    Every matchday is predicted with models fitted only on matches before its first kickoff. Goalscorer
+    predictions use the actual lineups (starters/bench are published before kickoff).
+    """
+    from sqlalchemy import delete
+
+    params = params or PoissonParams()
+    scorer_params = scorer_params or ScorerParams()
+    seasons = list(seasons)
+    matches = load_matches(engine, league_id)
+    players = load_player_matches(engine, league_id)
+    goals = load_goal_events(engine, league_id)
+
+    with Session(engine) as session:
+        session.execute(delete(ModelRun).where(ModelRun.kind == "backtest", ModelRun.league_id == league_id))
+        run = ModelRun(
+            kind="backtest", model_version=MODEL_VERSION, league_id=league_id,
+            params={"poisson": dataclasses.asdict(params), "scorers": dataclasses.asdict(scorer_params), "seasons": seasons},
+        )  # fmt: skip
+        session.add(run)
+        session.flush()
+        total = 0
+        for as_of, md in ev._matchdays(matches, seasons):
+            season = md["season"].iloc[0]
+            teams = set(matches.loc[matches["season"] == season, "home_id"])
+            model = fit_match_model(matches, as_of, params, teams)
+            scorer_model = ScorerModel(scorer_params).fit(players, matches, as_of)
+            rows = []
+            for f in md.itertuples(index=False):
+                pred = model.predict(f.fixture_id, f.home_id, f.away_id)
+                outcomes = match_outcomes(f)
+                for group, module in GROUPS.items():
+                    for p in module.probabilities(pred):
+                        row = _prediction_row(run.id, f.fixture_id, group, p)
+                        row["predicted_at"] = as_of.to_pydatetime()
+                        row["outcome"] = outcomes.get(_key(p.market, p.selection, p.line))
+                        rows.append(row)
+                squad = players[
+                    (players["fixture_id"] == f.fixture_id) & players["position"].isin(["D", "M", "F"])
+                ]
+                squad = squad[squad["player_id"].isin(scorer_model.players.keys())]
+                s_out = scorer_outcomes(f.fixture_id, players, goals)
+                for p in scorer_model.probabilities(
+                    squad[["player_id", "team_id", "is_starter"]], pred.lh, pred.la, f.home_id
+                ):
+                    row = _prediction_row(run.id, f.fixture_id, "scorers", p)
+                    row["predicted_at"] = as_of.to_pydatetime()
+                    row["outcome"] = s_out.get((p.market, p.selection, None))
+                    rows.append(row)
+            upsert(session, Prediction, rows, update=False)
+            total += len(rows)
+        run.summary = {"predictions": total, "matches": int(matches["season"].isin(seasons).sum())}
+        session.commit()
+        return {"model_run_id": run.id, **run.summary}
+
+
+def settle_predictions(engine: Engine, league_id: int) -> int:
+    """Fills ``outcome`` of forecast predictions whose fixtures are finished."""
+    from sqlalchemy import text
+
+    matches = load_matches(engine, league_id).set_index("fixture_id")
+    players = load_player_matches(engine, league_id)
+    goals = load_goal_events(engine, league_id)
+    with Session(engine) as session:
+        open_ = pd.read_sql(
+            text(
+                """select p.id, p.fixture_id, p.market, p.selection, p.line from analytics.predictions p
+                   join analytics.model_runs r on r.id = p.model_run_id
+                   where r.league_id = :l and p.outcome is null"""
+            ),
+            session.connection(), params={"l": league_id},
+        )  # fmt: skip
+        updates = []
+        for fixture_id, preds in open_.groupby("fixture_id"):
+            if fixture_id not in matches.index or not matches.loc[fixture_id, "finished"]:
+                continue
+            m = matches.loc[fixture_id]
+            outcomes = match_outcomes(m) | scorer_outcomes(fixture_id, players, goals)
+            for r in preds.itertuples(index=False):
+                hit = outcomes.get(_key(r.market, r.selection, None if r.line is None else float(r.line)))
+                if hit is not None:
+                    updates.append({"pid": int(r.id), "hit": bool(hit)})
+        if updates:
+            session.execute(text("update analytics.predictions set outcome = :hit where id = :pid"), updates)
+        session.commit()
+        return len(updates)

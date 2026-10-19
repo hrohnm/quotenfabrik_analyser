@@ -24,7 +24,8 @@ def engine():
 
     eng = create_engine(url)
     with eng.begin() as conn:
-        conn.execute(text("drop schema if exists core cascade; drop schema if exists raw cascade"))
+        for schema in ("analytics", "core", "raw"):
+            conn.execute(text(f"drop schema if exists {schema} cascade"))
         conn.execute(text("drop table if exists public.alembic_version"))
     cfg = Config(str(BACKEND / "alembic.ini"))
     cfg.attributes["database_url"] = url
@@ -46,7 +47,7 @@ def session(engine):
                 " core.fixture_team_stats, core.fixtures, core.players, core.venues, core.teams,"
                 " core.leagues, core.bet_types, core.bookmakers, raw.api_responses,"
                 " core.odds_history, core.oddspapi_fixtures, core.oddspapi_markets,"
-                " core.oddspapi_players, raw.oddspapi_responses,"
+                " core.oddspapi_players, raw.oddspapi_responses, analytics.model_runs,"
                 " raw.football_data_files cascade"
             )
         )

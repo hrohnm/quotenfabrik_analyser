@@ -29,6 +29,17 @@ pip install -e ".[dev]"
 alembic upgrade head              # Schemas raw + core anlegen
 ```
 
+### Schnellstart mit Seed (ohne API-Abrufe)
+
+```bash
+docker compose up -d db
+./scripts/seed_import.sh               # oder: cd backend && qf seed import
+cd backend && uvicorn quotenfabrik.api.main:app --port 8000
+cd frontend-private && npm install && npm run dev   # http://localhost:3000
+```
+
+Details zum Seed: `seed/README.md`.
+
 ## CLI (`qf`)
 
 | Befehl | Wirkung | API-Kosten |
@@ -42,6 +53,9 @@ alembic upgrade head              # Schemas raw + core anlegen
 | `qf oddspapi status` / `markets` / `fixtures` / `history` / `players` / `update` | Betano-Quoten über OddsPapi (siehe `08_betano_quellen.md`) | OddsPapi: 0–1 je Befehl (Free-Plan 250/Monat) |
 | `qf model evaluate --seasons 2022-2026` | Walk-Forward-Evaluation aller Marktgruppen ohne Quoten → `analytics.*` + `docs/09_modell_evaluation.md` | 0 |
 | `qf model forecast --days 10` | Prognosen + Pattern für kommende Spiele → `analytics.predictions` / `analytics.pattern_results` | 0 |
+| `qf model backtest --seasons 2016-2026` | rückwirkende Walk-Forward-Prognosen aller beendeten Spiele inkl. Ergebnis → Explorer/Auswertung | 0 |
+| `qf model settle` | Ergebnis (eingetreten ja/nein) für Prognosen beendeter Spiele eintragen | 0 |
+| `qf seed export` / `qf seed import [--force]` | Datenbank-Seed schreiben / einspielen (`seed/quotenfabrik_seed.dump`) | 0 |
 | `qf model show <fixture_id>` | letzte Prognose eines Spiels: Hauptmärkte, faire Quoten, Torschützen, Pattern-Signale | 0 |
 | `qf rebuild` | `core.*` aus `raw.*` neu aufbauen (nach Parser-Änderungen, inkl. OddsPapi) | 0 |
 | `qf quality` | Datenqualitäts-Report pro Saison | 0 |
@@ -56,9 +70,30 @@ Laufender Betrieb (Cron, bis ein Scheduler eingebaut ist):
 45 4 * * 2    cd /pfad/backend && .venv/bin/qf ingest football-data --seasons 2026 && .venv/bin/qf map-teams
 # Betano-Quotenverläufe (OddsPapi, kostenlos) alle 3 Stunden, Spielplan max. 1x/Woche
 15 */3 * * *  cd /pfad/backend && .venv/bin/qf oddspapi update
+# Prognosen für die nächsten 10 Tage und Abrechnung beendeter Spiele
+0 6,12,18 * * * cd /pfad/backend && .venv/bin/qf model settle && .venv/bin/qf model forecast
 # Spielernamen für Torschützen-Märkte an Spieltagen (Fr/Sa/So, je 1 Request)
 0 10 * * 5,6,0 cd /pfad/backend && .venv/bin/qf oddspapi players
 ```
+
+## REST-API (`backend/quotenfabrik/api`)
+
+`uvicorn quotenfabrik.api.main:app --port 8000`, OpenAPI unter `http://localhost:8000/docs`.
+
+| Endpunkt | Inhalt |
+|---|---|
+| `GET /api/meta` | Ligen, Saisons, Teams, Märkte, Labels |
+| `GET /api/days?from&to` | Tage mit Spielen (Kalender Europe/Berlin) |
+| `GET /api/fixtures?date=YYYY-MM-DD` (oder `from`/`to`, `season`, `team`) | Spiele mit Kurzprognose (1X2, Ü2,5, BTTS) |
+| `GET /api/fixtures/{id}` | Detail: alle Märkte, Torschützen, Pattern (vor Anpfiff berechnet), Statistik, Tore |
+| `GET /api/explorer?market&selection&line&…` | Prognosen eines Marktes über viele Spiele + Zusammenfassung |
+| `GET /api/stats/overview|markets|confidence|calibration|seasons|scorers` | Trefferquoten und Kalibrierung |
+
+Prognosequelle je Spiel: letzte `forecast`-Prognose **vor Anpfiff**, sonst `backtest`.
+
+## Frontend
+
+Siehe `frontend-private/README.md` (Next.js, `npm run dev`, `npm run build`, `npx eslint src`).
 
 ## Tests & Qualität
 

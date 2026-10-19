@@ -92,6 +92,10 @@ Zunächst reicht APScheduler im Backend-Prozess (oder System-Cron + CLI). Bei me
 
 ## 2. Privates Frontend (`frontend-private/`)
 
+> **Umsetzungsstand:** Spieltagsübersicht, Spiel-Detail, Daten-Explorer und Auswertung sind umgesetzt (siehe
+> `frontend-private/README.md`); Wett-Tracking und Quotenanzeige folgen mit Phase 3. Die API liegt unter `/api/*`
+> (statt der ursprünglich geplanten `/internal/*`).
+
 Zielgruppe: nur ich. Funktionen:
 
 - **Spieltags-Dashboard**: kommende Spiele mit Modellwahrscheinlichkeiten, fairen Quoten, besten Buchmacherquoten, Edge.

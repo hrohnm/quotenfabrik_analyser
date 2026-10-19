@@ -12,8 +12,16 @@ mit Buchmacherquoten verglichen und per Backtest validiert.
 | Bereich | Ordner | Status |
 |---|---|---|
 | Backend: Datenimport, PostgreSQL, Analytik, REST-API | `backend/` | in Arbeit |
-| Privates Frontend: Analysen & Wett-Tracking | `frontend-private/` | geplant |
+| Privates Frontend: Spieltage, Spiel-Detail, Daten-Explorer, Auswertung | `frontend-private/` | in Arbeit |
 | Öffentliches Frontend: Login & Abo-Modell | `frontend-public/` | später |
+
+## Schnellstart
+
+```bash
+docker compose up -d db && ./scripts/seed_import.sh       # Datenbank mit allen bisherigen Daten
+cd backend && pip install -e ".[dev]" && uvicorn quotenfabrik.api.main:app --port 8000
+cd frontend-private && npm install && npm run dev           # http://localhost:3000
+```
 
 ## Dokumentation
 
