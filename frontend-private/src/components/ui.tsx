@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import type { Team } from "@/lib/types";
 import { pct } from "@/lib/format";
+import { teamLogo } from "@/lib/media";
+import { Logo } from "./Logo";
 
 export function Card({ title, children, className = "", actions }: { title?: ReactNode; children: ReactNode; className?: string; actions?: ReactNode }) {
   return (
-    <section className={`rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
+    <section className={`min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
       {title && (
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
@@ -16,10 +18,8 @@ export function Card({ title, children, className = "", actions }: { title?: Rea
   );
 }
 
-export function TeamLogo({ team, size = 24 }: { team: Team; size?: number }) {
-  if (!team.logo) return <span className="inline-block rounded-full bg-slate-200" style={{ width: size, height: size }} />;
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={team.logo} alt="" width={size} height={size} className="object-contain" style={{ width: size, height: size }} />;
+export function TeamLogo({ team, size = 24 }: { team: Pick<Team, "id" | "name"> & { logo?: string | null }; size?: number }) {
+  return <Logo src={team.logo ?? teamLogo(team.id)} alt={team.name} size={size} />;
 }
 
 export function OutcomeBadge({ outcome, small = false }: { outcome: boolean | null | undefined; small?: boolean }) {

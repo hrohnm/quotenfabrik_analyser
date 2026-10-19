@@ -5,7 +5,7 @@ Analyse-Oberfläche für den eigenen Gebrauch. Spricht nur mit der Backend-API (
 | Seite | Inhalt |
 |---|---|
 | `/spieltage` | Spiele pro Tag (Tagesleiste), Modellwahrscheinlichkeiten 1X2 / Über 2,5 / Beide treffen, Ergebnis und ob der Tipp eingetreten ist |
-| `/spiel/[id]` | Detail: alle Märkte je Marktgruppe mit Wahrscheinlichkeit, fairer Quote und Ergebnis, Torschützen, Pattern, Tor-Timing, Spielstatistik |
+| `/spiel/[id]` | Detail: Kopfbereich (Logos, Ergebnis, Torschützen), „Auf einen Blick“ (1X2, Kernmärkte, Top-Torschützen, auffällige Pattern) und Tabs: Märkte (je Marktgruppe, Ü/U als kompakte Linientabellen), Torschützen (mit Spielerfotos), Pattern (mit Ligaschnitt, Tor-Timing), Statistik |
 | `/explorer` | Daten-Explorer: ein Markt über alle Spiele (Saison, Team, Heim/Auswärts, Wahrscheinlichkeitsbereich, Ergebnis), inkl. vergangener Spiele (Backtest) |
 | `/auswertung` | Trefferquoten pro Liga, Saison, Marktgruppe und Markt; Trefferquote nach Konfidenz, je Saison, Kalibrierung, Torschützen |
 
@@ -28,3 +28,5 @@ Umgebungsvariable `API_URL` (Standard `http://127.0.0.1:8000`): Adresse der Back
 auf, Next.js leitet an die API weiter (siehe `next.config.ts`).
 
 Stack: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 4, Recharts.
+
+Logos und Spielerfotos kommen von `media.api-sports.io` (kostet keine API-Quota, über `next/image` gecacht); fehlt ein Bild, werden Initialen angezeigt.

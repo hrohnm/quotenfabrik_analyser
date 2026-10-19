@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from quotenfabrik.api.data import df, records
-from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS
+from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS, league_logo
 from quotenfabrik.config import get_settings
 
 router = APIRouter(prefix="/api", tags=["meta"])
@@ -34,7 +34,7 @@ def meta() -> dict:
            where kind in ('forecast', 'backtest') order by id desc limit 5"""
     )
     return {
-        "leagues": records(leagues),
+        "leagues": [{**lg, "logo": league_logo(lg["id"])} for lg in records(leagues)],
         "seasons": [int(s) for s in seasons["season"]],
         "teams": records(teams),
         "groups": GROUP_LABELS,
