@@ -53,6 +53,11 @@ Code: `backend/quotenfabrik/analytics/`
 | Torschützen-Shrinkage | 15 × 90 Min. | Spieler mit wenig Spielzeit werden zum Positionsschnitt gezogen |
 | Team-Faktor-Exponent | 0,6 | gedämpfte Anpassung der Spielerrate an die erwartete Torzahl des Teams im Spiel |
 
+**2. Bundesliga:** gleiche Parameter wie die Bundesliga. Auf den Validierungssaisons 2018–2021 der 2. Liga wurden
+Aufsteiger-Prior (−0,3 / −0,15 / 0) und ein eigenes Absteiger-Prior (0 / +0,15 / +0,3) verglichen: Die Standardwerte
+(−0,3, kein Absteiger-Bonus) waren am besten, ein Absteiger-Bonus verschlechterte die Vorhersage leicht (Absteiger
+haben meist noch Zweitliga-Spiele im 3-Jahres-Fenster). Es gibt daher keine ligaspezifischen Parameter.
+
 Halbzeit-Varianten (getrennte Modelle vs. fester Ligaanteil vs. teamspezifischer Anteil) wurden verglichen; getrennte
 Modelle mit stärkerer Regularisierung waren minimal besser. Unterschiede sind klein – Halbzeit-Tore sind schwer vorherzusagen.
 

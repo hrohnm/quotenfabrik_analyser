@@ -31,7 +31,7 @@ const PAGE = 50;
 export default function ExplorerPage() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [filters, setFilters] = useState({
-    market: "1x2", line: "", selection: "H", season: "", team: "", venue: "any",
+    market: "1x2", line: "", selection: "H", league: "", season: "", team: "", venue: "any",
     status: "finished", outcome: "all", min_p: "0", max_p: "1", sort: "kickoff_desc",
   });
   const [offset, setOffset] = useState(0);
@@ -65,7 +65,7 @@ export default function ExplorerPage() {
     if (!meta || !filters.selection) return;
     setLoading(true);
     setError(null);
-    api<Result>("/explorer", { ...filters, line: filters.line || undefined, limit: PAGE, offset })
+    api<Result>("/explorer", { ...filters, line: filters.line || undefined, league: filters.league || undefined, limit: PAGE, offset })
       .then(setData)
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
@@ -101,6 +101,10 @@ export default function ExplorerPage() {
           )}
           <Select label="Auswahl" value={filters.selection} onChange={(v) => set({ selection: v })}>
             {selections.map((x) => <option key={x} value={x}>{selLabel(x)}</option>)}
+          </Select>
+          <Select label="Liga" value={filters.league} onChange={(v) => set({ league: v })}>
+            <option value="">alle</option>
+            {meta?.leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </Select>
           <Select label="Saison" value={filters.season} onChange={(v) => set({ season: v })}>
             <option value="">alle</option>

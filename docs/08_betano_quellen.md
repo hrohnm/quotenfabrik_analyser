@@ -16,6 +16,7 @@ OddsPapi liefert **Betano DE** für die Bundesliga, inklusive kompletter Quotenv
 |---|---|
 | API | `https://api.oddspapi.io/v4/…`, Auth per Query-Parameter `apiKey` |
 | Bundesliga | `tournamentId = 35` (Fußball `sportId = 10`), Fixture-IDs wie `id1000003572513246` |
+| 2. Bundesliga | `tournamentId = 44` (über `/v4/tournaments?sportId=10` ermittelt, 1 Request) |
 | Betano | Slug `betano.de` (laut OddsPapi Klon des internationalen `betano`-Feeds, identische Preise), Player Props enthalten |
 | Free-Plan | **250 Requests pro Monat** für abrechenbare Endpunkte (`/fixtures`, `/odds`, `/odds-by-tournaments`, `/markets`, …) |
 | `/v4/historical-odds` | **kostenlos** (zählt nicht zur Quota), Cooldown 5 s pro Abruf, max. 3 Buchmacher pro Abruf. Laut Doku Daten „seit Januar 2026“, **tatsächlich für die Bundesliga erst ab ca. April 2026** (Januar–März: 404 „No historical odds found“) |

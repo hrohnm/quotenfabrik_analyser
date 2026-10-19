@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     )
 
     # Leagues in scope: API-Football ids and the matching football-data.co.uk codes (same order).
-    leagues: CsvInts = Field(default=[78], alias="QF_LEAGUES")
-    fd_leagues: CsvStrs = Field(default=["D1"], alias="QF_FD_LEAGUES")
+    leagues: CsvInts = Field(default=[78, 79], alias="QF_LEAGUES")
+    fd_leagues: CsvStrs = Field(default=["D1", "D2"], alias="QF_FD_LEAGUES")
 
     # API-Football throttling: Pro plan allows 300 req/min; stay far below to avoid firewall blocks.
     api_max_rps: float = Field(default=4.0, alias="QF_API_MAX_RPS")
@@ -46,8 +46,8 @@ class Settings(BaseSettings):
         default="", validation_alias=AliasChoices("ODDSPAPI_API_KEY", "API_OddsPap")
     )
     oddspapi_base_url: str = Field(default="https://api.oddspapi.io/v4", alias="ODDSPAPI_BASE_URL")
-    # OddsPapi tournament ids, same order as ``leagues`` (35 = Bundesliga).
-    oddspapi_tournaments: CsvInts = Field(default=[35], alias="QF_ODDSPAPI_TOURNAMENTS")
+    # OddsPapi tournament ids, same order as ``leagues`` (35 = Bundesliga, 44 = 2. Bundesliga).
+    oddspapi_tournaments: CsvInts = Field(default=[35, 44], alias="QF_ODDSPAPI_TOURNAMENTS")
     # Bookmaker slugs for odds history (max 3 per request): Betano DE (target) and Pinnacle (reference).
     oddspapi_bookmakers: CsvStrs = Field(default=["betano.de", "pinnacle"], alias="QF_ODDSPAPI_BOOKMAKERS")
     # Billable requests per month that are never used (left for manual checks).

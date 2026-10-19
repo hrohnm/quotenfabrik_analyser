@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 from sqlalchemy import Engine, text
 
+from quotenfabrik.analytics.data import league_name, with_league
 from quotenfabrik.analytics.picks import ALLOWED, DEFAULT_PROFILE, PICKS_PER_FIXTURE, PROFILES, evaluate_picks
 from quotenfabrik.analytics.service import MODEL_VERSION
 from quotenfabrik.api.data import CHOSEN_RUNS_SQL
@@ -39,7 +40,10 @@ def write_report(engine: Engine, league_id: int, validation_until: int, path: Pa
     results = {(name, prof): evaluate_picks(frame[frame["profile"] == prof])
                for name, frame in periods.items() for prof in PROFILES}  # fmt: skip
     full = {prof: evaluate_picks(data[data["profile"] == prof]) for prof in PROFILES}
-    path.write_text(render(results, full, data, validation_until), encoding="utf-8")
+    path.write_text(
+        with_league(render(results, full, data, validation_until), league_name(engine, league_id)),
+        encoding="utf-8",
+    )
 
 
 def _pct(v, digits: int = 1) -> str:

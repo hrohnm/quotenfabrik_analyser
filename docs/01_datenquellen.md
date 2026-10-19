@@ -125,6 +125,10 @@ Wichtig:
 
 → Ein Prozent der Tagesquota. Genug Luft, um später weitere Ligen aufzunehmen.
 
+**2. Bundesliga (Liga 79, seit 19.10.2026):** Backfill 2015–2026 inkl. Halbzeit-Stats ab 2024 = **887 Requests**.
+Abdeckung: Ergebnisse/Halbzeit komplett, Details (Events, Aufstellungen, Spieler-Stats) ab 2016/17 (2015/16 fehlt
+bei API-Football), xG erst ab 2025/26. football-data `D2` 2015/16 – heute, alle Spiele verknüpft.
+
 ## 2. football-data.co.uk
 
 ### Zugang

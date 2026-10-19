@@ -218,8 +218,12 @@ def _settled_picks(league_id: int) -> pd.DataFrame:
 
 @router.get("/picks")
 def pick_stats(league: int | None = None, season: int | None = None, profile: str = DEFAULT_PROFILE) -> dict:
-    """Hit rates of the suggested picks: per profile (singles and 3-pick combo) and details for one profile."""
-    data = _settled_picks(_league(league))
+    """Hit rates of the suggested picks: per profile (singles and 3-pick combo) and details for one profile.
+
+    Without ``league`` all configured leagues are combined.
+    """
+    leagues = [league] if league else get_settings().leagues
+    data = pd.concat([_settled_picks(lg) for lg in leagues], ignore_index=True)
     if season:
         data = data[data["season"] == season]
     overview = []

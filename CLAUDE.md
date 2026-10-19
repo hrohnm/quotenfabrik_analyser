@@ -6,7 +6,9 @@ Leitfaden für Claude (und Menschen), die an diesem Repository arbeiten. Kurz ha
 
 Ein Analyse-Tool zur Optimierung und Auswertung von Sportwetten. Für jede Marktgruppe werden
 spezialisierte Analysepattern berechnet, mit Buchmacherquoten verglichen (Value) und per Backtest
-validiert. **Proof of Value (PoV): nur 1. Bundesliga** (API-Football `league=78`, football-data.co.uk `D1`).
+validiert. **Proof of Value (PoV): 1. und 2. Bundesliga** (API-Football `league=78` / `79`, football-data.co.uk `D1` / `D2`,
+OddsPapi-Turnier `35` / `44`). Ligen kommen aus `QF_LEAGUES` & Co. – Code ist ligaunabhängig, Berichte je Liga
+(`docs/09…12`, für weitere Ligen mit Suffix, z. B. `docs/12_tipps_2_bundesliga.md`).
 
 **Vorgehen:** Zuerst Pattern und Modelle trainieren und auf Ergebnisdaten validieren (Kalibrierung).
 Erst danach folgt die Value-Suche mit Quoten. Der Quoten-Snapshot-Job läuft trotzdem früh im Hintergrund,

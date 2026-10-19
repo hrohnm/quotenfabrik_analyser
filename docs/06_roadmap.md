@@ -57,7 +57,9 @@
 - [ ] Datenqualitäts-Ansicht
 
 ## Phase 4 – Erweiterung
-- [ ] Weitere Ligen (2. Bundesliga, Premier League, …) – Quota reicht problemlos
+- [x] 2. Bundesliga (Liga 79 / D2 / OddsPapi 44): Daten 2015–2026, Modelle, Tipps, Berichte je Liga, Ligafilter im Frontend
+- [ ] Weitere Ligen (Premier League, …) – Quota reicht problemlos
+- [ ] Ligaübergreifende Teamstärke (Auf-/Absteiger mit Daten aus der anderen Liga statt festem Prior)
 - [ ] Modell-Verbesserungen (xG-Integration, Stacking, Marktmischung)
 - [ ] Hosting/Deployment, Backups, Monitoring
 

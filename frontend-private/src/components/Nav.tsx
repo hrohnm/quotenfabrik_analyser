@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getMeta } from "@/lib/api";
 import { leagueLogo } from "@/lib/media";
 import { Logo } from "./Logo";
 
@@ -14,6 +16,8 @@ const LINKS = [
 
 export function Nav() {
   const pathname = usePathname();
+  const [leagues, setLeagues] = useState<{ id: number; name: string }[]>([]);
+  useEffect(() => { getMeta().then((m) => setLeagues(m.leagues)).catch(() => setLeagues([])); }, []);
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:gap-8">
@@ -38,8 +42,8 @@ export function Nav() {
           })}
         </nav>
         <span className="ml-auto hidden items-center gap-2 text-xs text-slate-400 sm:flex">
-          <Logo src={leagueLogo(78)} alt="Bundesliga" size={18} />
-          Bundesliga · Modell dc-v1
+          {leagues.map((l) => <Logo key={l.id} src={leagueLogo(l.id)} alt={l.name} size={18} />)}
+          {leagues.map((l) => l.name).join(" · ")}{leagues.length ? " · " : ""}Modell dc-v1
         </span>
       </div>
     </header>
