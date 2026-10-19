@@ -6,8 +6,22 @@ set -euo pipefail
 cd "$(dirname "$0")/../backend"
 PY=.venv/bin/python
 
-for _ in $(seq 1 300); do   # up to 10 minutes (seed restore on first start)
-  if $PY -c "from quotenfabrik.db import get_engine; get_engine().connect().close()" 2>/dev/null; then break; fi
+# prints why the connection fails (e.g. "password authentication failed"), never the URL (it holds the password)
+CHECK='
+import sys
+from sqlalchemy.exc import OperationalError
+from quotenfabrik.db import get_engine
+try:
+    get_engine().connect().close()
+except OperationalError as e:
+    lines = [ln.strip() for ln in str(e.orig).splitlines() if ln.strip()]
+    sys.exit(lines[-1] if lines else type(e.orig).__name__)
+except Exception as e:
+    sys.exit(f"{type(e).__name__} (DATABASE_URL ungueltig? Passwort nur aus Buchstaben und Ziffern)")
+'
+for i in $(seq 1 300); do   # up to 10 minutes (seed restore on first start)
+  if err=$($PY -c "$CHECK" 2>&1); then break; fi
+  if (( i % 15 == 1 )); then echo "Warte auf die Datenbank: $err"; fi   # every 30 seconds
   sleep 2
 done
 
