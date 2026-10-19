@@ -5,7 +5,7 @@
 #   QF_DOMAIN           Hostname, z. B. srv123456.hstgr.cloud (HTTPS-Zertifikat von Let's Encrypt)
 #   QF_LOGIN_USER       Benutzername für den Zugang (Standard: admin)
 #   QF_LOGIN_PASSWORD   Passwort für den Zugang (Pflicht – ohne startet der Zugang nicht)
-#   POSTGRES_PASSWORD   Datenbank-Passwort (nur Buchstaben/Ziffern; wirkt nur beim ersten Start der Datenbank)
+#   POSTGRES_PASSWORD   Datenbank-Passwort (nur Buchstaben/Ziffern; db übernimmt es bei jedem Start)
 #   API_FOOTBALL_KEY, ODDSPAPI_API_KEY   API-Keys (nur für neue Datenabrufe nötig)
 
 x-backend: &backend
