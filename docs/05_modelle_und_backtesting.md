@@ -58,6 +58,17 @@ Aufsteiger-Prior (−0,3 / −0,15 / 0) und ein eigenes Absteiger-Prior (0 / +0,
 (−0,3, kein Absteiger-Bonus) waren am besten, ein Absteiger-Bonus verschlechterte die Vorhersage leicht (Absteiger
 haben meist noch Zweitliga-Spiele im 3-Jahres-Fenster). Es gibt daher keine ligaspezifischen Parameter.
 
+**Gemeinsames Modell über Ligen** (Einstellung `model.joint`, Standard an; Nachweis: `docs/14_gemeinsames_modell.md`,
+erzeugt von `qf model joint-eval`): Ligen, die sich Teams teilen (1. und 2. Bundesliga über Auf- und Absteiger),
+werden in einem Fit gerechnet. Jede Liga bekommt eine Angriffs- und Abwehrebene; die Stärke eines Teams wird nicht
+mehr zu 0, sondern zur zeitgewichteten Mischung der Ligaebenen gezogen, in denen es gespielt hat (Teams ohne Daten:
+aktuelle Liga + Aufsteiger-Prior). Damit liegen alle Teams auf einer Skala, und ein Aufsteiger behält die Stärke,
+die er in der unteren Liga gezeigt hat. Ergebnis (Test 2021/22–2026/27, 1X2-Log-Loss): Bundesliga signifikant besser
+(−0,0042; bei Aufsteigern an Spieltag 1–10 −0,036), 2. Bundesliga ohne signifikanten Unterschied (+0,0005).
+Bekannte Schwäche: Absteiger werden zu Saisonbeginn in der unteren Liga überschätzt. Ligen ohne gemeinsame Teams
+werden weiterhin allein gerechnet; mit einer Liga ist das Modell identisch zum bisherigen. Grundlage für weitere
+Ligen und den Europapokal (`docs/06_roadmap.md`).
+
 Halbzeit-Varianten (getrennte Modelle vs. fester Ligaanteil vs. teamspezifischer Anteil) wurden verglichen; getrennte
 Modelle mit stärkerer Regularisierung waren minimal besser. Unterschiede sind klein – Halbzeit-Tore sind schwer vorherzusagen.
 

@@ -14,7 +14,7 @@ from quotenfabrik.db import get_engine
 from quotenfabrik.ingest import odds, oddspapi, quality, rebuild
 from quotenfabrik.ingest.db_utils import raw_response_saver
 from quotenfabrik.models import OddsPapiFixture
-from quotenfabrik.reports import BETANO_REPORT, ODDS_REPORT, PICKS_REPORT, report_path
+from quotenfabrik.reports import BETANO_REPORT, JOINT_REPORT, ODDS_REPORT, PICKS_REPORT, report_path
 from quotenfabrik.reports import EVALUATION_REPORT as DEFAULT_REPORT
 from quotenfabrik.sources.api_football import ApiFootballClient, QuotaExhausted
 from quotenfabrik.sources.oddspapi import OddsPapiClient, OddsPapiQuotaExhausted
@@ -281,6 +281,35 @@ def model_evaluate(
         path = _report(report, league_id)
         result = run_evaluation(get_engine(), league_id, _seasons(seasons), report_path=path)
         typer.echo(f"Liga {league_id}: {result}" + (f" · Bericht: {path}" if path else ""))
+
+
+@model_app.command("joint-eval")
+def model_joint_eval(
+    validation: str = typer.Option("2018-2020", help="Validierungssaisons"),
+    test: str = typer.Option("2021-2026", help="Testsaisons"),
+    league: int | None = typer.Option(None, help="Ausgangsliga (Standard: erste konfigurierte)"),
+    report: Path = typer.Option(JOINT_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Gemeinsames Modell über verbundene Ligen gegen getrennte Modelle (Walk-Forward) → Bericht."""
+    from quotenfabrik.analytics import joint_eval
+    from quotenfabrik.analytics.data import connected_leagues, league_name, load_leagues
+    from quotenfabrik.app_config import model_params
+
+    engine = get_engine()
+    start = league or app_config.league_ids()[0]
+    leagues = connected_leagues(engine, start, [lg.id for lg in app_config.all_leagues()])
+    if len(leagues) < 2:
+        typer.secho(
+            f"Liga {start} teilt keine Teams mit anderen konfigurierten Ligen – nichts zu vergleichen.",
+            fg="red",
+        )
+        raise typer.Exit(1)
+    names = {lg: league_name(engine, lg) for lg in leagues}
+    text = joint_eval.report(
+        load_leagues(engine, leagues), leagues, names, _seasons(validation), _seasons(test), model_params()
+    )
+    report.write_text(text, encoding="utf-8")
+    typer.echo(f"Bericht: {report}")
 
 
 @model_app.command("forecast")

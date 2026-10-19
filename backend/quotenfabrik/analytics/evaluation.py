@@ -14,6 +14,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from quotenfabrik.analytics.data import season_leagues
 from quotenfabrik.analytics.markets import GROUPS
 from quotenfabrik.analytics.poisson import PoissonParams, fit_poisson
 from quotenfabrik.analytics.prediction import fit_match_model
@@ -106,15 +107,21 @@ def walk_forward(
     seasons: Iterable[int],
     params: PoissonParams,
     outcomes: pd.DataFrame | None = None,
+    pool: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """Predictions, baselines and outcomes per market selection for all finished matches in ``seasons``."""
+    """Predictions, baselines and outcomes per market selection for all finished matches in ``seasons``.
+
+    ``pool``: matches the models are fitted on (default ``matches``; several leagues = joint model).
+    """
     outcomes = outcome_table(matches) if outcomes is None else outcomes
+    pool = matches if pool is None else pool
+    pool_seasons = season_leagues(pool)
     keys = ["fixture_id", "market", "selection", "line"]
     frames = []
     for as_of, md in _matchdays(matches, seasons):
         season = md["season"].iloc[0]
         teams = set(matches.loc[matches["season"] == season, "home_id"])
-        model = fit_match_model(matches, as_of, params, teams)
+        model = fit_match_model(pool, as_of, params, teams, pool_seasons.get(int(season)))
         rows = []
         for f in md.itertuples(index=False):
             pred = model.predict(f.fixture_id, f.home_id, f.away_id)
@@ -264,6 +271,7 @@ def walk_forward_scorers(
     params: PoissonParams,
     scorer_params=None,
     use_lineups: bool = True,
+    pool: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Anytime-scorer predictions for every squad player (starters + bench) of every finished match.
 
@@ -273,10 +281,13 @@ def walk_forward_scorers(
     """
     from quotenfabrik.analytics.scorers import ScorerModel
 
+    pool = matches if pool is None else pool
+    pool_seasons = season_leagues(pool)
     frames = []
     for as_of, md in _matchdays(matches, seasons):
-        teams = set(matches.loc[matches["season"] == md["season"].iloc[0], "home_id"])
-        ft = fit_poisson(matches, as_of, params, "hg", "ag", teams, "hxg", "axg")
+        season = int(md["season"].iloc[0])
+        teams = set(matches.loc[matches["season"] == season, "home_id"])
+        ft = fit_poisson(pool, as_of, params, "hg", "ag", teams, "hxg", "axg", pool_seasons.get(season))
         model = ScorerModel(scorer_params).fit(player_matches, matches, as_of)
         since = as_of - pd.Timedelta(days=BASE_WINDOW_DAYS)
         hist = player_matches[(player_matches["kickoff"] < as_of) & (player_matches["kickoff"] >= since)]

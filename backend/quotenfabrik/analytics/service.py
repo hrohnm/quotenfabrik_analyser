@@ -18,6 +18,7 @@ from quotenfabrik.analytics.data import (
     load_goal_events,
     load_matches,
     load_player_matches,
+    season_leagues,
     with_league,
 )
 from quotenfabrik.analytics.markets import GROUPS
@@ -25,7 +26,7 @@ from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.poisson import PoissonParams
 from quotenfabrik.analytics.prediction import fit_match_model
 from quotenfabrik.analytics.scorers import ScorerModel, ScorerParams
-from quotenfabrik.app_config import model_params
+from quotenfabrik.app_config import model_params, model_pool
 from quotenfabrik.ingest.db_utils import upsert
 from quotenfabrik.models import Evaluation, ModelRun, PatternResultRow, Prediction
 
@@ -61,6 +62,13 @@ def _squad(
     return pd.DataFrame(rows, columns=["player_id", "team_id", "is_starter"])
 
 
+def _pool_leagues(pool: pd.DataFrame, league_id: int) -> list[int]:
+    """Leagues the model was fitted on (several = joint model), stored with the model run."""
+    return (
+        sorted(int(lg) for lg in pool["league_id"].unique()) if "league_id" in pool.columns else [league_id]
+    )
+
+
 def run_forecast(
     engine: Engine,
     league_id: int,
@@ -84,7 +92,8 @@ def run_forecast(
         return {"fixtures": 0}
     season = int(upcoming["season"].iloc[0])
     teams = set(matches.loc[matches["season"] == season, "home_id"])
-    model = fit_match_model(matches, as_of, params, teams)
+    pool = model_pool(engine, league_id)
+    model = fit_match_model(pool, as_of, params, teams, season_leagues(pool).get(season))
     scorer_model = ScorerModel(scorer_params).fit(players, matches, as_of)
     ctx = PatternContext.build(matches, as_of, goals, players)
 
@@ -97,6 +106,7 @@ def run_forecast(
             params={
                 "poisson": dataclasses.asdict(params),
                 "scorers": dataclasses.asdict(scorer_model.params),
+                "leagues": _pool_leagues(pool, league_id),
             },
         )
         session.add(run)
@@ -163,11 +173,12 @@ def run_evaluation(
     matches = load_matches(engine, league_id)
     players = load_player_matches(engine, league_id)
     outcomes = ev.outcome_table(matches)
+    pool = model_pool(engine, league_id)
 
-    results = ev.walk_forward(matches, seasons, params, outcomes)
+    results = ev.walk_forward(matches, seasons, params, outcomes, pool=pool)
     binary = ev.binary_metrics(results)
     multi = {m: ev.multiclass_metrics(results, m) for m in ("1x2", "ht_1x2")}
-    scorers = ev.walk_forward_scorers(matches, players, seasons, params, scorer_params)
+    scorers = ev.walk_forward_scorers(matches, players, seasons, params, scorer_params, pool=pool)
     scorer_summary = _scorer_summary(scorers)
     signals = ev.evaluate_pattern_signals(matches, results, seasons)
     per_season = _per_season(results)
@@ -506,12 +517,15 @@ def run_backtest(
     matches = load_matches(engine, league_id)
     players = load_player_matches(engine, league_id)
     goals = load_goal_events(engine, league_id)
+    pool = model_pool(engine, league_id)
+    pool_seasons = season_leagues(pool)
 
     with Session(engine) as session:
         session.execute(delete(ModelRun).where(ModelRun.kind == "backtest", ModelRun.league_id == league_id))
         run = ModelRun(
             kind="backtest", model_version=MODEL_VERSION, league_id=league_id,
-            params={"poisson": dataclasses.asdict(params), "scorers": dataclasses.asdict(scorer_params), "seasons": seasons},
+            params={"poisson": dataclasses.asdict(params), "scorers": dataclasses.asdict(scorer_params),
+                    "seasons": seasons, "leagues": _pool_leagues(pool, league_id)},
         )  # fmt: skip
         session.add(run)
         session.flush()
@@ -519,7 +533,7 @@ def run_backtest(
         for as_of, md in ev._matchdays(matches, seasons):
             season = md["season"].iloc[0]
             teams = set(matches.loc[matches["season"] == season, "home_id"])
-            model = fit_match_model(matches, as_of, params, teams)
+            model = fit_match_model(pool, as_of, params, teams, pool_seasons.get(int(season)))
             scorer_model = ScorerModel(scorer_params).fit(players, matches, as_of)
             rows = []
             for f in md.itertuples(index=False):

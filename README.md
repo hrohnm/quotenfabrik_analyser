@@ -61,6 +61,7 @@ cd frontend-private && npm install && npm run dev           # http://localhost:3
 11. [Betano-Nebenmärkte](docs/11_betano_nebenmaerkte.md) – Betano-Quoten gegen faire Preise aus Pinnacle (Phase 3, automatisch erzeugt)
 12. [Tipps](docs/12_tipps.md) – 3 Tipps pro Spiel, Trefferquote einzeln und als Kombi (automatisch erzeugt)
 13. [Installation auf einem VPS](docs/13_deployment_vps.md) – Hostinger: Docker-Stack per Repo-Link (Docker Manager) oder manuell
+14. [Gemeinsames Modell](docs/14_gemeinsames_modell.md) – Ligen über Auf-/Absteiger gemeinsam gerechnet vs. getrennt (automatisch erzeugt)
 
 Die Berichte 09–12 gibt es je Liga: ohne Suffix für die Bundesliga, mit `_2_bundesliga` für die 2. Bundesliga
 (z. B. [`docs/12_tipps_2_bundesliga.md`](docs/12_tipps_2_bundesliga.md)).

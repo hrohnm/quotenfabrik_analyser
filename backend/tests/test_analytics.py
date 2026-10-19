@@ -198,3 +198,53 @@ def test_scorer_outcomes_with_unknown_first_scorer():
     assert ("scorer_first", "10", None) not in unknown
     known = scorer_outcomes(2, players, goals)
     assert known[("scorer_first", "10", None)] is True and known[("scorer_first", "11", None)] is False
+
+
+def _two_league_matches(seed: int = 3) -> tuple[pd.DataFrame, dict[int, float], dict[int, int], pd.Timestamp]:
+    """Two leagues of 8 teams with fixed strengths; the 2 best of league 2 and the 2 worst of league 1 swap."""
+    rng = np.random.default_rng(seed)
+    strength = dict(enumerate(np.linspace(0.6, -0.6, 16)))
+    league_of = {t: 1 if t < 8 else 2 for t in strength}
+    rows, start = [], pd.Timestamp("2021-07-01", tz="UTC")
+    for season in range(3):
+        for lg in (1, 2):
+            teams = [t for t in strength if league_of[t] == lg]
+            for h in teams:
+                for a in teams:
+                    if h != a:
+                        lh = np.exp(0.55 + strength[h] - strength[a])
+                        la = np.exp(0.3 + strength[a] - strength[h])
+                        ko = start + pd.Timedelta(days=365 * season + int(rng.integers(0, 280)))
+                        rows.append((len(rows), season, ko, h, a, rng.poisson(lh), rng.poisson(la), lg))
+        league_of.update({6: 2, 7: 2, 8: 1, 9: 1} if season % 2 == 0 else {6: 1, 7: 1, 8: 2, 9: 2})
+    m = pd.DataFrame(
+        rows, columns=["fixture_id", "season", "kickoff", "home_id", "away_id", "hg", "ag", "league_id"]
+    )
+    m["finished"] = True
+    return m, strength, league_of, start + pd.Timedelta(days=3 * 365)
+
+
+def test_joint_model_without_league_column_is_unchanged():
+    m, _, _, as_of = _two_league_matches()
+    one = m[m["league_id"] == 1]
+    params = PoissonParams(fit_rho=False)
+    separate = fit_poisson(one.drop(columns="league_id"), as_of, params)
+    single = fit_poisson(one, as_of, params)  # league column with a single league
+    assert single.league_attack == {}
+    assert np.allclose(
+        [separate.attack[t] for t in separate.attack], [single.attack[t] for t in separate.attack]
+    )
+
+
+def test_joint_model_puts_leagues_on_one_scale():
+    """League 1 teams are stronger: the joint fit ranks them above league 2 without cross-league matches."""
+    m, strength, league_of, as_of = _two_league_matches()
+    joint = fit_poisson(m, as_of, PoissonParams(fit_rho=False), team_league=league_of)
+    net = {t: joint.attack[t] + joint.defence[t] for t in strength}
+    assert joint.league_attack[1] > joint.league_attack[2]
+    top_of_2, bottom_of_1 = net[10], net[5]  # not movers: only linked through the teams that swapped
+    assert np.corrcoef(list(strength.values()), list(net.values()))[0, 1] > 0.9
+    assert bottom_of_1 > top_of_2 or abs(bottom_of_1 - top_of_2) < 0.15
+    # team without matches: level of its current league plus the promoted prior
+    joint.team_league[99] = 2
+    assert joint.team_attack(99) == pytest.approx(joint.league_attack[2] + joint.params.promoted_attack)

@@ -55,6 +55,7 @@ Details zum Seed: `seed/README.md`.
 | `qf odds reference-data` | Buchmacher- und Wettarten-Stammdaten | 2 |
 | `qf oddspapi status` / `markets` / `fixtures` / `history` / `players` / `update` | Betano-Quoten über OddsPapi (siehe `08_betano_quellen.md`) | OddsPapi: 0–1 je Befehl (Free-Plan 250/Monat) |
 | `qf model evaluate --seasons 2022-2026` | Walk-Forward-Evaluation aller Marktgruppen ohne Quoten → `analytics.*` + `docs/09_modell_evaluation.md` | 0 |
+| `qf model joint-eval [--validation 2018-2020 --test 2021-2026]` | Gemeinsames Modell über verbundene Ligen gegen getrennte Modelle (Walk-Forward, 1X2/Ü-U/BTTS, Auf-/Absteiger) → `docs/14_gemeinsames_modell.md` | 0 |
 | `qf model forecast --days 10` | Prognosen + Pattern für kommende Spiele → `analytics.predictions` / `analytics.pattern_results` | 0 |
 | `qf model backtest --seasons 2016-2026` | rückwirkende Walk-Forward-Prognosen aller beendeten Spiele inkl. Ergebnis → Explorer/Auswertung | 0 |
 | `qf value backtest [--validation-until 2021] [--method shin]` | Prognosen gegen historische football-data-Quoten (1X2, Ü/U 2,5): Prognosegüte vs. Markt, Value-Wetten, ROI, CLV → `docs/10_quoten_backtest.md` | 0 |

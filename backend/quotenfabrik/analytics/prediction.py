@@ -43,15 +43,22 @@ class MatchModel:
 
 
 def fit_match_model(
-    matches: pd.DataFrame, as_of: pd.Timestamp, params: PoissonParams, current_teams: set[int]
+    matches: pd.DataFrame,
+    as_of: pd.Timestamp,
+    params: PoissonParams,
+    current_teams: set[int],
+    team_league: dict[int, int] | None = None,
 ) -> MatchModel:
+    """``matches`` with a ``league_id`` column of several leagues -> joint model (``team_league``: current
+    league per team)."""
     half_params = PoissonParams(
         **{**params.__dict__, "reg": params.half_reg, "fit_rho": False, "xg_weight": 0.0}
     )
+    tl = team_league
     return MatchModel(
-        ft=fit_poisson(matches, as_of, params, "hg", "ag", current_teams, "hxg", "axg"),
-        first_half=fit_poisson(matches, as_of, half_params, "hthg", "htag", current_teams),
-        second_half=fit_poisson(matches, as_of, half_params, "h2g", "a2g", current_teams),
+        ft=fit_poisson(matches, as_of, params, "hg", "ag", current_teams, "hxg", "axg", tl),
+        first_half=fit_poisson(matches, as_of, half_params, "hthg", "htag", current_teams, team_league=tl),
+        second_half=fit_poisson(matches, as_of, half_params, "h2g", "a2g", current_teams, team_league=tl),
     )
 
 
