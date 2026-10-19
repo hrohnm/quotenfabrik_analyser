@@ -129,6 +129,19 @@ Modell ein negatives Gewicht, der CLV der Value-Wetten ist negativ (−5 bis −
 Außenseiter, weil das Modell weniger extrem ist als der Markt. → Kein Value in den Hauptmärkten; nächste Schritte siehe
 `06_roadmap.md` (marktbasiertes Modell für Nebenmärkte, zusätzliche Informationen).
 
+### Weg 1: marktbasiertes Modell `mkt-v1` und Betano-Nebenmärkte (`qf value betano`)
+
+`analytics/market_model.py` passt pro Spiel und Zeitpunkt fünf Parameter (erwartete Tore Heim/Gast, Anteil der
+1.-Halbzeit-Tore je Team, Dixon-Coles-ρ) an die margenfreien Pinnacle-Quoten an (1X2, Ü/U, Team-Tore, Beide treffen,
+jeweils Spiel und 1. Halbzeit; Kreuzentropie, jeder Markt gleich gewichtet). Damit lässt sich jeder Markt fair
+bepreisen – auch solche, die Pinnacle nicht anbietet. `analytics/betano_value.py` vergleicht Betano-Quoten zum selben
+Zeitpunkt (48/24/6/1 h vor Anpfiff) damit. Ergebnis: **`docs/11_betano_nebenmaerkte.md`**.
+
+**Fazit:** Die fairen Preise sind gut kalibriert (Fit-Abweichung ≈ 0,4 %-Punkte). Betano liegt bei weniger als 1 % der
+Quoten über dem fairen Preis und dann nur knapp (Ø +0,8 %, CLV ≈ 0) – die Nebenmärkte werden konsistent aus den
+Hauptmärkten abgeleitet. Die Marge unterscheidet sich stark: ≈ 4–7 % (1X2, Doppelte Chance, Ü/U, Team-Tore) bis
+≈ 10–17 % (Halbzeit-Ergebnis, Handicap, torreichste Halbzeit, exakte Toranzahl).
+
 ### Paper-Trading
 Ab Inbetriebnahme werden alle Value-Signale automatisch als „Papierwetten“ in `analytics.value_bets` protokolliert
 (mit Quote zum Signalzeitpunkt, Schlussquote, Ergebnis). So entsteht ein ehrlicher Live-Track-Record je Markt.

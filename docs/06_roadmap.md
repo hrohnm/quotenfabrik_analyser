@@ -35,8 +35,12 @@
 - [x] Margenentfernung (Shin/Power/proportional), Edge/EV, Kelly, CLV (`analytics/value.py`)
 - [x] Backtest 1X2 und Ü/U 2.5 gegen football-data-Quoten (inkl. Pinnacle-Schlussquote) → `10_quoten_backtest.md`:
       **kein Value mit `dc-v1`** – Modell schlechter als der Markt, negativer CLV
-- [ ] Marktbasiertes Modell: Torerwartungen aus Betano-/Pinnacle-Hauptmärkten (1X2, Ü/U) ableiten und damit
-      Nebenmärkte (Team-Tore, Halbzeiten, BTTS, Torschützen) gegen Betano-Quoten aus dem OddsPapi-Archiv prüfen
+- [x] Marktbasiertes Modell `mkt-v1` (Fit auf Pinnacle) und Betano-Nebenmärkte dagegen geprüft → `11_betano_nebenmaerkte.md`:
+      Betano liegt bei < 1 % der Quoten über dem fairen Preis (Ø +0,8 %), CLV ≈ 0 → **kein systematischer Value**;
+      Marge je Markt 4–17 %. „Exakte Tore Heim/Gast“ wegen widersprüchlicher Betano-Daten ausgeschlossen
+- [ ] Quotenboosts/Aktionen bewerten: faire Preise aus `mkt-v1` für beliebige Betano-Angebote (Frontend)
+- [ ] Torschützen: OddsPapi-Spieler ↔ API-Football-Spieler mappen, Betano-Torschützenquoten gegen Modell prüfen
+- [ ] Reaktionszeit: Betano-Quoten nach Pinnacle-Bewegungen (Aufstellung, Ausfälle) – kurzzeitig veraltete Preise?
 - [ ] Modell um Informationen erweitern, die es noch nicht nutzt (Aufstellungen, Ausfälle, xG) und erneut gegen den Markt testen
 - [ ] Übrige Märkte gegen das eigene Snapshot-Archiv (CLV)
 - [ ] Value-Erkennung + Paper-Trading-Protokoll

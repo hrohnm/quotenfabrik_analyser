@@ -104,3 +104,9 @@ ergänzt werden kann, ohne das Datenmodell zu ändern (Buchmacher-ID + Markt-Map
 - [The Odds API – Bookmaker APIs](https://the-odds-api.com/sports-odds-data/bookmaker-apis.html)
 - [Apify – Betano Odds API (Scraper)](https://apify.com/blackfalcondata/betano-odds-api)
 - [SharpAPI – Betano](https://sharpapi.io/sportsbooks/betano-odds-api)
+
+## Bekannte Datenprobleme
+
+- **Exakte Tore Heim/Gast** (`exactscore-team1/2`): Die Betano-Preise widersprechen über den ganzen Verlauf Betanos
+  eigenen Team-Tore-Quoten (z. B. „4+“ zu 16,5, während Über 3,5 bei 1,44 steht). Vermutlich sind die Auswahlen bei
+  OddsPapi falsch beschriftet. Der Markt wird in `qf value betano` nicht verwendet.

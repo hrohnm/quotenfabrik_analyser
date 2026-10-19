@@ -19,6 +19,7 @@ from quotenfabrik.sources.oddspapi import OddsPapiClient, OddsPapiQuotaExhausted
 
 DEFAULT_REPORT = Path(__file__).resolve().parents[2] / "docs" / "09_modell_evaluation.md"
 ODDS_REPORT = Path(__file__).resolve().parents[2] / "docs" / "10_quoten_backtest.md"
+BETANO_REPORT = Path(__file__).resolve().parents[2] / "docs" / "11_betano_nebenmaerkte.md"
 
 app = typer.Typer(help="Quotenfabrik Analyser", no_args_is_help=True)
 ingest_app = typer.Typer(help="Daten importieren", no_args_is_help=True)
@@ -364,6 +365,20 @@ def value_backtest(
     for league_id in _leagues(league):
         result = run_odds_backtest(get_engine(), league_id, validation_until, method, report)
         typer.echo(f"Liga {league_id}: {result}")
+    if report:
+        typer.echo(f"Bericht: {report}")
+
+
+@value_app.command("betano")
+def value_betano(
+    league: int | None = typer.Option(None),
+    report: Path | None = typer.Option(BETANO_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Betano-Nebenmärkte gegen faire Preise aus Pinnacle (Marktmodell mkt-v1): Edge, CLV, Margen."""
+    from quotenfabrik.analytics.betano_report import run_betano_value
+
+    for league_id in _leagues(league):
+        typer.echo(f"Liga {league_id}: {run_betano_value(get_engine(), league_id, report)}")
     if report:
         typer.echo(f"Bericht: {report}")
 
