@@ -118,6 +118,14 @@ Update: `git pull && docker compose up -d --build`.
 
 Zusätzlich in hPanel automatische Snapshots/Backups des VPS aktivieren.
 
+Typische Fehler beim Deploy:
+
+| Meldung | Ursache und Lösung |
+|---|---|
+| `failed to bind host port 0.0.0.0:80 … address already in use` | Ein anderer Reverse-Proxy belegt Port 80/443 – oft **Traefik** (Hostinger-Vorlage) oder nginx. Wenn er sonst nichts bedient: stoppen (`docker stop <traefik> && docker update --restart=no <traefik>` bzw. `systemctl disable --now nginx`), dann neu deployen. |
+| `pull access denied for quotenfabrik-…` / `No such image` | Images werden aus dem Repository gebaut, nicht heruntergeladen (`pull_policy: build`); tritt mit aktuellem Stand nicht mehr auf – neu deployen. |
+| `api` unhealthy, im Log `Warte auf die Datenbank: … password authentication failed` | `db` neu starten lassen (Redeploy): übernimmt `POSTGRES_PASSWORD`; Passwort nur aus Buchstaben und Ziffern. |
+
 ## Variante B: manuelle Installation
 
 ```text

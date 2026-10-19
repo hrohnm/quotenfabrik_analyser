@@ -13,6 +13,7 @@ x-backend: &backend
     context: .
     dockerfile: docker/backend.Dockerfile
   image: quotenfabrik-backend
+  pull_policy: build             # never pull: always build from this repository on deploy
   restart: unless-stopped
   init: true                      # reaps the background job processes started by the API
   environment:
@@ -28,6 +29,7 @@ services:
       context: .
       dockerfile: docker/db.Dockerfile
     image: quotenfabrik-db
+    pull_policy: build
     restart: unless-stopped
     environment:
       POSTGRES_USER: qf
@@ -69,6 +71,7 @@ services:
       context: .
       dockerfile: docker/frontend.Dockerfile
     image: quotenfabrik-frontend
+    pull_policy: build
     restart: unless-stopped
     depends_on:
       - api
@@ -78,6 +81,7 @@ services:
       context: .
       dockerfile: docker/caddy.Dockerfile
     image: quotenfabrik-caddy
+    pull_policy: build
     restart: unless-stopped
     environment:
       QF_DOMAIN: ${QF_DOMAIN:-localhost}
