@@ -17,9 +17,25 @@ from quotenfabrik.db import get_engine
 with get_engine().connect() as c:
     has_core = c.execute(text("select 1 from information_schema.tables where table_schema='core' and table_name='fixtures'")).first()
     has_version = c.execute(text("select 1 from information_schema.tables where table_schema='public' and table_name='alembic_version'")).first()
-print("seeded" if has_core and not has_version else "migrate")
+    has_data = has_core and c.execute(text("select 1 from core.fixtures limit 1")).first()
+if has_core and not has_version:
+    print("seeded")
+elif not has_data:
+    print("empty")
+else:
+    print("migrate")
 PY
 )
+SEED=../seed/quotenfabrik_seed.dump
+if [[ "$state" == "empty" && -f "$SEED" ]]; then
+  # No data (e.g. a failed or interrupted seed import): restore the seed instead of starting with empty tables
+  if command -v pg_restore >/dev/null; then
+    echo "Datenbank ohne Daten -> Seed wird eingespielt (1-2 Minuten)"
+    .venv/bin/qf seed import --force
+    exit 0
+  fi
+  echo "Datenbank ohne Daten, aber pg_restore fehlt (PostgreSQL-Client 16 installieren) -> nur Schema anlegen"
+fi
 if [[ "$state" == "seeded" ]]; then
   rev=$($PY -c "from quotenfabrik.seed import seed_revision; print(seed_revision())")
   echo "Seed erkannt -> alembic stamp $rev"

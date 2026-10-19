@@ -452,8 +452,9 @@ def seed_import(
     force: bool = typer.Option(False, "--force", help="Vorhandene Schemas raw/core/analytics löschen"),
 ) -> None:
     """Seed in eine leere Datenbank einspielen (statt Import über die APIs)."""
-    from quotenfabrik.seed import SEED_FILE, database_is_empty, drop_schemas, import_seed
+    from quotenfabrik.seed import SEED_FILE, database_is_empty, drop_schemas, import_seed, require_tools
 
+    require_tools("pg_restore")  # check before dropping anything
     if not database_is_empty():
         if not force:
             typer.secho(
