@@ -49,5 +49,6 @@ cd frontend-private && npm install && npm run dev           # http://localhost:3
 7. [Entwicklung](docs/07_entwicklung.md) – Setup, CLI, Tests
 8. [Betano-Quellen](docs/08_betano_quellen.md) – Betano-Quoten über OddsPapi
 9. [Modell-Evaluation](docs/09_modell_evaluation.md) – Ergebnisse Phase 2 (automatisch erzeugt)
+10. [Quoten-Backtest](docs/10_quoten_backtest.md) – 1X2 und Ü/U 2,5 gegen historische Quoten (Phase 3, automatisch erzeugt)
 
 Hinweise für KI-gestützte Entwicklung: [CLAUDE.md](CLAUDE.md)

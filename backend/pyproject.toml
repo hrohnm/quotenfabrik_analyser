@@ -49,6 +49,7 @@ known-third-party = ["alembic"]
 "quotenfabrik/analytics/patterns.py" = ["E501"]
 # German report texts
 "quotenfabrik/analytics/service.py" = ["E501"]
+"quotenfabrik/analytics/odds_report.py" = ["E501"]
 # SQL strings and compact response dicts
 "quotenfabrik/api/routers/*.py" = ["E501"]
 

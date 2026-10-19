@@ -18,6 +18,7 @@ from quotenfabrik.sources.api_football import ApiFootballClient, QuotaExhausted
 from quotenfabrik.sources.oddspapi import OddsPapiClient, OddsPapiQuotaExhausted
 
 DEFAULT_REPORT = Path(__file__).resolve().parents[2] / "docs" / "09_modell_evaluation.md"
+ODDS_REPORT = Path(__file__).resolve().parents[2] / "docs" / "10_quoten_backtest.md"
 
 app = typer.Typer(help="Quotenfabrik Analyser", no_args_is_help=True)
 ingest_app = typer.Typer(help="Daten importieren", no_args_is_help=True)
@@ -25,10 +26,12 @@ odds_app = typer.Typer(help="Quoten-Archiv (API-Football)", no_args_is_help=True
 oddspapi_app = typer.Typer(help="Betano-Quoten über OddsPapi", no_args_is_help=True)
 model_app = typer.Typer(help="Modelle, Prognosen und Evaluation (Phase 2)", no_args_is_help=True)
 seed_app = typer.Typer(help="Datenbank-Seed exportieren/importieren", no_args_is_help=True)
+value_app = typer.Typer(help="Value-Suche mit Quoten (Phase 3)", no_args_is_help=True)
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(odds_app, name="odds")
 app.add_typer(oddspapi_app, name="oddspapi")
 app.add_typer(model_app, name="model")
+app.add_typer(value_app, name="value")
 app.add_typer(seed_app, name="seed")
 
 
@@ -343,6 +346,26 @@ def model_show(fixture: int = typer.Argument(..., help="API-Football Fixture-ID"
     from quotenfabrik.analytics.service import show_fixture
 
     typer.echo(show_fixture(get_engine(), fixture))
+
+
+# --------------------------------------------------------------------------- value (phase 3)
+
+
+@value_app.command("backtest")
+def value_backtest(
+    validation_until: int = typer.Option(2021, help="letzte Validierungssaison, danach Test"),
+    method: str = typer.Option("shin", help="Margenentfernung: shin, power oder proportional"),
+    league: int | None = typer.Option(None),
+    report: Path | None = typer.Option(ODDS_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Prognosen (qf model backtest) gegen historische Quoten: 1X2 und Ü/U 2,5, ROI, CLV, Marktvergleich."""
+    from quotenfabrik.analytics.odds_report import run_odds_backtest
+
+    for league_id in _leagues(league):
+        result = run_odds_backtest(get_engine(), league_id, validation_until, method, report)
+        typer.echo(f"Liga {league_id}: {result}")
+    if report:
+        typer.echo(f"Bericht: {report}")
 
 
 # --------------------------------------------------------------------------- seed

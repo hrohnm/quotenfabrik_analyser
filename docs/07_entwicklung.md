@@ -57,6 +57,7 @@ Details zum Seed: `seed/README.md`.
 | `qf model evaluate --seasons 2022-2026` | Walk-Forward-Evaluation aller Marktgruppen ohne Quoten → `analytics.*` + `docs/09_modell_evaluation.md` | 0 |
 | `qf model forecast --days 10` | Prognosen + Pattern für kommende Spiele → `analytics.predictions` / `analytics.pattern_results` | 0 |
 | `qf model backtest --seasons 2016-2026` | rückwirkende Walk-Forward-Prognosen aller beendeten Spiele inkl. Ergebnis → Explorer/Auswertung | 0 |
+| `qf value backtest [--validation-until 2021] [--method shin]` | Prognosen gegen historische football-data-Quoten (1X2, Ü/U 2,5): Prognosegüte vs. Markt, Value-Wetten, ROI, CLV → `docs/10_quoten_backtest.md` | 0 |
 | `qf model settle` | Ergebnis (eingetreten ja/nein) für Prognosen beendeter Spiele eintragen | 0 |
 | `qf seed export` / `qf seed import [--force]` | Datenbank-Seed schreiben / einspielen (`seed/quotenfabrik_seed.dump`) | 0 |
 | `qf model show <fixture_id>` | letzte Prognose eines Spiels: Hauptmärkte, faire Quoten, Torschützen, Pattern-Signale | 0 |

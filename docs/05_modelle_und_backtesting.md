@@ -116,6 +116,19 @@ Für Märkte ohne historische Quoten zählt zunächst: **Ist das Modell gut kali
 Snapshot-Archiv liegen, wird gemessen, ob Modell-Value-Wetten positiven CLV gegen die Schlussquote erzielen –
 das ist bereits nach wenigen Hundert Wetten aussagekräftiger als der ROI.
 
+### Umsetzung Schritt 1 (Stand 19.10.2026): `qf value backtest`
+
+Code: `analytics/value.py` (Margenentfernung Shin/Power/proportional, EV, Kelly, CLV, logarithmische Mischung) und
+`analytics/odds_backtest.py` / `odds_report.py`. Rückwirkende Walk-Forward-Prognosen (`qf model backtest`) werden mit den
+football-data-Quoten verglichen; Mischungsgewichte und Edge-Schwelle werden nur auf der Validierung (bis 2021/22)
+gewählt, der Test (ab 2022/23) wird einmalig bewertet. Bet365 dient als Proxy für Betano (ähnliche Marge).
+Ergebnis: **`docs/10_quoten_backtest.md`**.
+
+**Fazit:** Für 1X2 und Ü/U 2,5 ist `dc-v1` schlechter als der Markt (Log-Loss 1X2 0,994 vs. 0,971), die Mischung gibt dem
+Modell ein negatives Gewicht, der CLV der Value-Wetten ist negativ (−5 bis −7 %). Die 1X2-„Value“-Tipps sind überwiegend
+Außenseiter, weil das Modell weniger extrem ist als der Markt. → Kein Value in den Hauptmärkten; nächste Schritte siehe
+`06_roadmap.md` (marktbasiertes Modell für Nebenmärkte, zusätzliche Informationen).
+
 ### Paper-Trading
 Ab Inbetriebnahme werden alle Value-Signale automatisch als „Papierwetten“ in `analytics.value_bets` protokolliert
 (mit Quote zum Signalzeitpunkt, Schlussquote, Ergebnis). So entsteht ein ehrlicher Live-Track-Record je Markt.
