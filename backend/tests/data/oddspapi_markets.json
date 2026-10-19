@@ -1,0 +1,146 @@
+[
+ {
+  "marketId": 101,
+  "marketLength": 3,
+  "marketName": "Full Time Result",
+  "playerProp": false,
+  "sportId": 10,
+  "handicap": 0.0,
+  "period": "fulltime",
+  "marketType": "1x2",
+  "outcomes": [
+   {
+    "outcomeId": 101,
+    "outcomeName": "1"
+   },
+   {
+    "outcomeId": 103,
+    "outcomeName": "2"
+   },
+   {
+    "outcomeId": 102,
+    "outcomeName": "X"
+   }
+  ]
+ },
+ {
+  "marketId": 1010,
+  "marketLength": 2,
+  "marketName": "Over Under Full Time",
+  "playerProp": false,
+  "sportId": 10,
+  "handicap": 2.5,
+  "period": "fulltime",
+  "marketType": "totals",
+  "outcomes": [
+   {
+    "outcomeId": 1011,
+    "outcomeName": "Under"
+   },
+   {
+    "outcomeId": 1010,
+    "outcomeName": "Over"
+   }
+  ]
+ },
+ {
+  "marketId": 1068,
+  "marketLength": 2,
+  "marketName": "Asian Handicap",
+  "playerProp": false,
+  "sportId": 10,
+  "handicap": -0.5,
+  "period": "fulltime",
+  "marketType": "spreads",
+  "outcomes": [
+   {
+    "outcomeId": 1069,
+    "outcomeName": "2"
+   },
+   {
+    "outcomeId": 1068,
+    "outcomeName": "1"
+   }
+  ]
+ },
+ {
+  "marketId": 10137,
+  "marketLength": 3,
+  "marketName": "European Handicap",
+  "playerProp": false,
+  "sportId": 10,
+  "handicap": 1.0,
+  "period": "fulltime",
+  "marketType": "spreads-european",
+  "outcomes": [
+   {
+    "outcomeId": 10137,
+    "outcomeName": "1"
+   },
+   {
+    "outcomeId": 10139,
+    "outcomeName": "2"
+   },
+   {
+    "outcomeId": 10138,
+    "outcomeName": "X"
+   }
+  ]
+ },
+ {
+  "marketId": 10170,
+  "marketLength": 2,
+  "marketName": "Over Under Full Time",
+  "playerProp": false,
+  "sportId": 10,
+  "handicap": 2.25,
+  "period": "fulltime",
+  "marketType": "totals",
+  "outcomes": [
+   {
+    "outcomeId": 10171,
+    "outcomeName": "Under"
+   },
+   {
+    "outcomeId": 10170,
+    "outcomeName": "Over"
+   }
+  ]
+ },
+ {
+  "marketId": 10730,
+  "marketLength": 0,
+  "marketName": "Anytime Goal Scorer",
+  "playerProp": true,
+  "sportId": 10,
+  "handicap": 0.0,
+  "period": "fulltime",
+  "marketType": "players-anytimegoalscorer",
+  "outcomes": [
+   {
+    "outcomeId": 10730,
+    "outcomeName": "Yes"
+   }
+  ]
+ },
+ {
+  "marketId": 10803,
+  "marketLength": 2,
+  "marketName": "Corners - Over Under Full Time",
+  "playerProp": false,
+  "sportId": 10,
+  "handicap": 9.5,
+  "period": "fulltime",
+  "marketType": "totals-corners",
+  "outcomes": [
+   {
+    "outcomeId": 10804,
+    "outcomeName": "Under"
+   },
+   {
+    "outcomeId": 10803,
+    "outcomeName": "Over"
+   }
+  ]
+ }
+]

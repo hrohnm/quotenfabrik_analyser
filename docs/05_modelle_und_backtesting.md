@@ -1,0 +1,121 @@
+# 05 – Modelle, Value-Berechnung & Backtesting
+
+## 1. Basis: Dixon-Coles-Modell (volle Spielzeit)
+
+- Tore Heim ~ Poisson(λ_h), Tore Gast ~ Poisson(λ_g)
+- `log λ_h = µ + Heimvorteil + Angriff_heim − Abwehr_gast`, `log λ_g = µ + Angriff_gast − Abwehr_heim`
+- Dixon-Coles-Korrektur ρ für die Ergebnisse 0:0, 1:0, 0:1, 1:1
+- **Zeitgewichtung** `w = exp(−ξ · Tage_seit_Spiel)`, ξ per Kreuzvalidierung (typisch Halbwertszeit 4–8 Monate)
+- L2-Regularisierung der Team-Parameter → Aufsteiger mit wenig Bundesliga-Daten werden zum Mittelwert gezogen
+  (Option später: Zweitliga-Daten D2 von football-data.co.uk als Vorwissen für Aufsteiger)
+- Optional: xG statt Toren als Zielgröße (bzw. Mischung) in Saisons mit xG
+- Ergebnis: Ergebnismatrix P(i:j) für i, j = 0…10 → alle Märkte der Gruppen 1–3
+
+## 2. Halbzeitmodelle
+
+- Zwei getrennte Poisson-Modelle für Tore in der 1. und 2. Halbzeit (gleiche Struktur, eigene Parameter, ρ = 0)
+- Konsistenzprüfung: Summe der Halbzeit-λ ≈ λ der vollen Spielzeit; Abweichungen > 5 % werden geloggt
+- Liefert: HZ-Ü/U, Team-Tore je Halbzeit, torreichste Halbzeit, HZ/Endstand-Kombinationen
+
+## 3. Torschützen-Modell
+
+Siehe `04_analysepattern.md`, Abschnitt 5. Kalibrierung: Summe aller Spieler-λ eines Teams + Eigentor-Anteil = λ_team.
+
+## 4. Erweiterungen (nach dem PoV)
+
+- Negative Binomial / bivariate Poisson, falls Über-Dispersion nachweisbar
+- Gradient-Boosting-Modell auf Pattern-Features als Korrektur des Basismodells (Stacking)
+- Markt als Feature: Mischung aus Modell und Pinnacle-Wahrscheinlichkeit (oft stärker als jedes allein)
+
+## 4b. Umsetzung Phase 2 (Stand 19.10.2026, Modell `dc-v1`)
+
+Code: `backend/quotenfabrik/analytics/`
+
+| Datei | Inhalt |
+|---|---|
+| `data.py` | Lädt Spiele (nur `Regular Season`), Spieler-Einsätze und Tor-Events aus `core` |
+| `poisson.py` | Zeitgewichtetes Dixon-Coles-Modell (analytischer Gradient, L-BFGS, ~0,1 s pro Fit), Aufsteiger-Prior, optional xG-Mischung |
+| `prediction.py` | `MatchModel` = Vollzeit-Modell + je ein Poisson-Modell für 1. und 2. Halbzeit → Ergebnismatrizen |
+| `markets/` | Je Marktgruppe `probabilities(pred)` und `outcomes(match)` (gleiche Schlüssel `(market, selection, line)`) |
+| `scorers.py` | Torschützen-Modell (Rate pro 90 Min. mit Positions-Shrinkage × erwartete Minuten × Team-Faktor) |
+| `patterns.py` | Deskriptive Pattern je Marktgruppe mit Wilson-Intervall und Signal *hoch*/*niedrig* |
+| `evaluation.py` | Walk-Forward je Spieltag, Vergleichswerte *Liga* und *Form*, Brier/Log-Loss/RPS/ECE, Kalibrierung, Pattern-Signal-Auswertung, Tuning |
+| `service.py` | `qf model forecast` (speichert in `analytics.*`), `qf model evaluate` (Bericht `docs/09_modell_evaluation.md`), `qf model show` |
+
+**Gewählte Parameter** (Validierung 2018–2021 für das Teammodell, 2020–2021 für Torschützen; Test ab 2022):
+
+| Parameter | Wert | Bedeutung |
+|---|---|---|
+| ξ | 0,0015 / Tag | Zeitgewichtung, Halbwertszeit ≈ 15 Monate |
+| Regularisierung | 10 (Halbzeiten 25) | zieht Teamstärken zum Mittelwert, Halbzeiten stärker (verrauschter) |
+| Fenster | 3 Jahre | Trainingsdaten vor dem Spieltag |
+| Aufsteiger-Prior | Angriff −0,3 / Abwehr −0,3 | Teams ohne Bundesligaspiel in den letzten 400 Tagen |
+| Torschützen-Shrinkage | 15 × 90 Min. | Spieler mit wenig Spielzeit werden zum Positionsschnitt gezogen |
+| Team-Faktor-Exponent | 0,6 | gedämpfte Anpassung der Spielerrate an die erwartete Torzahl des Teams im Spiel |
+
+Halbzeit-Varianten (getrennte Modelle vs. fester Ligaanteil vs. teamspezifischer Anteil) wurden verglichen; getrennte
+Modelle mit stärkerer Regularisierung waren minimal besser. Unterschiede sind klein – Halbzeit-Tore sind schwer vorherzusagen.
+
+Ergebnisse: siehe **`docs/09_modell_evaluation.md`** (wird von `qf model evaluate` erzeugt).
+
+**Fazit der ersten Evaluation** (Test 2022/23–2026/27, 1.278 Spiele, ohne Quoten):
+- **1X2:** RPS 0,203 vs. 0,231 (Liga) / 0,218 (Form) → +12 % ggü. Liga, in jeder Testsaison besser; gut kalibriert.
+- **Tore pro Team:** +6,7 % Brier-Skill ggü. Liga – das Modell trennt starke/schwache Angriffe und Abwehren gut.
+- **Tore gesamt:** nur +1,6 %; Über-2,5 wird im Bereich 40–60 % leicht unterschätzt (Liga wird torreicher).
+- **Halbzeiten:** +2,4 %; Halbzeit-Ergebnis +6,5 % RPS. Halbzeit-Tore bleiben schwer vorhersagbar.
+- **Torschützen:** +2,8 % Brier ggü. Positions-/Startelf-Schnitt, gut kalibriert bis ≈ 40 %.
+- **Pattern-Signale:** zeigen klare Unterschiede zum Ligaschnitt (z. B. „Heimteam 2+ Tore“ hoch: 72 % statt 51 %), das
+  Modell kennt diese Information aber größtenteils bereits (Rest meist ≤ ±5 % bei n ≈ 100–250 → im Rauschen).
+  Pattern dienen damit vor allem der **Erklärung** der Modellwerte; echte Zusatzinformation muss sich in Phase 3
+  gegen die Quoten beweisen.
+- Wichtig: Ein besseres Modell als Liga/Form heißt noch nicht, dass es besser als Betano/Pinnacle ist – das prüft Phase 3.
+
+## 5. Quoten & Value
+
+| Größe | Formel |
+|---|---|
+| Implizite Wahrscheinlichkeit | `1 / quote` |
+| Marge (Overround) | `Σ 1/quote_i − 1` |
+| Faire Wahrscheinlichkeit | Margenentfernung per **Shin-Methode** (Standard) oder Power-Methode; proportional nur als Fallback |
+| Faire Quote | `1 / p_modell` |
+| Edge / EV | `p_modell × quote − 1` |
+| Kelly-Anteil | `(p × quote − 1) / (quote − 1)`, in der Praxis **¼-Kelly** und Kappung (z. B. max. 2 % Bankroll) |
+| CLV | `quote_genommen / quote_closing − 1` (Closing = Pinnacle bzw. letzte Snapshot-Quote vor Anpfiff) |
+
+Asiatische Märkte (Asian Handicap, Asian Goal Lines x.0/x.25/x.75) werden **nicht** betrachtet: Betano bietet sie in
+Deutschland nicht an. Berücksichtigt werden nur x.5-Linien und das europäische (3-Weg-)Handicap.
+
+## 6. Backtesting
+
+### Grundsätze
+- **Walk-Forward:** Für jeden Spieltag wird das Modell nur mit Spielen *vor* diesem Spieltag gefittet.
+- Trainingsfenster rollierend (z. B. 3 Saisons, zeitgewichtet), Startpunkt ab Saison 2017/18, damit genug Vorlauf existiert.
+- Hyperparameter (ξ, Regularisierung, Edge-Schwellen) nur auf einer **Validierungsperiode** wählen und auf einer
+  getrennten **Testperiode** (z. B. die letzten 2 Saisons) einmalig bewerten – sonst Overfitting auf den Backtest.
+
+### Metriken
+| Kategorie | Metriken |
+|---|---|
+| Kalibrierung / Güte | Log-Loss, Brier-Score, Ranked Probability Score (1X2), Kalibrierungskurven |
+| Benchmark | dieselben Metriken für die margenbereinigte **Pinnacle-Schlussquote** (sehr starker Benchmark) |
+| Wett-Erfolg | Anzahl Wetten, Trefferquote, ROI/Yield, Profit-Kurve, Max. Drawdown |
+| Robustheit | ROI-Konfidenzintervall (Bootstrap), Ergebnis je Saison, CLV (positiver CLV = belastbarster Indikator) |
+
+### Was historisch backtestbar ist
+
+| Marktgruppe | Historische Quoten | Backtest-Art |
+|---|---|---|
+| 1X2 | ✅ football-data (Eröffnung + Schluss, mehrere Buchmacher) | ROI + CLV + Kalibrierung |
+| Ü/U 2.5 gesamt | ✅ football-data | ROI + CLV + Kalibrierung |
+| Andere Ü/U-Linien, BTTS | ❌ | Kalibrierung; Quoten-Backtest ab eigenem Archiv |
+| Team-Totals | ❌ | Kalibrierung; Archiv |
+| Halbzeit-Märkte | ❌ | Kalibrierung; Archiv |
+| Torschützen | ❌ | Kalibrierung; Archiv |
+
+Für Märkte ohne historische Quoten zählt zunächst: **Ist das Modell gut kalibriert?** Sobald einige Spieltage im
+Snapshot-Archiv liegen, wird gemessen, ob Modell-Value-Wetten positiven CLV gegen die Schlussquote erzielen –
+das ist bereits nach wenigen Hundert Wetten aussagekräftiger als der ROI.
+
+### Paper-Trading
+Ab Inbetriebnahme werden alle Value-Signale automatisch als „Papierwetten“ in `analytics.value_bets` protokolliert
+(mit Quote zum Signalzeitpunkt, Schlussquote, Ergebnis). So entsteht ein ehrlicher Live-Track-Record je Markt.

@@ -1,0 +1,56 @@
+"""SQLAlchemy models. Importing this package registers all tables on ``Base.metadata``."""
+
+from quotenfabrik.models.analytics import Evaluation, ModelRun, PatternResultRow, Prediction
+from quotenfabrik.models.base import Base
+from quotenfabrik.models.core import (
+    BetType,
+    Bookmaker,
+    Fixture,
+    FixtureEvent,
+    FixtureLineup,
+    FixturePlayerStats,
+    FixtureTeamStats,
+    HistoricalMatch,
+    Injury,
+    League,
+    OddsHistory,
+    OddsPapiFixture,
+    OddsPapiMarket,
+    OddsPapiPlayer,
+    OddsSnapshot,
+    Player,
+    Team,
+    TeamAlias,
+    Venue,
+)
+from quotenfabrik.models.raw import ApiResponse, FootballDataFile, OddsPapiResponse
+
+__all__ = [
+    "Evaluation",
+    "ModelRun",
+    "PatternResultRow",
+    "Prediction",
+    "ApiResponse",
+    "Base",
+    "BetType",
+    "Bookmaker",
+    "Fixture",
+    "FixtureEvent",
+    "FixtureLineup",
+    "FixturePlayerStats",
+    "FixtureTeamStats",
+    "FootballDataFile",
+    "HistoricalMatch",
+    "Injury",
+    "League",
+    "OddsHistory",
+    "OddsPapiFixture",
+    "OddsPapiMarket",
+    "OddsPapiPlayer",
+    "OddsPapiResponse",
+    "OddsSnapshot",
+    "Player",
+    "Team",
+    "TeamAlias",
+    "Venue",
+]
