@@ -22,7 +22,7 @@ const STATUS: Record<JobStep["status"] | Job["status"], { icon: string; tone: st
 
 const time = (iso: string | null) => (iso ? new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" }) : "");
 
-function JobView({ job, open, onRetry }: { job: Job; open: boolean; onRetry?: (job: Job) => void }) {
+function JobView({ job, open, busy, onRetry }: { job: Job; open: boolean; busy: boolean; onRetry?: (job: Job) => void }) {
   const [expanded, setExpanded] = useState(open);
   const s = STATUS[job.status];
   const league = job.params.league_id ? ` · Liga ${job.params.league_id}` : "";
@@ -55,7 +55,7 @@ function JobView({ job, open, onRetry }: { job: Job; open: boolean; onRetry?: (j
           })}
           {job.status === "failed" && job.kind === "add_league" && onRetry && (
             <li>
-              <button type="button" onClick={() => onRetry(job)} className="rounded-md bg-slate-900 px-3 py-1 text-xs text-white">
+              <button type="button" disabled={busy} onClick={() => onRetry(job)} className="rounded-md bg-slate-900 px-3 py-1 text-xs text-white disabled:opacity-40" title={busy ? "Es läuft bereits ein Hintergrund-Job" : undefined}>
                 Erneut ausführen (lädt nur Fehlendes nach)
               </button>
             </li>
@@ -74,10 +74,11 @@ function JobView({ job, open, onRetry }: { job: Job; open: boolean; onRetry?: (j
 
 export function JobsCard({ jobs, onRetry }: { jobs: Job[]; onRetry?: (job: Job) => void }) {
   if (jobs.length === 0) return null;
+  const busy = jobs.some((j) => j.status === "running" || j.status === "queued");
   return (
     <Card title="Hintergrund-Jobs">
       <ul className="divide-y divide-slate-100">
-        {jobs.map((j, i) => <JobView key={j.id} job={j} onRetry={i === 0 ? onRetry : undefined} open={i === 0 && (j.status === "running" || j.status === "queued" || j.status === "failed")} />)}
+        {jobs.map((j, i) => <JobView key={j.id} job={j} busy={busy} onRetry={onRetry} open={i === 0 && (j.status === "running" || j.status === "queued" || j.status === "failed")} />)}
       </ul>
     </Card>
   );
