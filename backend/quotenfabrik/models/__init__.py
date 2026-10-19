@@ -12,13 +12,17 @@ from quotenfabrik.models.core import (
     HistoricalMatch,
     Injury,
     League,
+    OddsHistory,
+    OddsPapiFixture,
+    OddsPapiMarket,
+    OddsPapiPlayer,
     OddsSnapshot,
     Player,
     Team,
     TeamAlias,
     Venue,
 )
-from quotenfabrik.models.raw import ApiResponse, FootballDataFile
+from quotenfabrik.models.raw import ApiResponse, FootballDataFile, OddsPapiResponse
 
 __all__ = [
     "ApiResponse",
@@ -34,6 +38,11 @@ __all__ = [
     "HistoricalMatch",
     "Injury",
     "League",
+    "OddsHistory",
+    "OddsPapiFixture",
+    "OddsPapiMarket",
+    "OddsPapiPlayer",
+    "OddsPapiResponse",
     "OddsSnapshot",
     "Player",
     "Team",

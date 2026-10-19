@@ -6,8 +6,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from quotenfabrik.config import get_settings
-from quotenfabrik.ingest import api_football, football_data, odds
-from quotenfabrik.models import ApiResponse, FootballDataFile
+from quotenfabrik.ingest import api_football, football_data, odds, oddspapi
+from quotenfabrik.models import ApiResponse, FootballDataFile, OddsPapiFixture, OddsPapiResponse
 
 log = logging.getLogger(__name__)
 
@@ -55,4 +55,36 @@ def rebuild_from_raw(session: Session) -> dict[str, int]:
         football_data.process_file(session, file.league_code, file.season_code, file.content)
         counts["football_data"] = counts.get("football_data", 0) + 1
     session.commit()
+
+    _rebuild_oddspapi(session, counts)
     return counts
+
+
+def _rebuild_oddspapi(session: Session, counts: dict[str, int]) -> None:
+    """Replays OddsPapi responses in order: markets and fixtures first, then histories and player names."""
+    order = ["markets", "fixtures", "odds-by-tournaments", "historical-odds"]
+    for endpoint in order:
+        ids = session.scalars(
+            select(OddsPapiResponse.id)
+            .where(OddsPapiResponse.endpoint == endpoint)
+            .order_by(OddsPapiResponse.id)
+        ).all()
+        for response_id in ids:
+            response = session.get(OddsPapiResponse, response_id)
+            payload = oddspapi.load_raw(response)
+            if endpoint == "markets":
+                oddspapi.process_markets_payload(session, payload)
+            elif endpoint == "fixtures":
+                oddspapi.process_fixtures_payload(session, payload, response.fetched_at)
+            elif endpoint == "odds-by-tournaments":
+                oddspapi.process_player_names_payload(session, payload, response.fetched_at)
+            else:
+                fixture = session.get(OddsPapiFixture, payload["fixtureId"])
+                if fixture is None:
+                    continue
+                oddspapi.process_history_payload(
+                    session, payload, fixture.start_time, response.fetched_at, final=True
+                )
+            counts[f"oddspapi/{endpoint}"] = counts.get(f"oddspapi/{endpoint}", 0) + 1
+            session.commit()
+            session.expunge(response)

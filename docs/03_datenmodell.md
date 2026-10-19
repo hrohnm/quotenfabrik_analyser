@@ -208,6 +208,21 @@ app.bets (                         -- eigenes Wett-Tracking (privates Frontend)
 );
 ```
 
+## OddsPapi (Betano-Quoten, Migration `0002`)
+
+```sql
+raw.oddspapi_responses (id, endpoint, params jsonb, fetched_at, sha256, content_gzip bytea)  -- gzip, Verläufe nur final
+core.oddspapi_markets  (id pk, name, market_type, period, handicap, player_prop, market_group, outcomes jsonb)
+core.oddspapi_fixtures (id text pk, tournament_id, season_id, start_time, status_id, participant1/2_id, participant1/2_name,
+                        fixture_id → core.fixtures, updated_at, history_synced_at, history_final)
+core.oddspapi_players  (id pk, name, player_id → API-Football-Spieler (Phase 3), updated_at)
+core.odds_history (
+  oddspapi_fixture_id, bookmaker ('betano.de' | 'pinnacle'), market_id, outcome_id, player_id (0 = kein Spielermarkt),
+  changed_at, price numeric(8,3), active,
+  primary key (oddspapi_fixture_id, bookmaker, market_id, outcome_id, player_id, changed_at)
+)
+```
+
 **Umsetzungsstand:** `raw` und `core` sind als Migration `0001` umgesetzt (`backend/quotenfabrik/models/`).
 Abweichungen zum Entwurf oben: `fixtures` hat zusätzlich `details_synced_at` / `half_stats_synced_at`,
 `fixture_events` hat `seq` und `player_name`, `odds_snapshots` hat `suspended`. `analytics` und `app` folgen in Phase 2/3.

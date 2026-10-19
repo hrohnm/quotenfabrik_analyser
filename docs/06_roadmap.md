@@ -15,7 +15,8 @@
 - [ ] **Dauerhafte Umgebung**: PostgreSQL + Snapshot-Job + tägliche Aktualisierung auf einem dauerhaft laufenden Rechner/Server
       (die Cloud-Entwicklungsumgebung ist flüchtig – die dort importierten Daten gehen beim Beenden verloren)
 - [x] Betano-Quelle getestet: OddsPapi liefert Betano DE inkl. kostenloser Quotenverläufe seit 01/2026 (`08_betano_quellen.md`)
-- [ ] OddsPapi-Ingest: Fixture-Mapping, Quotenverläufe Betano + Pinnacle (Backfill seit 01/2026, danach laufend)
+- [x] OddsPapi-Ingest: Fixture-Mapping, Quotenverläufe Betano + Pinnacle (Backfill ab 04/2026, danach `qf oddspapi update`)
+- [ ] Phase 3: OddsPapi-Spieler-IDs auf API-Football-Spieler mappen (Torschützen-Märkte)
 
 ## Phase 2 – Pattern & Modelle trainieren (Fokus, ohne Quoten)
 - [ ] Feature-Basis: Rolling-Form, Heim/Auswärts-Splits, Halbzeit-Anteile, Tor-Timing, Spieler-Anteile

@@ -19,9 +19,8 @@ def engine():
     url = os.environ.get("QF_TEST_DATABASE_URL")
     if not url:
         pytest.skip("QF_TEST_DATABASE_URL not set")
-    from alembic.config import Config
-
     from alembic import command
+    from alembic.config import Config
 
     eng = create_engine(url)
     with eng.begin() as conn:
@@ -46,6 +45,8 @@ def session(engine):
                 " core.fixture_player_stats, core.fixture_lineups, core.fixture_events,"
                 " core.fixture_team_stats, core.fixtures, core.players, core.venues, core.teams,"
                 " core.leagues, core.bet_types, core.bookmakers, raw.api_responses,"
+                " core.odds_history, core.oddspapi_fixtures, core.oddspapi_markets,"
+                " core.oddspapi_players, raw.oddspapi_responses,"
                 " raw.football_data_files cascade"
             )
         )

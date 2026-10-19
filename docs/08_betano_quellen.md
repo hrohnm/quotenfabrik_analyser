@@ -18,7 +18,7 @@ OddsPapi liefert **Betano DE** für die Bundesliga, inklusive kompletter Quotenv
 | Bundesliga | `tournamentId = 35` (Fußball `sportId = 10`), Fixture-IDs wie `id1000003572513246` |
 | Betano | Slug `betano.de` (laut OddsPapi Klon des internationalen `betano`-Feeds, identische Preise), Player Props enthalten |
 | Free-Plan | **250 Requests pro Monat** für abrechenbare Endpunkte (`/fixtures`, `/odds`, `/odds-by-tournaments`, `/markets`, …) |
-| `/v4/historical-odds` | **kostenlos** (zählt nicht zur Quota), Cooldown 5 s pro Abruf, max. 3 Buchmacher pro Abruf, **Daten seit Januar 2026** |
+| `/v4/historical-odds` | **kostenlos** (zählt nicht zur Quota), Cooldown 5 s pro Abruf, max. 3 Buchmacher pro Abruf. Laut Doku Daten „seit Januar 2026“, **tatsächlich für die Bundesliga erst ab ca. April 2026** (Januar–März: 404 „No historical odds found“) |
 | `/v4/account` | kostenlos, zeigt Verbrauch (`request_count` / `request_limit`) |
 | Historie beendetes Spiel | Gladbach – Hoffenheim (18.10.): Betano **275 Märkte, ≈ 100.000 Preispunkte** vom 20.09. bis Anpfiff; Pinnacle 165 Märkte |
 | Historie kommendes Spiel | Stuttgart – Gladbach (23.10.): Betano 174 Märkte, Verlauf seit 11.10. → **Snapshots ohne Quota-Verbrauch möglich** |
@@ -37,8 +37,10 @@ Hinweise:
 - Der Feed enthält auch asiatische Linien (x.25/x.75, `spreads` = Asian Handicap), vermutlich weil `betano.de` den
   internationalen Feed klont. Wir verwenden weiter **nur x.5-Linien und europäisches Handicap**. Stichprobenartig mit
   der Betano-App abgleichen, ob die Preise identisch mit dem deutschen Angebot sind.
-- Im Verlauf sind Spieler nur als ID enthalten. Namen liefert `/v4/odds` bzw. `/v4/odds-by-tournaments` (abrechenbar,
-  1 Request für alle Spiele eines Wettbewerbs) → Mapping auf API-Football-Spieler über Name + Team.
+- Im Verlauf sind Spieler nur als ID enthalten. Namen liefert `/v4/odds-by-tournaments` (abrechenbar, 1 Request für
+  alle kommenden Spiele) – aber **nur, wenn Betano die Torschützen-Märkte schon anbietet** (erst kurz vor dem Spieltag;
+  5 Tage vorher waren sie noch nicht da). Deshalb `qf oddspapi players` an Spieltagen ausführen. Für Spiele vor dem
+  ersten Lauf fehlen Namen zu älteren Spieler-IDs → Mapping auf API-Football-Spieler in Phase 3 (Name + Team).
 - Schlussquote = letzter Preis vor Anpfiff aus dem Verlauf → **CLV-Messung für alle Märkte möglich**.
 
 ### Quota-Plan (Free-Plan, 250/Monat)
@@ -49,8 +51,21 @@ Hinweise:
 | Quotenverläufe (Snapshots + Historie) | `/historical-odds` | 0 (kostenlos, 5 s Abstand) |
 | **Summe** | | **≈ 15–20 pro Monat** |
 
-Damit ist ein **Backfill aller Bundesliga-Spiele seit Januar 2026** (Rückrunde 2025/26 + laufende Saison, ≈ 200+ Spiele)
-mit Betano- und Pinnacle-Verläufen kostenlos möglich (≈ 20 Minuten Laufzeit).
+Damit ist ein **Backfill aller verfügbaren Bundesliga-Verläufe** (ab ca. April 2026: Saisonende 2025/26 + laufende
+Saison) mit Betano und Pinnacle kostenlos möglich.
+
+### Umsetzung (`qf oddspapi …`)
+| Befehl | Wirkung | Requests |
+|---|---|---|
+| `qf oddspapi status` | Plan, Monatsverbrauch, Buchmacher im Plan | 0 |
+| `qf oddspapi markets` | Marktkatalog → `core.oddspapi_markets` (`market_group` = unsere Marktgruppe, NULL = nicht verfolgt) | 1 |
+| `qf oddspapi fixtures --from 2026-01-01` | Spielplan → `core.oddspapi_fixtures`, Team-Mapping (`team_aliases`, source `oddspapi`) und Verknüpfung mit `core.fixtures` | 1 |
+| `qf oddspapi history` | Verläufe aller offenen Spiele (bis 14 Tage voraus) → `core.odds_history`; nach Spielende final inkl. Rohdaten (gzip) | 0 |
+| `qf oddspapi players` | Spielernamen für Torschützen-Märkte → `core.oddspapi_players` | 1 |
+| `qf oddspapi update` | Laufbetrieb: Spielplan max. 1×/Woche, danach Verläufe | 0–1 |
+
+Gespeichert werden nur verfolgte Märkte (97 von 1.122; keine asiatischen Linien, keine Ecken/Karten), nur Preise **vor
+Anpfiff** und nur Änderungen von (Preis, aktiv). Schlussquote = letzter Eintrag vor Anpfiff.
 
 ## Ursprüngliche Recherche (vor dem Test)
 

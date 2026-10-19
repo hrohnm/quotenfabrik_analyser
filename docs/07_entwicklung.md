@@ -13,6 +13,10 @@
 | `QF_FD_LEAGUES` | `D1` | football-data.co.uk-Kürzel |
 | `QF_API_MAX_RPS` | `4` | Drosselung API-Football |
 | `QF_API_QUOTA_RESERVE` | `500` | Requests, die nie verbraucht werden (Reserve für Snapshots) |
+| `ODDSPAPI_API_KEY` | – | OddsPapi-Key (Betano-Quoten); `API_OddsPap` wird ebenfalls akzeptiert |
+| `QF_ODDSPAPI_TOURNAMENTS` | `35` | OddsPapi-Turnier-IDs, gleiche Reihenfolge wie `QF_LEAGUES` |
+| `QF_ODDSPAPI_BOOKMAKERS` | `betano.de,pinnacle` | Buchmacher für Quotenverläufe (max. 3) |
+| `QF_ODDSPAPI_REQUEST_RESERVE` | `20` | abrechenbare Requests pro Monat, die nie verbraucht werden |
 
 ## Setup
 
@@ -35,7 +39,8 @@ alembic upgrade head              # Schemas raw + core anlegen
 | `qf map-teams` | football-data-Teamnamen ↔ API-Team-IDs, Spiele verknüpfen, Report | 0 |
 | `qf odds snapshot` | aktuelle Quoten (nur Betano/Pinnacle/Bet365, nur Änderungen) | 2–4 |
 | `qf odds reference-data` | Buchmacher- und Wettarten-Stammdaten | 2 |
-| `qf rebuild` | `core.*` aus `raw.*` neu aufbauen (nach Parser-Änderungen) | 0 |
+| `qf oddspapi status` / `markets` / `fixtures` / `history` / `players` / `update` | Betano-Quoten über OddsPapi (siehe `08_betano_quellen.md`) | OddsPapi: 0–1 je Befehl (Free-Plan 250/Monat) |
+| `qf rebuild` | `core.*` aus `raw.*` neu aufbauen (nach Parser-Änderungen, inkl. OddsPapi) | 0 |
 | `qf quality` | Datenqualitäts-Report pro Saison | 0 |
 
 Laufender Betrieb (Cron, bis ein Scheduler eingebaut ist):
@@ -46,6 +51,10 @@ Laufender Betrieb (Cron, bis ein Scheduler eingebaut ist):
 # Aktuelle Saison täglich nachziehen (Ergebnisse, Details, Halbzeit-Stats, Ausfälle)
 30 4 * * *    cd /pfad/backend && .venv/bin/qf ingest api-football --seasons 2026 --half-stats
 45 4 * * 2    cd /pfad/backend && .venv/bin/qf ingest football-data --seasons 2026 && .venv/bin/qf map-teams
+# Betano-Quotenverläufe (OddsPapi, kostenlos) alle 3 Stunden, Spielplan max. 1x/Woche
+15 */3 * * *  cd /pfad/backend && .venv/bin/qf oddspapi update
+# Spielernamen für Torschützen-Märkte an Spieltagen (Fr/Sa/So, je 1 Request)
+0 10 * * 5,6,0 cd /pfad/backend && .venv/bin/qf oddspapi players
 ```
 
 ## Tests & Qualität

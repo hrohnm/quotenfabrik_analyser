@@ -73,3 +73,52 @@ def is_tracked_selection(bet_id: int, selection: str, handicap: str | None = Non
         if line is None or abs(line % 1 - 0.5) > 1e-9:
             return False
     return True
+
+
+# --------------------------------------------------------------------------- OddsPapi markets
+# (marketType, period) -> market group. Goal lines must be x.5; the European handicap uses whole numbers.
+ODDSPAPI_MARKET_GROUPS: dict[tuple[str, str], str] = {
+    ("1x2", "fulltime"): "1x2",
+    ("doublechance", "fulltime"): "1x2",
+    ("drawnobet", "fulltime"): "1x2",
+    ("spreads-european", "fulltime"): "1x2",
+    ("totals", "fulltime"): "totals",
+    ("bothteamsscore", "fulltime"): "totals",
+    ("exactscore", "fulltime"): "totals",
+    ("teamtotals-team1", "fulltime"): "team_totals",
+    ("teamtotals-team2", "fulltime"): "team_totals",
+    ("exactscore-team1", "fulltime"): "team_totals",
+    ("exactscore-team2", "fulltime"): "team_totals",
+    ("toscore-team1", "fulltime"): "team_totals",
+    ("toscore-team2", "fulltime"): "team_totals",
+    ("totals", "p1"): "halves",
+    ("totals", "p2"): "halves",
+    ("teamtotals-team1", "p1"): "halves",
+    ("teamtotals-team1", "p2"): "halves",
+    ("teamtotals-team2", "p1"): "halves",
+    ("teamtotals-team2", "p2"): "halves",
+    ("1x2", "p1"): "halves",
+    ("1x2", "p2"): "halves",
+    ("bothteamsscore", "p1"): "halves",
+    ("bothteamsscore", "p2"): "halves",
+    ("highestscoringh", "fulltime"): "halves",
+    ("players-anytimegoalscorer", "fulltime"): "scorers",
+    ("players-firstgoalscorer", "fulltime"): "scorers",
+    ("players-lastgoalscorer", "fulltime"): "scorers",
+    ("players-goals", "result"): "scorers",
+}
+
+_ODDSPAPI_LINE_TYPES = ("totals", "teamtotals")
+
+
+def oddspapi_market_group(market_type: str, period: str, handicap: float | None) -> str | None:
+    """Market group of an OddsPapi market, or None if it is not tracked (incl. Asian lines)."""
+    group = ODDSPAPI_MARKET_GROUPS.get((market_type, period))
+    if group is None:
+        return None
+    line = float(handicap or 0)
+    if market_type.startswith(_ODDSPAPI_LINE_TYPES) and abs(line % 1 - 0.5) > 1e-9:
+        return None
+    if market_type == "spreads-european" and line % 1 != 0:
+        return None
+    return group

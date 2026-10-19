@@ -297,3 +297,68 @@ class OddsSnapshot(Base):
     is_main: Mapped[bool | None] = mapped_column(Boolean)
     suspended: Mapped[bool | None] = mapped_column(Boolean)
     api_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+# --------------------------------------------------------------------------- OddsPapi (Betano odds)
+
+
+class OddsPapiFixture(Base):
+    __tablename__ = "oddspapi_fixtures"
+    __table_args__ = (Index(None, "tournament_id", "start_time"), Index(None, "fixture_id"), CORE)
+
+    id: Mapped[str] = mapped_column(Text, primary_key=True)  # e.g. 'id1000003572513246'
+    tournament_id: Mapped[int] = mapped_column(Integer)
+    season_id: Mapped[int | None] = mapped_column(Integer)
+    start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status_id: Mapped[int | None] = mapped_column(Integer)  # 0 not started, 1 live, 2 finished, 3 cancelled
+    participant1_id: Mapped[int] = mapped_column(Integer)
+    participant2_id: Mapped[int] = mapped_column(Integer)
+    participant1_name: Mapped[str | None] = mapped_column(Text)
+    participant2_name: Mapped[str | None] = mapped_column(Text)
+    fixture_id: Mapped[int | None] = mapped_column(ForeignKey("core.fixtures.id"))  # API-Football fixture
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    history_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # True once the history was loaded after kickoff (complete incl. closing odds).
+    history_final: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+
+
+class OddsPapiMarket(Base):
+    __tablename__ = "oddspapi_markets"
+    __table_args__ = CORE
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    name: Mapped[str] = mapped_column(Text)
+    market_type: Mapped[str] = mapped_column(Text)
+    period: Mapped[str] = mapped_column(Text)
+    handicap: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    player_prop: Mapped[bool] = mapped_column(Boolean)
+    market_group: Mapped[str | None] = mapped_column(Text)  # our market group, NULL = not tracked
+    outcomes: Mapped[dict] = mapped_column(JSONB)  # {outcome_id: outcome_name}
+
+
+class OddsPapiPlayer(Base):
+    __tablename__ = "oddspapi_players"
+    __table_args__ = CORE
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    name: Mapped[str] = mapped_column(Text)
+    player_id: Mapped[int | None] = mapped_column(Integer)  # API-Football player (mapping in phase 3)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class OddsHistory(Base):
+    """Price history per selection from OddsPapi. Only changes of (price, active) are stored."""
+
+    __tablename__ = "odds_history"
+    __table_args__ = (Index(None, "oddspapi_fixture_id", "market_id"), CORE)
+
+    oddspapi_fixture_id: Mapped[str] = mapped_column(
+        ForeignKey("core.oddspapi_fixtures.id"), primary_key=True
+    )
+    bookmaker: Mapped[str] = mapped_column(Text, primary_key=True)  # 'betano.de', 'pinnacle'
+    market_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    outcome_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    player_id: Mapped[int] = mapped_column(Integer, primary_key=True)  # 0 = no player market
+    changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    price: Mapped[Decimal] = mapped_column(Odd)
+    active: Mapped[bool] = mapped_column(Boolean)

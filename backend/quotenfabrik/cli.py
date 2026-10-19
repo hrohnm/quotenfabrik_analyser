@@ -1,23 +1,28 @@
 """Command line interface ``qf``."""
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import typer
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from quotenfabrik.config import get_settings
 from quotenfabrik.db import get_engine
-from quotenfabrik.ingest import api_football, football_data, odds, quality, rebuild, team_mapping
+from quotenfabrik.ingest import api_football, football_data, odds, oddspapi, quality, rebuild, team_mapping
 from quotenfabrik.ingest.db_utils import raw_response_saver
+from quotenfabrik.models import OddsPapiFixture
 from quotenfabrik.sources.api_football import ApiFootballClient, QuotaExhausted
+from quotenfabrik.sources.oddspapi import OddsPapiClient, OddsPapiQuotaExhausted
 
 app = typer.Typer(help="Quotenfabrik Analyser", no_args_is_help=True)
 ingest_app = typer.Typer(help="Daten importieren", no_args_is_help=True)
-odds_app = typer.Typer(help="Quoten-Archiv", no_args_is_help=True)
+odds_app = typer.Typer(help="Quoten-Archiv (API-Football)", no_args_is_help=True)
+oddspapi_app = typer.Typer(help="Betano-Quoten über OddsPapi", no_args_is_help=True)
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(odds_app, name="odds")
+app.add_typer(oddspapi_app, name="oddspapi")
 
 
 def _seasons(spec: str) -> list[int]:
@@ -146,6 +151,131 @@ def odds_reference_data() -> None:
     with Session(get_engine()) as session, _client() as client:
         odds.sync_reference_data(session, client)
     typer.echo("Buchmacher und Wettarten aktualisiert")
+
+
+# --------------------------------------------------------------------------- OddsPapi
+
+
+def _oddspapi_echo_quota(client: OddsPapiClient) -> None:
+    typer.echo(
+        f"OddsPapi: {client.billable_requests_made} abrechenbare Requests in diesem Lauf, "
+        f"Monat: {client.requests_used} / {client.request_limit}"
+    )
+
+
+@oddspapi_app.command("status")
+def oddspapi_status() -> None:
+    """Plan und Monatsverbrauch (kostenlos)."""
+    with OddsPapiClient() as client:
+        info = client.account()
+    typer.echo(
+        f"Plan: {info['plan']}  Requests diesen Monat: {info['request_count']} / {info['request_limit']}"
+    )
+    wanted = set(get_settings().oddspapi_bookmakers)
+    missing = wanted - set(info["bookmakers"])
+    typer.echo(f"Buchmacher im Plan: {', '.join(sorted(wanted & set(info['bookmakers'])))}")
+    if missing:
+        typer.secho(f"Nicht im Plan: {', '.join(sorted(missing))}", fg="red")
+
+
+@oddspapi_app.command("markets")
+def oddspapi_markets() -> None:
+    """Marktkatalog laden (1 Request)."""
+    with Session(get_engine()) as session, OddsPapiClient() as client:
+        count = oddspapi.sync_markets(session, client)
+        typer.echo(f"{count} Märkte, davon verfolgt: {len(oddspapi.tracked_market_ids(session))}")
+        _oddspapi_echo_quota(client)
+
+
+@oddspapi_app.command("fixtures")
+def oddspapi_fixtures(
+    date_from: str = typer.Option("2026-01-01", "--from", help="Startdatum YYYY-MM-DD"),
+    date_to: str | None = typer.Option(None, "--to", help="Enddatum (Standard: heute + 60 Tage)"),
+    league: int | None = typer.Option(None),
+) -> None:
+    """Spielplan von OddsPapi laden und mit API-Football verknüpfen (1 Request pro Liga)."""
+    settings = get_settings()
+    start = datetime.fromisoformat(date_from).replace(tzinfo=UTC)
+    end = (
+        datetime.fromisoformat(date_to).replace(tzinfo=UTC)
+        if date_to
+        else datetime.now(UTC) + timedelta(days=60)
+    )
+    with Session(get_engine()) as session, OddsPapiClient() as client:
+        for league_id in _leagues(league):
+            tournament = settings.oddspapi_tournament_for(league_id)
+            count = oddspapi.sync_fixtures(session, client, tournament, start, end)
+            typer.echo(f"Liga {league_id} / Turnier {tournament}: {count} Spiele")
+            _oddspapi_map(session, league_id, tournament)
+        _oddspapi_echo_quota(client)
+
+
+def _oddspapi_map(session: Session, league_id: int, tournament: int) -> None:
+    r = oddspapi.map_fixtures(session, league_id, tournament)
+    typer.echo(f"  Teams: {r.aliases_total} gemappt ({r.aliases_new} neu), Spiele verknüpft: {r.linked}")
+    for line in r.unlinked[:20]:
+        typer.secho(f"  nicht verknüpft: {line}", fg="yellow")
+
+
+@oddspapi_app.command("history")
+def oddspapi_history(
+    league: int | None = typer.Option(None),
+    limit: int | None = typer.Option(None, help="Maximal so viele Spiele (Test)"),
+) -> None:
+    """Quotenverläufe (Betano + Pinnacle) aller offenen Spiele seit 01/2026 laden (kostenlos, 5 s/Spiel)."""
+    settings = get_settings()
+    with Session(get_engine()) as session, OddsPapiClient() as client:
+        if not oddspapi.tracked_market_ids(session):
+            typer.echo("Marktkatalog fehlt, lade ihn zuerst (1 Request)")
+            oddspapi.sync_markets(session, client)
+        for league_id in _leagues(league):
+            tournament = settings.oddspapi_tournament_for(league_id)
+            fixtures = oddspapi.fixtures_needing_history(session, tournament, limit=limit)
+            typer.echo(f"Liga {league_id}: {len(fixtures)} Spiele, ca. {len(fixtures) * 5 // 60 + 1} Minuten")
+            stats = oddspapi.sync_history(session, client, fixtures, settings.oddspapi_bookmakers)
+            typer.echo(
+                f"  {stats['fixtures']} Verläufe geladen ({stats['final']} abgeschlossen, "
+                f"{stats['not_found']} ohne Daten), {stats['rows']} Preisänderungen verarbeitet"
+            )
+
+
+@oddspapi_app.command("players")
+def oddspapi_players(league: int | None = typer.Option(None)) -> None:
+    """Spielernamen für Torschützen-Märkte der kommenden Spiele (1 Request pro Liga)."""
+    settings = get_settings()
+    with Session(get_engine()) as session, OddsPapiClient() as client:
+        for league_id in _leagues(league):
+            count = oddspapi.sync_player_names(session, client, settings.oddspapi_tournament_for(league_id))
+            typer.echo(f"Liga {league_id}: {count} Spielernamen")
+        _oddspapi_echo_quota(client)
+
+
+@oddspapi_app.command("update")
+def oddspapi_update(league: int | None = typer.Option(None)) -> None:
+    """Laufender Betrieb: Spielplan wöchentlich auffrischen (1 Request), dann Verläufe laden (kostenlos)."""
+    settings = get_settings()
+    with Session(get_engine()) as session, OddsPapiClient() as client:
+        try:
+            for league_id in _leagues(league):
+                tournament = settings.oddspapi_tournament_for(league_id)
+                last = session.scalar(
+                    select(func.max(OddsPapiFixture.updated_at)).where(
+                        OddsPapiFixture.tournament_id == tournament
+                    )
+                )
+                now = datetime.now(UTC)
+                if last is None or now - last > timedelta(days=6):
+                    count = oddspapi.sync_fixtures(
+                        session, client, tournament, now - timedelta(days=7), now + timedelta(days=60)
+                    )
+                    typer.echo(f"Liga {league_id}: Spielplan aktualisiert ({count} Spiele)")
+                    _oddspapi_map(session, league_id, tournament)
+                fixtures = oddspapi.fixtures_needing_history(session, tournament)
+                stats = oddspapi.sync_history(session, client, fixtures, settings.oddspapi_bookmakers)
+                typer.echo(f"Liga {league_id}: {stats['fixtures']} Verläufe ({stats['final']} abgeschlossen)")
+        except OddsPapiQuotaExhausted as exc:
+            typer.secho(f"Abgebrochen: {exc}", fg="red")
+        _oddspapi_echo_quota(client)
 
 
 @app.command("rebuild")

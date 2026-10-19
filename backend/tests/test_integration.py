@@ -100,3 +100,65 @@ def test_team_mapping_links_football_data_rows(session):
         select(HistoricalMatch.fixture_id).where(HistoricalMatch.match_date == date(2026, 10, 18))
     )
     assert linked == 1575189
+
+
+def test_oddspapi_mapping_history_and_rebuild(session):
+    from quotenfabrik.ingest import oddspapi, rebuild
+    from quotenfabrik.models import OddsHistory, OddsPapiFixture, OddsPapiResponse
+    from quotenfabrik.sources.oddspapi import OddsPapiResult
+
+    # API-Football: Gladbach - Hoffenheim (18.10.) plus the reverse fixture for a second vote
+    detail = load_json("fixture_detail.json")
+    api_football.process_fixtures_payload(session, detail, NOW)
+    second = copy.deepcopy(detail)
+    item = second["response"][0]
+    item["fixture"]["id"] = 999998
+    item["fixture"]["date"] = "2026-03-07T14:30:00+00:00"
+    item["teams"]["home"], item["teams"]["away"] = item["teams"]["away"], item["teams"]["home"]
+    for key in ("events", "lineups", "statistics", "players"):
+        item.pop(key)
+    api_football.process_fixtures_payload(session, second, NOW)
+
+    oddspapi.process_markets_payload(session, load_json("oddspapi_markets.json"))
+    fixtures = [f for f in load_json("oddspapi_fixtures.json") if f["fixtureId"] == "id1000003572513246"]
+    reverse = copy.deepcopy(fixtures[0])
+    reverse.update(
+        fixtureId="id_reverse",
+        startTime="2026-03-07T14:30:00.000Z",
+        participant1Id=fixtures[0]["participant2Id"],
+        participant2Id=fixtures[0]["participant1Id"],
+        participant1Name=fixtures[0]["participant2Name"],
+        participant2Name=fixtures[0]["participant1Name"],
+    )
+    oddspapi.process_fixtures_payload(session, [*fixtures, reverse], NOW)
+    session.commit()
+
+    report = oddspapi.map_fixtures(session, 78, 35)
+    assert report.aliases_total == 2 and report.linked == 2
+    assert session.get(OddsPapiFixture, "id1000003572513246").fixture_id == 1575189
+    assert session.get(OddsPapiFixture, "id_reverse").fixture_id == 999998
+
+    payload = load_json("oddspapi_history.json")
+    start = session.get(OddsPapiFixture, "id1000003572513246").start_time
+    n = oddspapi.process_history_payload(session, payload, start, NOW, final=True)
+    session.commit()
+    stored = session.scalar(select(func.count()).select_from(OddsHistory))
+    assert n == stored > 0
+    assert session.scalar(select(func.max(OddsHistory.changed_at))) < start
+    # idempotent
+    oddspapi.process_history_payload(session, payload, start, NOW, final=True)
+    session.commit()
+    assert session.scalar(select(func.count()).select_from(OddsHistory)) == stored
+
+    # rebuild from the compressed raw response
+    import json
+
+    body = json.dumps(payload).encode()
+    oddspapi.store_raw(
+        session, OddsPapiResult("historical-odds", {"fixtureId": payload["fixtureId"]}, 200, payload, body)
+    )
+    session.execute(OddsHistory.__table__.delete())
+    session.commit()
+    rebuild.rebuild_from_raw(session)
+    assert session.scalar(select(func.count()).select_from(OddsHistory)) == stored
+    assert session.scalar(select(func.count()).select_from(OddsPapiResponse)) == 1

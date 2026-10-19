@@ -1,8 +1,8 @@
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import create_engine
 
-from alembic import context
 from quotenfabrik.config import get_settings
 from quotenfabrik.models import Base
 from quotenfabrik.models.base import SCHEMAS

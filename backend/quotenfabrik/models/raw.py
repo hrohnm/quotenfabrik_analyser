@@ -37,3 +37,21 @@ class FootballDataFile(Base):
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     sha256: Mapped[str] = mapped_column(Text)
     content: Mapped[bytes] = mapped_column(LargeBinary)
+
+
+class OddsPapiResponse(Base):
+    """OddsPapi responses, gzip-compressed (odds histories are ~25 MB of JSON per fixture).
+
+    Odds histories are stored once the fixture is finished (complete history); interim snapshots of
+    upcoming fixtures are only processed into ``core.odds_history``.
+    """
+
+    __tablename__ = "oddspapi_responses"
+    __table_args__ = (Index(None, "endpoint", "fetched_at"), {"schema": "raw"})
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    endpoint: Mapped[str] = mapped_column(Text)
+    params: Mapped[dict] = mapped_column(JSONB)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    sha256: Mapped[str] = mapped_column(Text)
+    content_gzip: Mapped[bytes] = mapped_column(LargeBinary)

@@ -95,7 +95,8 @@ alembic upgrade head                          # Schema anlegen
 qf ingest football-data --seasons 2015-2026   # Historie (kostet keine API-Quota)
 qf ingest api-football --seasons 2015-2026 --half-stats   # Backfill (~1.000 Requests)
 qf map-teams && qf quality                    # Verknüpfen + Datenqualität prüfen
-qf odds snapshot                              # Quoten-Snapshot (Cron alle 3 h)
+qf odds snapshot                              # Quoten-Snapshot API-Football (Cron alle 3 h)
+qf oddspapi update                            # Betano-Verläufe über OddsPapi (Cron alle 3 h, kostenlos)
 pytest && ruff check . && ruff format --check .
 ```
 
@@ -104,5 +105,7 @@ pytest && ruff check . && ruff format --check .
 - `quotenfabrik/sources/` – reine Abrufe (API-Football-Client mit Drosselung/Quota-Wächter, football-data-Download)
 - `quotenfabrik/ingest/parsers.py` – reine Funktionen Payload → Zeilen (ohne DB, unit-getestet)
 - `quotenfabrik/ingest/*.py` – `process_*` (Payload → DB, auch für `qf rebuild`) und `sync_*` (Abruf + Verarbeitung)
-- `quotenfabrik/markets.py` – welche Wettarten zu welcher Marktgruppe gehören (asiatische Märkte ausgeschlossen)
+- `quotenfabrik/sources/oddspapi.py`, `ingest/oddspapi*.py` – Betano-Quotenverläufe (OddsPapi), Spiel-/Team-Mapping
+- `quotenfabrik/markets.py` – welche Wettarten zu welcher Marktgruppe gehören, für API-Football und OddsPapi
+  (asiatische Märkte ausgeschlossen)
 - Tests: `backend/tests/`, Beispielantworten unter `backend/tests/data/` – Tests machen nie echte API-Requests
