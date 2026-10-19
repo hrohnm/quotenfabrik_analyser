@@ -24,7 +24,7 @@ def engine():
 
     eng = create_engine(url)
     with eng.begin() as conn:
-        for schema in ("analytics", "core", "raw"):
+        for schema in ("app", "analytics", "core", "raw"):
             conn.execute(text(f"drop schema if exists {schema} cascade"))
         conn.execute(text("drop table if exists public.alembic_version"))
     cfg = Config(str(BACKEND / "alembic.ini"))

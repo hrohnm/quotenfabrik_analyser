@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from quotenfabrik.analytics import evaluation as ev
 from quotenfabrik.analytics.data import load_matches
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
+from quotenfabrik.app_config import PROFILE_KEYS, get
 from quotenfabrik.ingest.db_utils import upsert
 from quotenfabrik.models import Pick
 
@@ -32,12 +33,20 @@ class Profile:
     lift_weight: float
 
 
-PROFILES = {
-    "sicher": Profile("Sicher", 0.70, 0.92, 0.5),
-    "ausgewogen": Profile("Ausgewogen", 0.58, 0.85, 1.0),
-    "mutig": Profile("Mutig", 0.45, 0.72, 1.0),
-}
-DEFAULT_PROFILE = "ausgewogen"
+def profiles() -> dict[str, Profile]:
+    """Profiles with the thresholds from the configuration page (``app_config.SETTINGS``, ``picks.*``)."""
+    return {
+        key: Profile(
+            label, get(f"picks.{key}.min_p"), get(f"picks.{key}.max_p"), get(f"picks.{key}.lift_weight")
+        )
+        for key, label in PROFILE_KEYS.items()
+    }
+
+
+def default_profile() -> str:
+    return get("picks.default_profile")
+
+
 PICKS_PER_FIXTURE = 3
 
 # Common markets with usual lines (None = market without line). Handicaps, exotic lines and exact goals are left
@@ -182,7 +191,7 @@ def build_picks(engine: Engine, league_id: int, run_id: int | None = None) -> di
     reasons = pattern_reasons(matches, fixtures)
 
     rows = []
-    for name, profile in PROFILES.items():
+    for name, profile in profiles().items():
         for run, part in preds.groupby("model_run_id"):
             for r in select_picks(part, profile).itertuples(index=False):
                 line = None if pd.isna(r.line) else r.line

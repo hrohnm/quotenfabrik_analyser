@@ -26,7 +26,30 @@ export async function api<T>(path: string, params?: Record<string, string | numb
   } catch {
     throw new ApiError(`API nicht erreichbar (${base() || "/api"}). Läuft das Backend auf Port 8000?`, 0);
   }
-  if (!res.ok) throw new ApiError(`API ${path}: HTTP ${res.status}`, res.status);
+  if (!res.ok) throw new ApiError(await errorText(res, path), res.status);
+  return res.json() as Promise<T>;
+}
+
+/** German error message from FastAPI ({"detail": "..."}) or a generic one. */
+async function errorText(res: Response, path: string): Promise<string> {
+  try {
+    const body = await res.json();
+    if (typeof body?.detail === "string") return body.detail;
+  } catch {
+    /* no JSON body */
+  }
+  return `API ${path}: HTTP ${res.status}`;
+}
+
+/** POST / PUT / PATCH with a JSON body (browser only, via the /api rewrite). */
+export async function apiSend<T>(method: "POST" | "PUT" | "PATCH", path: string, body: unknown): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${base()}/api${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  } catch {
+    throw new ApiError("API nicht erreichbar. Läuft das Backend auf Port 8000?", 0);
+  }
+  if (!res.ok) throw new ApiError(await errorText(res, path), res.status);
   return res.json() as Promise<T>;
 }
 

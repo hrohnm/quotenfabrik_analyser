@@ -9,10 +9,10 @@
 |---|---|---|
 | `API_FOOTBALL_KEY` | – | API-Key von api-sports.io |
 | `DATABASE_URL` | `postgresql+psycopg://qf:qf@localhost:5432/quotenfabrik` | DB-Verbindung |
-| `QF_LEAGUES` | `78,79` | aktive Ligen (API-IDs: 78 = Bundesliga, 79 = 2. Bundesliga) |
+| `QF_LEAGUES` | `78,79` | Start-Ligen (API-IDs: 78 = Bundesliga, 79 = 2. Bundesliga); nur Fallback, solange `app.leagues` leer ist – Ligen werden auf der Einstellungsseite verwaltet |
 | `QF_FD_LEAGUES` | `D1,D2` | football-data.co.uk-Kürzel, gleiche Reihenfolge wie `QF_LEAGUES` |
 | `QF_API_MAX_RPS` | `4` | Drosselung API-Football |
-| `QF_API_QUOTA_RESERVE` | `500` | Requests, die nie verbraucht werden (Reserve für Snapshots) |
+| `QF_API_QUOTA_RESERVE` | `500` | Requests, die nie verbraucht werden (Reserve für Snapshots); auf der Einstellungsseite überschreibbar, ebenso `QF_API_MAX_RPS` und `QF_ODDSPAPI_REQUEST_RESERVE` |
 | `ODDSPAPI_API_KEY` | – | OddsPapi-Key (Betano-Quoten); `API_OddsPap` wird ebenfalls akzeptiert |
 | `QF_ODDSPAPI_TOURNAMENTS` | `35,44` | OddsPapi-Turnier-IDs, gleiche Reihenfolge wie `QF_LEAGUES` |
 | `QF_ODDSPAPI_BOOKMAKERS` | `betano.de,pinnacle` | Buchmacher für Quotenverläufe (max. 3) |
@@ -62,6 +62,8 @@ Details zum Seed: `seed/README.md`.
 | `qf picks build [--if-empty]` / `qf picks report` | 3 Tipps pro Spiel und Profil für alle Prognosen speichern (`analytics.picks`, läuft auch nach `qf model forecast` / `backtest`) / Trefferquote → `docs/12_tipps.md` | 0 |
 | `qf model settle` | Ergebnis (eingetreten ja/nein) für Prognosen beendeter Spiele eintragen | 0 |
 | `qf seed export` / `qf seed import [--force]` | Datenbank-Seed schreiben / einspielen (`seed/quotenfabrik_seed.dump`) | 0 |
+| `qf backup [--reason manuell]` | Backup der Datenbank nach `backups/` (pg_dump, die letzten N bleiben; ersetzt standardmäßig auch den Seed) | 0 |
+| `qf jobs run <id>` | Hintergrund-Job aus `app.jobs` ausführen (startet die API selbst, manuell nur zum Debuggen) | je nach Job |
 | `qf model show <fixture_id>` | letzte Prognose eines Spiels: Hauptmärkte, faire Quoten, Torschützen, Pattern-Signale | 0 |
 | `qf rebuild` | `core.*` aus `raw.*` neu aufbauen (nach Parser-Änderungen, inkl. OddsPapi) | 0 |
 | `qf quality` | Datenqualitäts-Report pro Saison | 0 |
@@ -95,6 +97,26 @@ Laufender Betrieb (Cron, bis ein Scheduler eingebaut ist):
 | `GET /api/explorer?market&selection&line&…` | Prognosen eines Marktes über viele Spiele + Zusammenfassung |
 | `GET /api/stats/overview|markets|confidence|calibration|seasons|scorers` | Trefferquoten und Kalibrierung |
 | `GET /api/stats/picks?profile&season` | Trefferquote der 3 Tipps pro Spiel (einzeln, Kombi, je Saison/Rang/Markt) |
+
+Einstellungsseite (`/api/admin/*`):
+
+| Endpunkt | Inhalt |
+|---|---|
+| `GET /api/admin/status` | Key vorhanden?, Kontingent API-Football (`/status`, kostenlos) und OddsPapi, Backups, Reserven |
+| `GET` / `PUT /api/admin/settings` | Einstellungen mit Standard, Hilfetext und Grenzen / speichern (422 bei ungültigen Werten) |
+| `GET /api/admin/leagues`, `PATCH /api/admin/leagues/{id}` | konfigurierte Ligen / aktiv schalten, Kürzel ändern |
+| `GET /api/admin/leagues/search?q=` | Liga bei API-Football suchen (**1 Request**, roh gespeichert) |
+| `GET /api/admin/football-data/codes`, `GET /api/admin/oddspapi/tournaments?q=` | Kürzel-Liste / Turniersuche (kostenlos, aus Rohdaten bzw. `quotenfabrik/data/oddspapi_tournaments.json`) |
+| `GET /api/admin/leagues/estimate?first_season&last_season` | geschätzte API-Football-Requests für den Import |
+| `POST /api/admin/leagues` | Liga anlegen und Job `add_league` starten |
+| `POST /api/admin/jobs`, `GET /api/admin/jobs[/{id}]` | Job starten (`models`, `picks`, `backup`, `add_league`) / Fortschritt |
+| `GET /api/admin/backups[/{name}]` | Backups auflisten / herunterladen |
+
+Job `add_league` (läuft als eigener Prozess `qf jobs run <id>`, immer nur ein Job gleichzeitig): football-data →
+API-Football (Spiele, Details, Halbzeit-Stats ab 2024, Ausfälle) → Teams zuordnen → OddsPapi-Spielplan und -Verläufe
+→ **Backup** (direkt nach dem Import, damit verbrauchte Requests nicht verloren gehen) → rückwirkende Prognosen +
+Tipps → aktuelle Prognosen + Tipps → Berichte → Backup. Ein fehlgeschlagener Job kann erneut gestartet werden und lädt
+nur Fehlendes nach (API-Football überspringt bereits gespeicherte Spiele).
 
 Prognosequelle je Spiel: letzte `forecast`-Prognose **vor Anpfiff**, sonst `backtest`.
 

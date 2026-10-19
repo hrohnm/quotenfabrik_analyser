@@ -18,7 +18,7 @@ SEED_FILE = Path(__file__).resolve().parents[2] / "seed" / "quotenfabrik_seed.du
 # Alembic revision of the schema inside the dump: after a restore the DB is stamped with it and then upgraded
 SEED_REVISION_FILE = SEED_FILE.with_suffix(".revision")
 DEFAULT_SEED_REVISION = "0004"
-SCHEMAS = ("raw", "core", "analytics")
+SCHEMAS = ("raw", "core", "analytics", "app")
 EXCLUDE_DATA = ("raw.oddspapi_responses",)
 
 

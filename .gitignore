@@ -6,3 +6,6 @@ __pycache__/
 .ruff_cache/
 node_modules/
 *.egg-info/
+
+# Datenbank-Backups (Konfigurationsseite, qf backup)
+backups/

@@ -1,0 +1,129 @@
+"""Import steps per league, shared by the CLI (``qf ingest …``, ``qf oddspapi …``) and background jobs.
+
+Every function returns a short German summary; ``log`` receives progress lines (per season etc.).
+"""
+
+from collections.abc import Callable, Iterable
+from datetime import UTC, datetime, timedelta
+
+import httpx
+from sqlalchemy.orm import Session
+
+from quotenfabrik import app_config
+from quotenfabrik.config import get_settings
+from quotenfabrik.ingest import api_football, football_data, oddspapi, team_mapping
+from quotenfabrik.sources.api_football import ApiFootballClient, QuotaExhausted
+from quotenfabrik.sources.oddspapi import OddsPapiClient
+
+Log = Callable[[str], None]
+HALF_STATS_FROM = 2024  # 1 request per match -> only recent seasons
+INJURIES_FROM = 2021
+
+
+def _noop(_: str) -> None:
+    pass
+
+
+def football_data_seasons(session: Session, league_id: int, seasons: Iterable[int], log: Log = _noop) -> str:
+    code = app_config.fd_code_for(league_id)
+    if not code:
+        return "kein football-data-Kürzel – übersprungen"
+    total = 0
+    with httpx.Client(timeout=60, follow_redirects=True) as http:
+        for season in seasons:
+            try:
+                n = football_data.sync_season(session, code, season, http)
+            except httpx.HTTPError as exc:  # missing season file or timeout: continue with the next season
+                log(f"{code} {season}: nicht geladen ({type(exc).__name__})")
+                continue
+            total += n
+            log(f"{code} {season}: {n} Spiele")
+    return f"{code}: {total} Spiele"
+
+
+def api_football_seasons(
+    session: Session,
+    client: ApiFootballClient,
+    league_id: int,
+    seasons: Iterable[int],
+    *,
+    details: bool = True,
+    half_stats: bool = True,
+    injuries: bool = True,
+    log: Log = _noop,
+) -> str:
+    """Fixtures, details, half-time stats (from 2024) and injuries (from 2021). Stops at the quota reserve."""
+    if client.quota_remaining is None:
+        client.status()
+    loaded = 0
+    try:
+        for season in seasons:
+            n = api_football.sync_season(session, client, league_id, season)
+            loaded += n
+            msg = f"Saison {season}: {n} Spiele"
+            if details:
+                missing = api_football.fixtures_missing_details(session, league_id, season)
+                msg += f", Details {api_football.sync_details(session, client, missing)}"
+            if half_stats and season >= HALF_STATS_FROM:
+                missing = api_football.fixtures_missing_half_stats(session, league_id, season)
+                msg += f", Halbzeit-Stats {api_football.sync_half_stats(session, client, missing)}"
+            if injuries and season >= INJURIES_FROM:
+                msg += f", Ausfälle {api_football.sync_injuries(session, client, league_id, season)}"
+            log(msg)
+    except QuotaExhausted as exc:
+        log(f"Abgebrochen: {exc}")
+        raise
+    return f"{loaded} Spiele, {client.requests_made} Requests, verbleibend heute {client.quota_remaining}"
+
+
+def map_teams(session: Session, league_id: int, log: Log = _noop) -> str:
+    code = app_config.fd_code_for(league_id)
+    if not code:
+        return "kein football-data-Kürzel – übersprungen"
+    r = team_mapping.map_and_link(session, league_id, code)
+    if r.unmapped_aliases:
+        log(f"Nicht gemappt: {', '.join(r.unmapped_aliases)}")
+    return (
+        f"{r.aliases_total} Aliase ({r.aliases_new} neu), {r.rows_linked} Spiele verknüpft, "
+        f"{r.rows_unlinked} offen"
+    )
+
+
+def oddspapi_fixtures(
+    session: Session,
+    client: OddsPapiClient,
+    league_id: int,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    log: Log = _noop,
+) -> str:
+    """Schedule from OddsPapi (1 billable request) and mapping to API-Football fixtures."""
+    tournament = app_config.oddspapi_tournament_for(league_id)
+    if not tournament:
+        return "kein OddsPapi-Turnier – übersprungen"
+    start = start or datetime(2026, 1, 1, tzinfo=UTC)
+    end = end or datetime.now(UTC) + timedelta(days=60)
+    count = oddspapi.sync_fixtures(session, client, tournament, start, end)
+    r = oddspapi.map_fixtures(session, league_id, tournament)
+    for line in r.unlinked[:20]:
+        log(f"nicht verknüpft: {line}")
+    return f"Turnier {tournament}: {count} Spiele, {r.aliases_total} Teams gemappt, {r.linked} verknüpft"
+
+
+def oddspapi_history(
+    session: Session, client: OddsPapiClient, league_id: int, limit: int | None = None, log: Log = _noop
+) -> str:
+    """Betano/Pinnacle price histories of all open fixtures (free, 5 s per fixture)."""
+    tournament = app_config.oddspapi_tournament_for(league_id)
+    if not tournament:
+        return "kein OddsPapi-Turnier – übersprungen"
+    if not oddspapi.tracked_market_ids(session):
+        log("Marktkatalog fehlt, wird geladen (1 Request)")
+        oddspapi.sync_markets(session, client)
+    fixtures = oddspapi.fixtures_needing_history(session, tournament, limit=limit)
+    log(f"{len(fixtures)} Spiele, ca. {len(fixtures) * 5 // 60 + 1} Minuten")
+    stats = oddspapi.sync_history(session, client, fixtures, get_settings().oddspapi_bookmakers)
+    return (
+        f"{stats['fixtures']} Verläufe ({stats['final']} abgeschlossen, {stats['not_found']} ohne Daten), "
+        f"{stats['rows']} Preisänderungen"
+    )

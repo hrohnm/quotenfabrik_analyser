@@ -7,7 +7,7 @@ Vier Schemas mit klarer Verantwortung:
 | `raw` | Unveränderte Antworten/Dateien der Quellen | Ingest |
 | `core` | Normalisierte Fakten: Teams, Spiele, Events, Stats, Quoten | Ingest |
 | `analytics` | Features, Modellläufe, Vorhersagen, Pattern, Backtests | Analytik |
-| `app` | Benutzer, Abos, eigene Wetten | API |
+| `app` | Konfiguration (Einstellungen, Ligen, Hintergrund-Jobs); später Benutzer, Abos, eigene Wetten | API |
 
 Konventionen: Zeitstempel `timestamptz` (UTC), Quoten `numeric(8,3)`, Wahrscheinlichkeiten `double precision`,
 IDs der API-Football als natürliche Primärschlüssel (`bigint`).
@@ -202,6 +202,25 @@ analytics.backtests (
 ```
 
 ## Schema `app`
+
+Konfiguration der Einstellungsseite (Migration `0006`). Werte, die nicht in `app.settings` stehen, gelten mit dem
+Standard aus `quotenfabrik/app_config.py` (`SETTINGS`). API-Keys stehen **nie** in der Datenbank.
+
+```sql
+app.settings (key text pk, value jsonb, updated_at timestamptz)    -- nur Abweichungen vom Standard
+app.leagues (                       -- konfigurierte Ligen; leer → Fallback auf QF_LEAGUES / QF_FD_LEAGUES / …
+  id bigint pk,                     -- API-Football league id
+  name text, country text, fd_code text, oddspapi_tournament bigint,
+  first_season int, active bool, added_at timestamptz
+)
+app.jobs (                          -- Hintergrund-Jobs der Einstellungsseite (Liga hinzufügen, Neuberechnung, Backup)
+  id bigserial pk, kind text, params jsonb, status text,   -- queued | running | done | failed
+  steps jsonb,                      -- [{name, label, status, message, log[], started_at, finished_at}]
+  error text, created_at, started_at, finished_at timestamptz
+)
+```
+
+Geplant (öffentliches Frontend):
 
 ```sql
 app.users         (id uuid pk, email citext unique, password_hash text, role text, created_at timestamptz)

@@ -6,11 +6,11 @@ from datetime import date, datetime, timedelta
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
+from quotenfabrik import app_config
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
-from quotenfabrik.analytics.picks import DEFAULT_PROFILE
+from quotenfabrik.analytics.picks import default_profile
 from quotenfabrik.api.data import chosen_runs_cte, df, model_data
 from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS, league_logo, pick_label
-from quotenfabrik.config import get_settings
 
 router = APIRouter(prefix="/api", tags=["fixtures"])
 
@@ -138,7 +138,7 @@ def days(
            from core.fixtures f where f.league_id = any(:leagues)
              and (f.kickoff_utc at time zone 'Europe/Berlin')::date between :f and :t
            group by 1 order by 1""",
-        leagues=[league] if league else get_settings().leagues, f=date_from, t=date_to,
+        leagues=[league] if league else app_config.league_ids(), f=date_from, t=date_to,
     )  # fmt: skip
     return [
         {"date": r.day.isoformat(), "fixtures": int(r.fixtures), "finished": int(r.finished)}
@@ -155,11 +155,11 @@ def fixtures(
     season: int | None = None,
     team: int | None = None,
     limit: int = Query(200, le=1000),
-    profile: str = DEFAULT_PROFILE,
+    profile: str | None = None,
 ) -> list[dict]:
     where, params = (
         ["f.league_id = any(:leagues)"],
-        {"leagues": [league] if league else get_settings().leagues},
+        {"leagues": [league] if league else app_config.league_ids()},
     )
     local_day = "(f.kickoff_utc at time zone 'Europe/Berlin')::date"
     if day:
@@ -182,6 +182,7 @@ def fixtures(
     )
     items = [_fixture_dict(r) for r in rows.itertuples()]
     summaries = _summaries([i["id"] for i in items])
+    profile = profile or default_profile()
     picks = _picks(items, profile)
     for item in items:
         item["prediction"] = summaries.get(item["id"])

@@ -9,7 +9,7 @@ NAMING_CONVENTION = {
     "pk": "pk_%(table_name)s",
 }
 
-SCHEMAS = ("raw", "core", "analytics")
+SCHEMAS = ("raw", "core", "analytics", "app")
 
 
 class Base(DeclarativeBase):

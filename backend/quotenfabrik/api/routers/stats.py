@@ -7,10 +7,10 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, Query
 
-from quotenfabrik.analytics.picks import DEFAULT_PROFILE, PROFILES, evaluate_picks
+from quotenfabrik import app_config
+from quotenfabrik.analytics.picks import default_profile, evaluate_picks, profiles
 from quotenfabrik.api.data import chosen_runs_cte, df
 from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, PICK_SETS, SELECTION_LABELS, pick_label
-from quotenfabrik.config import get_settings
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
 
@@ -72,7 +72,7 @@ def _bin_label(b: pd.Interval) -> str:
 
 
 def _league(league: int | None) -> int:
-    return league or get_settings().leagues[0]
+    return league or app_config.league_ids()[0]
 
 
 @router.get("/overview")
@@ -217,17 +217,18 @@ def _settled_picks(league_id: int) -> pd.DataFrame:
 
 
 @router.get("/picks")
-def pick_stats(league: int | None = None, season: int | None = None, profile: str = DEFAULT_PROFILE) -> dict:
+def pick_stats(league: int | None = None, season: int | None = None, profile: str | None = None) -> dict:
     """Hit rates of the suggested picks: per profile (singles and 3-pick combo) and details for one profile.
 
     Without ``league`` all configured leagues are combined.
     """
-    leagues = [league] if league else get_settings().leagues
+    leagues = [league] if league else app_config.league_ids()
     data = pd.concat([_settled_picks(lg) for lg in leagues], ignore_index=True)
     if season:
         data = data[data["season"] == season]
     overview = []
-    for key, p in PROFILES.items():
+    profile = profile or default_profile()
+    for key, p in profiles().items():
         result = evaluate_picks(data[data["profile"] == key])
         overview.append(
             {"profile": key, "label": p.label, "singles": result["singles"], "combo": result["combo"]}

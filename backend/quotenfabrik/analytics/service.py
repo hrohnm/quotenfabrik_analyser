@@ -25,6 +25,7 @@ from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.poisson import PoissonParams
 from quotenfabrik.analytics.prediction import fit_match_model
 from quotenfabrik.analytics.scorers import ScorerModel, ScorerParams
+from quotenfabrik.app_config import model_params
 from quotenfabrik.ingest.db_utils import upsert
 from quotenfabrik.models import Evaluation, ModelRun, PatternResultRow, Prediction
 
@@ -69,7 +70,7 @@ def run_forecast(
     as_of: pd.Timestamp | None = None,
 ) -> dict:
     """Predicts all regular-season fixtures in the next ``days_ahead`` days and stores the results."""
-    params = params or PoissonParams()
+    params = params or model_params()
     as_of = as_of or pd.Timestamp(datetime.now(UTC))
     matches = load_matches(engine, league_id)
     players = load_player_matches(engine, league_id)
@@ -156,7 +157,7 @@ def run_evaluation(
     scorer_params: ScorerParams | None = None,
     report_path: Path | None = None,
 ) -> dict:
-    params = params or PoissonParams()
+    params = params or model_params()
     scorer_params = scorer_params or ScorerParams()
     seasons = list(seasons)
     matches = load_matches(engine, league_id)
@@ -497,7 +498,7 @@ def run_backtest(
     """
     from sqlalchemy import delete
 
-    params = params or PoissonParams()
+    params = params or model_params()
     scorer_params = scorer_params or ScorerParams()
     seasons = list(seasons)
     matches = load_matches(engine, league_id)
