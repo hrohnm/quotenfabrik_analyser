@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from quotenfabrik.analytics.picks import DEFAULT_PROFILE, PROFILES
 from quotenfabrik.api.data import df, records
 from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS, league_logo
 from quotenfabrik.config import get_settings
@@ -38,6 +39,10 @@ def meta() -> dict:
         "seasons": [int(s) for s in seasons["season"]],
         "teams": records(teams),
         "groups": GROUP_LABELS,
+        "pick_profiles": [
+            {"key": k, "label": p.label, "min_p": p.min_p, "max_p": p.max_p, "default": k == DEFAULT_PROFILE}
+            for k, p in PROFILES.items()
+        ],
         "market_labels": MARKET_LABELS,
         "selection_labels": SELECTION_LABELS,
         "markets": [

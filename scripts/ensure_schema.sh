@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Waits for PostgreSQL and brings the schema to the current migration.
-# A database restored from the seed has all tables but no alembic version -> "stamp head" instead of "upgrade".
+# A database restored from the seed has the tables of the seed's revision but no alembic version
+# -> stamp that revision (seed/quotenfabrik_seed.revision), then upgrade to head.
 set -euo pipefail
 cd "$(dirname "$0")/../backend"
 PY=.venv/bin/python
@@ -20,8 +21,8 @@ print("seeded" if has_core and not has_version else "migrate")
 PY
 )
 if [[ "$state" == "seeded" ]]; then
-  echo "Seed erkannt -> alembic stamp head"
-  .venv/bin/alembic stamp head
-else
-  .venv/bin/alembic upgrade head
+  rev=$($PY -c "from quotenfabrik.seed import seed_revision; print(seed_revision())")
+  echo "Seed erkannt -> alembic stamp $rev"
+  .venv/bin/alembic stamp "$rev"
 fi
+.venv/bin/alembic upgrade head

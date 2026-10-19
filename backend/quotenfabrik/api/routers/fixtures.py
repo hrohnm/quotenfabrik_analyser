@@ -7,8 +7,9 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
+from quotenfabrik.analytics.picks import DEFAULT_PROFILE
 from quotenfabrik.api.data import chosen_runs_cte, df, model_data
-from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS, league_logo
+from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS, league_logo, pick_label
 from quotenfabrik.config import get_settings
 
 router = APIRouter(prefix="/api", tags=["fixtures"])
@@ -93,6 +94,34 @@ def _summaries(fixture_ids: list[int]) -> dict[int, dict]:
     return out
 
 
+def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[str, list[dict]]]:
+    """Picks of the chosen prediction run per fixture: {fixture_id: {profile: [pick, ...]}}."""
+    if not fixtures:
+        return {}
+    names = {f["id"]: (f["home"]["name"], f["away"]["name"]) for f in fixtures}
+    rows = df(
+        f"""with runs as ({chosen_runs_cte("and p.fixture_id = any(:ids)")})
+            select k.fixture_id, k.profile, k.rank, k.market_group, k.market, k.selection, k.line, k.probability,
+                   k.base_rate, k.reasons, p.fair_odd, p.outcome
+            from analytics.picks k
+            join runs on runs.model_run_id = k.model_run_id and runs.fixture_id = k.fixture_id
+            join analytics.predictions p on p.id = k.prediction_id
+            where k.fixture_id = any(:ids) and (cast(:profile as text) is null or k.profile = :profile)
+            order by k.fixture_id, k.profile, k.rank""",
+        ids=list(names), profile=profile,
+    )  # fmt: skip
+    out: dict[int, dict[str, list[dict]]] = {}
+    for r in rows.itertuples():
+        line = None if pd.isna(r.line) else float(r.line)
+        out.setdefault(int(r.fixture_id), {}).setdefault(r.profile, []).append(
+            {"rank": int(r.rank), "group": r.market_group, "market": r.market, "selection": r.selection, "line": line,
+             "label": pick_label(r.market, r.selection, line, *names[int(r.fixture_id)]),
+             "probability": float(r.probability), "fair_odd": _clean(r.fair_odd), "base_rate": _clean(r.base_rate),
+             "outcome": None if pd.isna(r.outcome) else bool(r.outcome), "reasons": r.reasons or []}
+        )  # fmt: skip
+    return out
+
+
 @router.get("/days")
 def days(
     date_from: date | None = Query(None, alias="from"),
@@ -126,6 +155,7 @@ def fixtures(
     season: int | None = None,
     team: int | None = None,
     limit: int = Query(200, le=1000),
+    profile: str = DEFAULT_PROFILE,
 ) -> list[dict]:
     where, params = (
         ["f.league_id = any(:leagues)"],
@@ -152,8 +182,10 @@ def fixtures(
     )
     items = [_fixture_dict(r) for r in rows.itertuples()]
     summaries = _summaries([i["id"] for i in items])
+    picks = _picks(items, profile)
     for item in items:
         item["prediction"] = summaries.get(item["id"])
+        item["picks"] = picks.get(item["id"], {}).get(profile, [])
     return items
 
 
@@ -229,6 +261,7 @@ def fixture_detail(fixture_id: int) -> dict:
         "markets": market_list,
         "scorers": sorted(scorers.values(), key=lambda s: -s.get("anytime", 0)),
         "patterns": _patterns(r),
+        "picks": _picks([fixture]).get(fixture_id, {}),
         "stats": _stats(fixture_id, fixture),
         "goals": _goals(fixture_id),
     }

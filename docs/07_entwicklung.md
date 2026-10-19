@@ -59,6 +59,7 @@ Details zum Seed: `seed/README.md`.
 | `qf model backtest --seasons 2016-2026` | rückwirkende Walk-Forward-Prognosen aller beendeten Spiele inkl. Ergebnis → Explorer/Auswertung | 0 |
 | `qf value backtest [--validation-until 2021] [--method shin]` | Prognosen gegen historische football-data-Quoten (1X2, Ü/U 2,5): Prognosegüte vs. Markt, Value-Wetten, ROI, CLV → `docs/10_quoten_backtest.md` | 0 |
 | `qf value betano` | Betano-Nebenmärkte (OddsPapi-Verläufe) gegen faire Preise des marktbasierten Modells `mkt-v1` (Fit auf Pinnacle) zu 48/24/6/1 h vor Anpfiff: Edge, CLV, Marge je Markt → `docs/11_betano_nebenmaerkte.md` | 0 |
+| `qf picks build [--if-empty]` / `qf picks report` | 3 Tipps pro Spiel und Profil für alle Prognosen speichern (`analytics.picks`, läuft auch nach `qf model forecast` / `backtest`) / Trefferquote → `docs/12_tipps.md` | 0 |
 | `qf model settle` | Ergebnis (eingetreten ja/nein) für Prognosen beendeter Spiele eintragen | 0 |
 | `qf seed export` / `qf seed import [--force]` | Datenbank-Seed schreiben / einspielen (`seed/quotenfabrik_seed.dump`) | 0 |
 | `qf model show <fixture_id>` | letzte Prognose eines Spiels: Hauptmärkte, faire Quoten, Torschützen, Pattern-Signale | 0 |
@@ -93,6 +94,7 @@ Laufender Betrieb (Cron, bis ein Scheduler eingebaut ist):
 | `GET /api/fixtures/{id}` | Detail: alle Märkte, Torschützen, Pattern (vor Anpfiff berechnet), Statistik, Tore |
 | `GET /api/explorer?market&selection&line&…` | Prognosen eines Marktes über viele Spiele + Zusammenfassung |
 | `GET /api/stats/overview|markets|confidence|calibration|seasons|scorers` | Trefferquoten und Kalibrierung |
+| `GET /api/stats/picks?profile&season` | Trefferquote der 3 Tipps pro Spiel (einzeln, Kombi, je Saison/Rang/Markt) |
 
 Prognosequelle je Spiel: letzte `forecast`-Prognose **vor Anpfiff**, sonst `backtest`.
 

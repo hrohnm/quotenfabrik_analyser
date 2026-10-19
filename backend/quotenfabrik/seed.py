@@ -15,6 +15,9 @@ from quotenfabrik.config import get_settings
 from quotenfabrik.db import get_engine
 
 SEED_FILE = Path(__file__).resolve().parents[2] / "seed" / "quotenfabrik_seed.dump"
+# Alembic revision of the schema inside the dump: after a restore the DB is stamped with it and then upgraded
+SEED_REVISION_FILE = SEED_FILE.with_suffix(".revision")
+DEFAULT_SEED_REVISION = "0004"
 SCHEMAS = ("raw", "core", "analytics")
 EXCLUDE_DATA = ("raw.oddspapi_responses",)
 
@@ -52,6 +55,9 @@ def export_seed(path: Path = SEED_FILE) -> Path:
     for table in EXCLUDE_DATA:
         cmd += [f"--exclude-table-data={table}"]
     subprocess.run(cmd, check=True)
+    with get_engine().connect() as conn:
+        revision = conn.execute(text("select version_num from public.alembic_version")).scalar_one()
+    path.with_suffix(".revision").write_text(f"{revision}\n", encoding="utf-8")
     return path
 
 
@@ -71,7 +77,7 @@ def drop_schemas() -> None:
 
 
 def import_seed(path: Path = SEED_FILE) -> None:
-    """Restores the seed into an empty database and marks the schema as migrated (alembic stamp)."""
+    """Restores the seed into an empty database, stamps the dump's revision and upgrades to head."""
     subprocess.run(
         [
             _binary("pg_restore"),
@@ -84,12 +90,19 @@ def import_seed(path: Path = SEED_FILE) -> None:
         ],
         check=True,
     )
-    stamp_head()
+    migrate_seeded(seed_revision(path))
 
 
-def stamp_head() -> None:
+def seed_revision(path: Path = SEED_FILE) -> str:
+    rev_file = path.with_suffix(".revision")
+    return rev_file.read_text(encoding="utf-8").strip() if rev_file.exists() else DEFAULT_SEED_REVISION
+
+
+def migrate_seeded(revision: str) -> None:
+    """Marks a restored dump with its schema revision and applies all newer migrations."""
     from alembic import command
     from alembic.config import Config
 
     cfg = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
-    command.stamp(cfg, "head")
+    command.stamp(cfg, revision)
+    command.upgrade(cfg, "head")

@@ -187,6 +187,12 @@ analytics.value_bets (
   detected_at timestamptz, closing_odd numeric(8,3), clv double precision, result text
 );
 
+analytics.picks (                   -- 3 Tipps pro Spiel und Profil (qf picks build), Migration 0005
+  id bigserial pk, model_run_id → model_runs, prediction_id → predictions (Ergebnis kommt von dort),
+  fixture_id, profile text ('sicher' | 'ausgewogen' | 'mutig'), rank int, market_group, market, selection, line,
+  probability, base_rate (Ligaschnitt 3 Saisons), score, reasons jsonb (stützende Pattern)
+);
+
 analytics.backtests (
   id bigserial pk, name text, market text, config jsonb, period_from date, period_to date,
   n_bets int, roi double precision, yield double precision, log_loss double precision,

@@ -7,6 +7,7 @@ import { Logo } from "./Logo";
 
 const LINKS = [
   { href: "/spieltage", label: "Spieltage" },
+  { href: "/tipps", label: "Tipps" },
   { href: "/explorer", label: "Daten-Explorer" },
   { href: "/auswertung", label: "Auswertung" },
 ];

@@ -10,6 +10,41 @@ export type FixtureSummary = {
 
 export type League = { id: number; name: string; logo?: string | null };
 
+export type PickReason = { label: string; value: number | null; baseline: number | null; n: number | null; signal: "high" | "low" };
+
+export type Pick = {
+  rank: number;
+  group: string;
+  market: string;
+  selection: string;
+  line: number | null;
+  label: string;
+  probability: number;
+  fair_odd: number | null;
+  base_rate: number | null;
+  outcome: boolean | null;
+  reasons: PickReason[];
+};
+
+export type PickProfile = { key: string; label: string; min_p: number; max_p: number; default: boolean };
+
+export type PickRate = { n: number; hit_rate: number | null; expected: number | null };
+export type ComboRate = { n: number; hit_rate?: number; expected_naive?: number; fair_odd_median?: number };
+export type PickStats = {
+  profiles: { profile: string; label: string; singles: PickRate; combo: ComboRate }[];
+  profile: string;
+  detail: {
+    singles: PickRate;
+    combo: ComboRate;
+    hits_distribution: Record<string, number | null>;
+    per_rank: (PickRate & { rank: number })[];
+    per_market: (PickRate & { market: string; selection: string; line: number | null; label: string })[];
+    per_season: (PickRate & { season: number; combo: ComboRate })[];
+    calibration: (PickRate & { bin: string })[];
+    reasons: { with: PickRate; without: PickRate };
+  };
+};
+
 export type Fixture = {
   id: number;
   league_id: number;
@@ -26,6 +61,7 @@ export type Fixture = {
   away: Team;
   score: { ft: [number | null, number | null]; ht: [number | null, number | null] };
   prediction?: FixtureSummary | null;
+  picks?: Pick[];
 };
 
 export type Day = { date: string; fixtures: number; finished: number };
@@ -80,6 +116,7 @@ export type FixtureDetail = {
   markets: Market[];
   scorers: Scorer[];
   patterns: Pattern[];
+  picks: Record<string, Pick[]>;
   stats: { home: Record<string, TeamStats>; away: Record<string, TeamStats> };
   goals: { minute: number; extra_minute: number | null; team_id: number; player_id: number | null; player_name: string; detail: string; comments: string | null }[];
 };
@@ -89,6 +126,7 @@ export type Meta = {
   seasons: number[];
   teams: Team[] & { logo_url?: string }[];
   groups: Record<string, string>;
+  pick_profiles: PickProfile[];
   market_labels: Record<string, string>;
   selection_labels: Record<string, string>;
   markets: { group: string; market: string; line: number | null; selections: string[] }[];

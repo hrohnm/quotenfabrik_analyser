@@ -21,6 +21,10 @@ fi
 
 bash scripts/ensure_schema.sh || echo "$(date -Is) Hinweis: ensure_schema fehlgeschlagen (DB erreichbar?)"
 
+# Tipps (analytics.picks) einmalig berechnen, falls die Tabelle neu und leer ist (≈ 2 Minuten, im Hintergrund)
+setsid -f nohup bash -c 'cd "$1/backend" && .venv/bin/qf picks build --if-empty' _ "$REPO" \
+  >>/tmp/qf-picks.log 2>&1 </dev/null 9>&-
+
 if curl -sf http://127.0.0.1:8000/health >/dev/null; then
   echo "$(date -Is) API läuft bereits."
 else

@@ -6,6 +6,7 @@ Analyse-Oberfläche für den eigenen Gebrauch. Spricht nur mit der Backend-API (
 |---|---|
 | `/spieltage` | Spiele pro Tag (Tagesleiste), Modellwahrscheinlichkeiten 1X2 / Über 2,5 / Beide treffen, Ergebnis und ob der Tipp eingetreten ist |
 | `/spiel/[id]` | Detail: Kopfbereich (Logos, Ergebnis, Torschützen), „Auf einen Blick“ (1X2, Kernmärkte, Top-Torschützen, auffällige Pattern) und Tabs: Märkte (je Marktgruppe, Ü/U als kompakte Linientabellen), Torschützen (mit Spielerfotos), Pattern (mit Ligaschnitt, Tor-Timing), Statistik |
+| `/tipps` | 3 Tipps pro Spiel (Profile Sicher / Ausgewogen / Mutig) für die nächsten Spiele, letzte Ergebnisse und Trefferquote einzeln und als Kombi |
 | `/explorer` | Daten-Explorer: ein Markt über alle Spiele (Saison, Team, Heim/Auswärts, Wahrscheinlichkeitsbereich, Ergebnis), inkl. vergangener Spiele (Backtest) |
 | `/auswertung` | Trefferquoten pro Liga, Saison, Marktgruppe und Markt; Trefferquote nach Konfidenz, je Saison, Kalibrierung, Torschützen |
 

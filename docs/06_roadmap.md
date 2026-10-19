@@ -51,6 +51,7 @@
 - [x] Daten-Explorer inkl. rückwirkender Prognosen vergangener Spiele (`qf model backtest`)
 - [x] Auswertung: Trefferquoten pro Liga/Saison/Markt, Konfidenz, Kalibrierung, Torschützen
 - [x] Seed der Datenbank im Repository (`seed/`, `qf seed import`)
+- [x] 3 Tipps pro Spiel (Profile Sicher/Ausgewogen/Mutig) mit Trefferquote einzeln und als Kombi (`12_tipps.md`, Seite `/tipps`)
 - [ ] Wett-Tracking mit ROI/CLV-Auswertung
 - [ ] Betano-/Pinnacle-Quoten im Spiel-Detail (nach Markt-Mapping OddsPapi ↔ eigene Märkte, Phase 3)
 - [ ] Datenqualitäts-Ansicht

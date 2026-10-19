@@ -20,6 +20,7 @@ from quotenfabrik.sources.oddspapi import OddsPapiClient, OddsPapiQuotaExhausted
 DEFAULT_REPORT = Path(__file__).resolve().parents[2] / "docs" / "09_modell_evaluation.md"
 ODDS_REPORT = Path(__file__).resolve().parents[2] / "docs" / "10_quoten_backtest.md"
 BETANO_REPORT = Path(__file__).resolve().parents[2] / "docs" / "11_betano_nebenmaerkte.md"
+PICKS_REPORT = Path(__file__).resolve().parents[2] / "docs" / "12_tipps.md"
 
 app = typer.Typer(help="Quotenfabrik Analyser", no_args_is_help=True)
 ingest_app = typer.Typer(help="Daten importieren", no_args_is_help=True)
@@ -28,11 +29,13 @@ oddspapi_app = typer.Typer(help="Betano-Quoten über OddsPapi", no_args_is_help=
 model_app = typer.Typer(help="Modelle, Prognosen und Evaluation (Phase 2)", no_args_is_help=True)
 seed_app = typer.Typer(help="Datenbank-Seed exportieren/importieren", no_args_is_help=True)
 value_app = typer.Typer(help="Value-Suche mit Quoten (Phase 3)", no_args_is_help=True)
+picks_app = typer.Typer(help="3 Tipps pro Spiel und ihre Trefferquote", no_args_is_help=True)
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(odds_app, name="odds")
 app.add_typer(oddspapi_app, name="oddspapi")
 app.add_typer(model_app, name="model")
 app.add_typer(value_app, name="value")
+app.add_typer(picks_app, name="picks")
 app.add_typer(seed_app, name="seed")
 
 
@@ -314,10 +317,14 @@ def model_forecast(
     league: int | None = typer.Option(None),
 ) -> None:
     """Prognosen und Pattern für kommende Spiele berechnen und speichern."""
+    from quotenfabrik.analytics.picks import build_picks
     from quotenfabrik.analytics.service import run_forecast
 
     for league_id in _leagues(league):
-        typer.echo(f"Liga {league_id}: {run_forecast(get_engine(), league_id, days)}")
+        result = run_forecast(get_engine(), league_id, days)
+        if "model_run_id" in result:
+            result["picks"] = build_picks(get_engine(), league_id, result["model_run_id"])["picks"]
+        typer.echo(f"Liga {league_id}: {result}")
 
 
 @model_app.command("backtest")
@@ -326,10 +333,13 @@ def model_backtest(
     league: int | None = typer.Option(None),
 ) -> None:
     """Rückwirkende Prognosen aller beendeten Spiele speichern (für Daten-Explorer und Auswertung)."""
+    from quotenfabrik.analytics.picks import build_picks
     from quotenfabrik.analytics.service import run_backtest
 
     for league_id in _leagues(league):
-        typer.echo(f"Liga {league_id}: {run_backtest(get_engine(), league_id, _seasons(seasons))}")
+        result = run_backtest(get_engine(), league_id, _seasons(seasons))
+        result["picks"] = build_picks(get_engine(), league_id, result["model_run_id"])["picks"]
+        typer.echo(f"Liga {league_id}: {result}")
 
 
 @model_app.command("settle")
@@ -383,6 +393,38 @@ def value_betano(
         typer.echo(f"Bericht: {report}")
 
 
+# --------------------------------------------------------------------------- picks
+
+
+@picks_app.command("build")
+def picks_build(
+    league: int | None = typer.Option(None),
+    if_empty: bool = typer.Option(False, "--if-empty", help="nur, wenn noch keine Tipps gespeichert sind"),
+) -> None:
+    """3 Tipps pro Spiel und Profil für alle Prognosen (Backtest und Forecast) berechnen und speichern."""
+    from quotenfabrik.analytics.picks import build_picks, picks_missing
+
+    if if_empty and not picks_missing(get_engine()):
+        typer.echo("Tipps vorhanden – nichts zu tun.")
+        return
+    for league_id in _leagues(league):
+        typer.echo(f"Liga {league_id}: {build_picks(get_engine(), league_id)}")
+
+
+@picks_app.command("report")
+def picks_report(
+    league: int | None = typer.Option(None),
+    validation_until: int = typer.Option(2021, help="letzte Saison, auf der die Profile gewählt wurden"),
+    report: Path = typer.Option(PICKS_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Trefferquote der Tipps (einzeln und als Dreier-Kombi) → docs/12_tipps.md."""
+    from quotenfabrik.analytics.picks_report import write_report
+
+    for league_id in _leagues(league):
+        write_report(get_engine(), league_id, validation_until, report)
+    typer.echo(f"Bericht: {report}")
+
+
 # --------------------------------------------------------------------------- seed
 
 
@@ -410,7 +452,7 @@ def seed_import(
             raise typer.Exit(1)
         drop_schemas()
     import_seed(SEED_FILE)
-    typer.echo("Seed eingespielt und Schema auf aktuellen Stand gesetzt (alembic stamp head).")
+    typer.echo("Seed eingespielt und Schema auf aktuellen Stand gebracht (Seed-Revision + alembic upgrade).")
 
 
 @app.command("rebuild")
