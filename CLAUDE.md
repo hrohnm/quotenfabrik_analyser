@@ -63,9 +63,11 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
   Deshalb laufen Quoten-Snapshots als Job; verpasste Quoten sind unwiederbringlich verloren.
 - **Kein Data Leakage:** Features und Modelle für ein Spiel dürfen nur Daten verwenden, die *vor* Anpfiff
   bekannt waren (Walk-Forward). Tests müssen das abdecken.
-- **Zielbuchmacher ist Betano** (API-ID 32). Referenz: Pinnacle (ID 4), Ersatz für fehlende Märkte: Bet365 (ID 8).
-  Andere Buchmacher werden nicht gespeichert. API-Football liefert aktuell keine Betano-Quoten für die Bundesliga
-  (siehe `docs/01_datenquellen.md`).
+- **Zielbuchmacher ist Betano.** Quelle für Betano-Quoten ist **OddsPapi** (`betano.de`, Key in `ODDSPAPI_API_KEY`),
+  Referenz Pinnacle (`pinnacle`). API-Football liefert keine Betano-Quoten für die Bundesliga (Pinnacle/Bet365 dort
+  nur als Ergänzung). Details: `docs/08_betano_quellen.md`.
+- **OddsPapi Free-Plan: nur 250 Requests pro Monat.** `/v4/historical-odds` ist kostenlos (5 s Cooldown) und wird für
+  Snapshots und Historie genutzt; abrechenbare Endpunkte (`/fixtures`, `/odds-by-tournaments`, …) nur sparsam.
 - **Keine asiatischen Märkte** (Asian Handicap, Asian Goal Lines mit x.0/x.25/x.75): Betano bietet sie in Deutschland
   nicht an. Nur x.5-Linien und europäisches Handicap.
 - Historische Quoten für Backtests kommen aus **football-data.co.uk** (1X2, Ü/U 2.5,

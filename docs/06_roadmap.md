@@ -14,7 +14,8 @@
 - [x] Quoten-Snapshot-Job gebaut (`qf odds snapshot`, nur Archivaufbau, ≈30 Requests/Tag – wird erst in Phase 3 ausgewertet)
 - [ ] **Dauerhafte Umgebung**: PostgreSQL + Snapshot-Job + tägliche Aktualisierung auf einem dauerhaft laufenden Rechner/Server
       (die Cloud-Entwicklungsumgebung ist flüchtig – die dort importierten Daten gehen beim Beenden verloren)
-- [ ] Betano-Quelle testen (OddsPapi Free Tier, siehe `08_betano_quellen.md`)
+- [x] Betano-Quelle getestet: OddsPapi liefert Betano DE inkl. kostenloser Quotenverläufe seit 01/2026 (`08_betano_quellen.md`)
+- [ ] OddsPapi-Ingest: Fixture-Mapping, Quotenverläufe Betano + Pinnacle (Backfill seit 01/2026, danach laufend)
 
 ## Phase 2 – Pattern & Modelle trainieren (Fokus, ohne Quoten)
 - [ ] Feature-Basis: Rolling-Form, Heim/Auswärts-Splits, Halbzeit-Anteile, Tor-Timing, Spieler-Anteile
@@ -52,11 +53,11 @@
 - Datenbank: PostgreSQL 16
 - Frontends: Next.js (React, TypeScript) für privat und öffentlich
 - Reihenfolge: erst Pattern/Modelle trainieren und kalibrieren, danach Value-Suche mit Quoten
+- Betano-Quoten über OddsPapi (`betano.de`), Free-Plan; kostenloser Historien-Endpunkt für Snapshots
 
 ## Offene Entscheidungen
 | Thema | Optionen | Vorschlag |
 |---|---|---|
-| Quelle für Betano-Quoten | API-Football liefert für die Bundesliga keine Betano-Quoten. Optionen: (a) Betano-Quote beim Wetten manuell im privaten Frontend erfassen, (b) andere Quoten-API mit Betano-Abdeckung recherchieren, (c) API-Football-Support nach Betano-Abdeckung fragen | (a) sofort, (b)/(c) parallel klären |
 | Hosting | VPS + Docker Compose / Managed Services | VPS für PoV |
 | Scheduler | APScheduler im Prozess / Cron + CLI / Queue | APScheduler, später Queue |
 | Abo-Verlängerung API-Football | Abo endet 15.11.2026, keine Auto-Verlängerung | rechtzeitig verlängern, sonst stoppt der Snapshot-Job (Free = 100 Req/Tag) |

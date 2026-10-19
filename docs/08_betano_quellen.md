@@ -8,6 +8,52 @@ restriktiv geregelt.
 > stammen aus Suchergebnissen und sind überwiegend **Eigenwerbung der Anbieter** – vor einer Entscheidung mit einem
 > Testzugang verifizieren (Bundesliga-Spiel abfragen, Märkte prüfen).
 
+## Ergebnis des Live-Tests mit OddsPapi (19.10.2026) ✅
+
+OddsPapi liefert **Betano DE** für die Bundesliga, inklusive kompletter Quotenverläufe. Getestet mit dem Free-Plan.
+
+| Punkt | Ergebnis |
+|---|---|
+| API | `https://api.oddspapi.io/v4/…`, Auth per Query-Parameter `apiKey` |
+| Bundesliga | `tournamentId = 35` (Fußball `sportId = 10`), Fixture-IDs wie `id1000003572513246` |
+| Betano | Slug `betano.de` (laut OddsPapi Klon des internationalen `betano`-Feeds, identische Preise), Player Props enthalten |
+| Free-Plan | **250 Requests pro Monat** für abrechenbare Endpunkte (`/fixtures`, `/odds`, `/odds-by-tournaments`, `/markets`, …) |
+| `/v4/historical-odds` | **kostenlos** (zählt nicht zur Quota), Cooldown 5 s pro Abruf, max. 3 Buchmacher pro Abruf, **Daten seit Januar 2026** |
+| `/v4/account` | kostenlos, zeigt Verbrauch (`request_count` / `request_limit`) |
+| Historie beendetes Spiel | Gladbach – Hoffenheim (18.10.): Betano **275 Märkte, ≈ 100.000 Preispunkte** vom 20.09. bis Anpfiff; Pinnacle 165 Märkte |
+| Historie kommendes Spiel | Stuttgart – Gladbach (23.10.): Betano 174 Märkte, Verlauf seit 11.10. → **Snapshots ohne Quota-Verbrauch möglich** |
+
+### Betano-Märkte (Beispielspiel) für unsere Marktgruppen
+
+| Marktgruppe | Betano-Märkte (OddsPapi `marketType` / `period`) |
+|---|---|
+| 1X2 | `1x2`, `doublechance`, `drawnobet`, `spreads-european` (europ. Handicap, 8 Linien) |
+| Ü/U gesamt | `totals` fulltime (0.5 … 8.5), `bothteamsscore`, `exactscore` |
+| Ü/U pro Team | `teamtotals-team1/2` fulltime (0.5 … 5.5), `exactscore-team1/2` |
+| Ü/U Halbzeit | `totals` p1/p2, `teamtotals-team1/2` p1/p2, `1x2` p1/p2, `bothteamsscore` p1/p2, `highestscoringh` |
+| Torschützen | `players-anytimegoalscorer`, `players-firstgoalscorer`, `players-lastgoalscorer`, `players-goals` |
+
+Hinweise:
+- Der Feed enthält auch asiatische Linien (x.25/x.75, `spreads` = Asian Handicap), vermutlich weil `betano.de` den
+  internationalen Feed klont. Wir verwenden weiter **nur x.5-Linien und europäisches Handicap**. Stichprobenartig mit
+  der Betano-App abgleichen, ob die Preise identisch mit dem deutschen Angebot sind.
+- Im Verlauf sind Spieler nur als ID enthalten. Namen liefert `/v4/odds` bzw. `/v4/odds-by-tournaments` (abrechenbar,
+  1 Request für alle Spiele eines Wettbewerbs) → Mapping auf API-Football-Spieler über Name + Team.
+- Schlussquote = letzter Preis vor Anpfiff aus dem Verlauf → **CLV-Messung für alle Märkte möglich**.
+
+### Quota-Plan (Free-Plan, 250/Monat)
+| Aufgabe | Endpunkt | Requests |
+|---|---|---|
+| Spielplan + OddsPapi-Fixture-IDs | `/fixtures?tournamentId=35` | ≈ 1 pro Woche |
+| Spielernamen für Torschützen-Märkte | `/odds-by-tournaments` | ≈ 1–2 pro Spieltag |
+| Quotenverläufe (Snapshots + Historie) | `/historical-odds` | 0 (kostenlos, 5 s Abstand) |
+| **Summe** | | **≈ 15–20 pro Monat** |
+
+Damit ist ein **Backfill aller Bundesliga-Spiele seit Januar 2026** (Rückrunde 2025/26 + laufende Saison, ≈ 200+ Spiele)
+mit Betano- und Pinnacle-Verläufen kostenlos möglich (≈ 20 Minuten Laufzeit).
+
+## Ursprüngliche Recherche (vor dem Test)
+
 ## Kandidaten
 
 | Anbieter | Betano DE? | Märkte laut Anbieter | Kosten (laut Anbieter) | Bewertung |
@@ -18,7 +64,7 @@ restriktiv geregelt.
 | **Apify-Actors** (Betano-Scraper, 14 Länder inkl. DE) | ja (Scraping) | alle Märkte inkl. Props | nutzungsbasiert | **nicht empfohlen**: Scraping, vermutlich Verstoß gegen Betano-AGB, bricht bei Seitenänderungen |
 | SharpAPI, parse.bot | Betano gelistet | unklar | unklar | Werbeseiten ohne belastbare Details |
 
-## Empfehlung
+## Empfehlung (vor dem Test, inzwischen überholt: OddsPapi wird genutzt)
 
 1. **Kurzfristig (jetzt):** Betano-Quote beim Wetten manuell im privaten Frontend erfassen. Für die Modellphase reicht das,
    da Quoten erst in Phase 3 (Value-Suche) gebraucht werden.
