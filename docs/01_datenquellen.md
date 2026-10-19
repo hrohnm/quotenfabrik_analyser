@@ -82,6 +82,21 @@ Bet-IDs für unsere Marktgruppen (`/odds/bets` liefert 338 Märkte):
 | Ü/U Halbzeit | 6 Goals O/U First Half, 26 Goals O/U Second Half, 105–108 Team Total Goals 1st/2nd Half, 11 Highest Scoring Half, 13 First Half Winner, 34/35 BTTS 1st/2nd Half |
 | Torschützen | 92 Anytime Goal Scorer, 93 First Goal Scorer, 94 Last Goal Scorer, 95 To Score Two or More, 231/218 Home/Away Anytime |
 
+### Betano (Zielbuchmacher)
+
+Betano ist der Buchmacher, auf dem tatsächlich gewettet wird. Prüfung am 19.10.2026:
+
+- Betano ist in der API als Buchmacher **ID 32** gelistet.
+- Für **alle 18 Bundesliga-Spiele** im Quotenfenster lieferte die API **keine Betano-Quoten**
+  (nur William Hill, Bet365, Marathonbet, BetVictor, Pinnacle, 1xBet).
+- Ligaübergreifend gab es an fünf geprüften Tagen nur **ein einziges Spiel** mit Betano-Quoten
+  (Schottland, letztes Update 8 Tage alt). Die Abdeckung ist praktisch nicht vorhanden.
+- football-data.co.uk enthält Betano ebenfalls nicht.
+
+Konsequenz: Betano-Quoten müssen aus einer anderen Quelle kommen (siehe `06_roadmap.md`, offene Entscheidungen).
+Der Snapshot-Job speichert nur noch **Betano (32)** und den Referenz-Buchmacher **Pinnacle (4)**, sowie Bet365 (8)
+als Ersatz für Märkte, die Pinnacle nicht anbietet (Torschützen, viele Halbzeit-Märkte).
+
 Wichtig:
 - Pinnacle (sharpster Buchmacher, Referenz für „faire“ Quoten) bietet nur 12 Märkte – für Team-Totals, Halbzeiten
   und Torschützen ist **Bet365** die Hauptquelle.

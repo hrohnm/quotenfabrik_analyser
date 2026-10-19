@@ -53,6 +53,7 @@
 ## Offene Entscheidungen
 | Thema | Optionen | Vorschlag |
 |---|---|---|
+| Quelle für Betano-Quoten | API-Football liefert für die Bundesliga keine Betano-Quoten. Optionen: (a) Betano-Quote beim Wetten manuell im privaten Frontend erfassen, (b) andere Quoten-API mit Betano-Abdeckung recherchieren, (c) API-Football-Support nach Betano-Abdeckung fragen | (a) sofort, (b)/(c) parallel klären |
 | Hosting | VPS + Docker Compose / Managed Services | VPS für PoV |
 | Scheduler | APScheduler im Prozess / Cron + CLI / Queue | APScheduler, später Queue |
 | Abo-Verlängerung API-Football | Abo endet 15.11.2026, keine Auto-Verlängerung | rechtzeitig verlängern, sonst stoppt der Snapshot-Job (Free = 100 Req/Tag) |

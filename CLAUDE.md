@@ -62,6 +62,9 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
   Deshalb laufen Quoten-Snapshots als Job; verpasste Quoten sind unwiederbringlich verloren.
 - **Kein Data Leakage:** Features und Modelle für ein Spiel dürfen nur Daten verwenden, die *vor* Anpfiff
   bekannt waren (Walk-Forward). Tests müssen das abdecken.
+- **Zielbuchmacher ist Betano** (API-ID 32). Referenz: Pinnacle (ID 4), Ersatz für fehlende Märkte: Bet365 (ID 8).
+  Andere Buchmacher werden nicht gespeichert. API-Football liefert aktuell keine Betano-Quoten für die Bundesliga
+  (siehe `docs/01_datenquellen.md`).
 - Historische Quoten für Backtests kommen aus **football-data.co.uk** (1X2, Ü/U 2.5, Asian Handicap,
   jeweils Eröffnungs- und Schlussquote). Für alle anderen Märkte gibt es nur unser eigenes Snapshot-Archiv.
 - Wahrscheinlichkeiten intern immer als Dezimalwert 0–1, Quoten als Dezimalquote. Zeiten in UTC (`timestamptz`).
