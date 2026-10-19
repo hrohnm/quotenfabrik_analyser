@@ -7,6 +7,12 @@ Fit: weighted Poisson likelihood with weights exp(-xi * days_ago) and an L2 pena
 parameters towards a prior centre (0 for established teams, a promoted-team prior for teams without
 recent matches). The Dixon-Coles rho (low-score correction) is fitted afterwards for fixed lambdas.
 Targets may be non-integer (e.g. a blend of goals and xG); the Poisson likelihood is then a quasi-likelihood.
+
+Several leagues (joint model): with a ``league_id`` column covering more than one league, every league gets
+an attack and a defence level and a team's prior centre is the time-weighted mix of the levels of the leagues
+it played in (teams without matches: their current league from ``team_league``). Team parameters then live on
+one scale across leagues; the levels are identified by teams that played in more than one league
+(promotion/relegation, later European cups). With a single league the model is unchanged.
 """
 
 from dataclasses import dataclass, field
@@ -30,6 +36,7 @@ class PoissonParams:
     half_reg: float = 25.0  # stronger penalty for the noisier half-time models
     fit_rho: bool = True
     xg_weight: float = 0.0  # 0 = goals only, 1 = xG only (where available)
+    league_reg: float = 1.0  # weak L2 penalty on league levels (joint model only; anchors their mean at 0)
 
 
 @dataclass
@@ -41,12 +48,19 @@ class FittedPoisson:
     defence: dict[int, float]
     rho: float = 0.0
     new_teams: set[int] = field(default_factory=set)
+    league_attack: dict[int, float] = field(default_factory=dict)  # joint model: level per league
+    league_defence: dict[int, float] = field(default_factory=dict)
+    team_league: dict[int, int] = field(default_factory=dict)
 
     def team_attack(self, team: int) -> float:
-        return self.attack.get(team, self.params.promoted_attack)
+        if team in self.attack:
+            return self.attack[team]
+        return self.league_attack.get(self.team_league.get(team), 0.0) + self.params.promoted_attack
 
     def team_defence(self, team: int) -> float:
-        return self.defence.get(team, self.params.promoted_defence)
+        if team in self.defence:
+            return self.defence[team]
+        return self.league_defence.get(self.team_league.get(team), 0.0) + self.params.promoted_defence
 
     def lambdas(self, home: int, away: int) -> tuple[float, float]:
         lh = np.exp(self.mu + self.home_adv + self.team_attack(home) - self.team_defence(away))
@@ -63,8 +77,12 @@ def fit_poisson(
     current_teams: set[int] | None = None,
     home_xg_col: str | None = None,
     away_xg_col: str | None = None,
+    team_league: dict[int, int] | None = None,
 ) -> FittedPoisson:
-    """Fits on finished matches before ``as_of``; ``current_teams`` get parameters even without data."""
+    """Fits on finished matches before ``as_of``; ``current_teams`` get parameters even without data.
+
+    ``team_league``: current league per team (joint model; used for teams without matches in the window).
+    """
     train = matches[
         matches["finished"]
         & (matches["kickoff"] < as_of)
@@ -93,33 +111,39 @@ def fit_poisson(
     new_teams = {
         t for t in teams if t not in last_seen.index or (as_of - last_seen[t]).days > NEW_TEAM_GAP_DAYS
     }
-    centre_a = np.array([params.promoted_attack if t in new_teams else 0.0 for t in teams])
-    centre_d = np.array([params.promoted_defence if t in new_teams else 0.0 for t in teams])
+    offset_a = np.array([params.promoted_attack if t in new_teams else 0.0 for t in teams])
+    offset_d = np.array([params.promoted_defence if t in new_teams else 0.0 for t in teams])
+    mix, leagues = _league_mix(train, w, teams, idx, new_teams, team_league or {})
+    k = len(leagues)  # 0 = single league: centres are the fixed offsets (unchanged model)
+    m = 2 + 2 * n  # mu, home, attack, defence | league attack, league defence
 
     def unpack(x):
-        return x[0], x[1], x[2 : 2 + n], x[2 + n :]
+        return x[0], x[1], x[2 : 2 + n], x[2 + n : m], x[m : m + k], x[m + k :]
 
     def objective(x):
-        mu, home, att, dfc = unpack(x)
+        mu, home, att, dfc, la_, ld_ = unpack(x)
         eta_h = mu + home + att[hi] - dfc[ai]
         eta_a = mu + att[ai] - dfc[hi]
         lh, la = np.exp(eta_h), np.exp(eta_a)
         nll = np.sum(w * (lh - yh * eta_h)) + np.sum(w * (la - ya * eta_a))
-        ra, rd = att - centre_a, dfc - centre_d
-        nll += 0.5 * params.reg * (ra @ ra + rd @ rd)
+        ra = att - offset_a - (mix @ la_ if k else 0.0)
+        rd = dfc - offset_d - (mix @ ld_ if k else 0.0)
+        nll += 0.5 * params.reg * (ra @ ra + rd @ rd) + 0.5 * params.league_reg * (la_ @ la_ + ld_ @ ld_)
         rh, rah = w * (lh - yh), w * (la - ya)
         g_att = np.bincount(hi, rh, n) + np.bincount(ai, rah, n) + params.reg * ra
         g_def = -np.bincount(ai, rh, n) - np.bincount(hi, rah, n) + params.reg * rd
-        grad = np.concatenate([[rh.sum() + rah.sum(), rh.sum()], g_att, g_def])
+        g_la = -params.reg * (mix.T @ ra) + params.league_reg * la_ if k else np.zeros(0)
+        g_ld = -params.reg * (mix.T @ rd) + params.league_reg * ld_ if k else np.zeros(0)
+        grad = np.concatenate([[rh.sum() + rah.sum(), rh.sum()], g_att, g_def, g_la, g_ld])
         return nll, grad
 
-    x0 = np.zeros(2 + 2 * n)
+    x0 = np.zeros(m + 2 * k)
     total_w = w.sum() if len(w) else 1.0
     if len(w):
         x0[0] = np.log(max((w @ (yh + ya)) / (2 * total_w), 0.1))
-    x0[2 : 2 + n], x0[2 + n :] = centre_a, centre_d
+    x0[2 : 2 + n], x0[2 + n : m] = offset_a, offset_d
     res = minimize(objective, x0, jac=True, method="L-BFGS-B")
-    mu, home, att, dfc = unpack(res.x)
+    mu, home, att, dfc, la_, ld_ = unpack(res.x)
     fitted = FittedPoisson(
         params=params,
         mu=float(mu),
@@ -127,10 +151,47 @@ def fit_poisson(
         attack={t: float(att[i]) for t, i in idx.items()},
         defence={t: float(dfc[i]) for t, i in idx.items()},
         new_teams=new_teams,
+        league_attack={lg: float(la_[j]) for j, lg in enumerate(leagues)},
+        league_defence={lg: float(ld_[j]) for j, lg in enumerate(leagues)},
+        team_league=dict(team_league or {}),
     )
     if params.fit_rho and len(train):
         fitted.rho = _fit_rho(fitted, train, w, home_col, away_col)
     return fitted
+
+
+def _league_mix(
+    train: pd.DataFrame,
+    w: np.ndarray,
+    teams: list[int],
+    idx: dict[int, int],
+    new_teams: set[int],
+    team_league: dict[int, int],
+) -> tuple[np.ndarray, list[int]]:
+    """(n_teams x n_leagues) weights of the league levels in each team's prior centre, and the leagues.
+
+    Teams with matches: time-weighted share of their matches per league. Teams without recent matches
+    (``new_teams``): their current league. Empty when the data covers fewer than two leagues.
+    """
+    if "league_id" not in train.columns:
+        return np.zeros((len(teams), 0)), []
+    leagues = sorted(set(train["league_id"]) | {lg for t, lg in team_league.items() if t in idx})
+    if len(leagues) < 2:
+        return np.zeros((len(teams), 0)), []
+    col = {lg: j for j, lg in enumerate(leagues)}
+    mix = np.zeros((len(teams), len(leagues)))
+    lj = train["league_id"].map(col).to_numpy()
+    for side in ("home_id", "away_id"):
+        np.add.at(mix, (train[side].map(idx).to_numpy(), lj), w)
+    for t in teams:
+        row = mix[idx[t]]
+        if t in new_teams or row.sum() <= 0:
+            row[:] = 0.0
+            if t in team_league:
+                row[col[team_league[t]]] = 1.0
+        else:
+            row /= row.sum()
+    return mix, leagues
 
 
 def _dc_tau(x: np.ndarray, y: np.ndarray, lh: np.ndarray, la: np.ndarray, rho: float) -> np.ndarray:

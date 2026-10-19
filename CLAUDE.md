@@ -54,6 +54,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/10_quoten_backtest.md` | Automatisch erzeugter Quoten-Backtest 1X2 / Ü/U 2,5 gegen football-data (Phase 3) |
 | `docs/12_tipps.md` | Automatisch erzeugt: 3 Tipps pro Spiel, Trefferquote einzeln und als Kombi |
 | `docs/13_deployment_vps.md` | Installation auf einem VPS (Hostinger): Docker-Stack per Docker Manager oder manuell (systemd, nginx), Cron, Updates |
+| `docs/14_gemeinsames_modell.md` | Automatisch erzeugt: gemeinsames Modell über verbundene Ligen vs. getrennte Modelle (`qf model joint-eval`) |
 | `docs/11_betano_nebenmaerkte.md` | Automatisch erzeugt: Betano-Nebenmärkte gegen faire Preise aus Pinnacle (`mkt-v1`, Phase 3) |
 
 ## Harte Regeln
@@ -112,6 +113,7 @@ qf odds snapshot                              # Quoten-Snapshot API-Football (Cr
 qf oddspapi update                            # Betano-Verläufe über OddsPapi (Cron alle 3 h, kostenlos)
 qf model evaluate --seasons 2022-2026         # Walk-Forward-Evaluation → docs/09_modell_evaluation.md
 qf model forecast && qf model show <id>       # Prognosen für kommende Spiele
+qf model joint-eval                           # gemeinsames Modell über Ligen vs. getrennt → docs/14_gemeinsames_modell.md
 qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebnisse eintragen
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
 qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md
@@ -131,7 +133,8 @@ pytest && ruff check . && ruff format --check .
 - `quotenfabrik/sources/oddspapi.py`, `ingest/oddspapi*.py` – Betano-Quotenverläufe (OddsPapi), Spiel-/Team-Mapping
 - `quotenfabrik/markets.py` – welche Wettarten zu welcher Marktgruppe gehören, für API-Football und OddsPapi
   (asiatische Märkte ausgeschlossen)
-- `quotenfabrik/analytics/` – Modelle (Dixon-Coles, Halbzeiten, Torschützen), Märkte, Pattern, Evaluation,
+- `quotenfabrik/analytics/` – Modelle (Dixon-Coles, Halbzeiten, Torschützen; über verbundene Ligen gemeinsam,
+  `app_config.model_pool`, Nachweis `joint_eval.py`), Märkte, Pattern, Evaluation,
   Value-Rechnung (`value.py`: Margenentfernung, EV, Kelly, CLV), Quoten-Backtest (`odds_backtest.py`),
   marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
   (`betano_value.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`)

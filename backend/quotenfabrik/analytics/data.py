@@ -72,6 +72,52 @@ _GOALS_SQL = text(
 )
 
 
+_LEAGUE_TEAMS_SQL = text(
+    """
+    select distinct league_id, team_id from (
+        select league_id, home_team_id as team_id from core.fixtures where round like 'Regular Season%'
+        union select league_id, away_team_id from core.fixtures where round like 'Regular Season%'
+    ) t where league_id = any(:leagues)
+    """
+)
+
+
+def connected_leagues(engine: Engine, league_id: int, candidates: list[int]) -> list[int]:
+    """Leagues among ``candidates`` linked to ``league_id`` by teams that played in both (directly or via
+    further leagues), e.g. 1. and 2. Bundesliga through promoted and relegated teams."""
+    pool = sorted(set(candidates) | {league_id})
+    with engine.connect() as conn:
+        rows = conn.execute(_LEAGUE_TEAMS_SQL, {"leagues": pool}).all()
+    teams: dict[int, set[int]] = {}
+    for lg, team in rows:
+        teams.setdefault(lg, set()).add(team)
+    found, todo = {league_id}, [league_id]
+    while todo:
+        cur = todo.pop()
+        for lg, ts in teams.items():
+            if lg not in found and ts & teams.get(cur, set()):
+                found.add(lg)
+                todo.append(lg)
+    return sorted(found)
+
+
+def load_leagues(engine: Engine, league_ids: list[int]) -> pd.DataFrame:
+    """Regular-season matches of several leagues with a ``league_id`` column (input of the joint model)."""
+    frames = [load_matches(engine, lg).assign(league_id=lg) for lg in league_ids]
+    return pd.concat(frames, ignore_index=True).sort_values(["kickoff", "fixture_id"], ignore_index=True)
+
+
+def season_leagues(matches: pd.DataFrame) -> dict[int, dict[int, int]]:
+    """{season: {team: league}} from the fixture schedule (known before the season starts)."""
+    out: dict[int, dict[int, int]] = {}
+    if "league_id" not in matches.columns:
+        return out
+    for (season, league), g in matches.groupby(["season", "league_id"]):
+        for t in set(g["home_id"]) | set(g["away_id"]):
+            out.setdefault(int(season), {})[int(t)] = int(league)
+    return out
+
+
 def load_player_matches(engine: Engine, league_id: int) -> pd.DataFrame:
     df = pd.read_sql(_PLAYERS_SQL, engine, params={"league": league_id})
     df["kickoff"] = pd.to_datetime(df["kickoff"], utc=True)

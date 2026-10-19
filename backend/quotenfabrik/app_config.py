@@ -64,6 +64,10 @@ SETTINGS: list[SettingDef] = [
                "Startwert für Teams ohne Spiel in der Liga im letzten Jahr.", "float", -0.3, -1, 1),
     SettingDef("model.promoted_defence", "Modell (wirkt nach „Modelle neu berechnen“)", "Aufsteiger-Prior Abwehr",
                "Startwert für Teams ohne Spiel in der Liga im letzten Jahr.", "float", -0.3, -1, 1),
+    SettingDef("model.joint", "Modell (wirkt nach „Modelle neu berechnen“)", "Gemeinsames Modell über Ligen (0/1)",
+               "1 = Ligen, die durch Auf-/Absteiger verbunden sind, werden gemeinsam gerechnet (eine Stärkeskala, "
+               "Aufsteiger behalten ihre Stärke aus der unteren Liga). Nachweis: docs/14_gemeinsames_modell.md.",
+               "int", 1, 0, 1),
     SettingDef("api.quota_reserve", "API-Quota", "API-Football: Tagesreserve",
                "So viele Requests pro Tag bleiben für Quoten-Snapshots frei; Importe brechen vorher ab.", "int",
                500, 0, 7000),
@@ -169,6 +173,18 @@ def save(values: dict[str, Any], engine: Engine | None = None) -> dict[str, Any]
 
 def _json(value: Any) -> str:
     return json.dumps(value)
+
+
+def model_pool(engine, league_id: int):
+    """Matches the models of ``league_id`` are fitted on: with ``model.joint`` all configured leagues linked
+    to it by shared teams (``league_id`` column, joint model), otherwise the league alone."""
+    from quotenfabrik.analytics.data import connected_leagues, load_leagues, load_matches
+
+    if get("model.joint"):
+        linked = connected_leagues(engine, league_id, [lg.id for lg in all_leagues()])
+        if len(linked) > 1:
+            return load_leagues(engine, linked)
+    return load_matches(engine, league_id)
 
 
 def model_params():

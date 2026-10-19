@@ -60,7 +60,10 @@
 ## Phase 4 – Erweiterung
 - [x] 2. Bundesliga (Liga 79 / D2 / OddsPapi 44): Daten 2015–2026, Modelle, Tipps, Berichte je Liga, Ligafilter im Frontend
 - [ ] Weitere Ligen (Premier League, …) – jetzt über die Einstellungsseite hinzufügbar
-- [ ] Ligaübergreifende Teamstärke (Auf-/Absteiger mit Daten aus der anderen Liga statt festem Prior)
+- [x] Ligaübergreifende Teamstärke: gemeinsames Modell mit Ligaebenen (`model.joint`, `docs/14_gemeinsames_modell.md`)
+- [ ] Weitere europäische Ligen über football-data.co.uk (kostenlos) für eine gemeinsame Stärkeskala
+- [ ] Europapokal (Champions League 2, Europa League 3, Conference League 848): Pokalrunden laden, Abrechnung nach
+  90 Minuten, Hin-/Rückspiel, eigener Heimvorteil international; Backtest ab 2019
 - [ ] Modell-Verbesserungen (xG-Integration, Stacking, Marktmischung)
 - [x] Hosting auf eigenem VPS (`docs/13_deployment_vps.md`, `deploy/`), Backups (`qf backup`, nächtlich + nach jedem Liga-Import)
 - [ ] Monitoring/Alarme (fehlgeschlagene Cron-Läufe, Quota)
