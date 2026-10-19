@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: qf
+      POSTGRES_PASSWORD: qf
+      POSTGRES_DB: quotenfabrik
+    ports:
+      - "5432:5432"
+    volumes:
+      - qf_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qf -d quotenfabrik"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  qf_pgdata:

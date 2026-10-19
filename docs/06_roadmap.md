@@ -3,15 +3,17 @@
 ## Phase 0 – Fundament (jetzt)
 - [x] API-Doku gelesen, Datenumfang live geprüft (`docs/01_datenquellen.md`)
 - [x] Architektur, Datenmodell, Pattern-Katalog dokumentiert
-- [ ] Repo-Struktur, Docker Compose mit PostgreSQL 16, `.env.example`, `.gitignore`
-- [ ] Backend-Grundgerüst (Config, DB, Alembic, CLI `qf`)
+- [x] Repo-Struktur, Docker Compose mit PostgreSQL 16, `.env.example`, `.gitignore`
+- [x] Backend-Grundgerüst (Config, DB, Alembic, CLI `qf`)
 
 ## Phase 1 – Daten (Bundesliga)
-- [ ] API-Football-Client (Drosselung, Quota-Wächter, Roh-Speicherung)
-- [ ] Backfill API-Football 2015–2026: Fixtures, Events, Lineups, Team- und Spieler-Stats, Injuries
-- [ ] football-data.co.uk 2015/16–2026/27 importieren
-- [ ] Team-Mapping + Verknüpfung, Datenqualitäts-Report (fehlende Spiele, ungemappte Teams, xG-Abdeckung)
-- [ ] Quoten-Snapshot-Job im Hintergrund starten (nur Archivaufbau, ≈30 Requests/Tag – wird erst in Phase 3 ausgewertet)
+- [x] API-Football-Client (Drosselung, Quota-Wächter, Roh-Speicherung)
+- [x] Backfill API-Football 2015–2026: Fixtures, Events, Lineups, Team- und Spieler-Stats, Injuries
+- [x] football-data.co.uk 2015/16–2026/27 importieren
+- [x] Team-Mapping + Verknüpfung, Datenqualitäts-Report (fehlende Spiele, ungemappte Teams, xG-Abdeckung)
+- [x] Quoten-Snapshot-Job gebaut (`qf odds snapshot`, nur Archivaufbau, ≈30 Requests/Tag – wird erst in Phase 3 ausgewertet)
+- [ ] Snapshot-Job und tägliche Aktualisierung dauerhaft einplanen (Cron/Server – braucht eine dauerhaft laufende Umgebung)
+- [ ] Betano-Quelle testen (OddsPapi Free Tier, siehe `08_betano_quellen.md`)
 
 ## Phase 2 – Pattern & Modelle trainieren (Fokus, ohne Quoten)
 - [ ] Feature-Basis: Rolling-Form, Heim/Auswärts-Splits, Halbzeit-Anteile, Tor-Timing, Spieler-Anteile

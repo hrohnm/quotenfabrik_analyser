@@ -64,6 +64,9 @@ Saison beim Ingest protokollieren).
 **Spieler-Statistiken pro Spiel**: `games` (Minuten, Position, Rating, Kapitän, Einwechslung), `offsides`, `shots` (total, on),
 `goals` (total, conceded, assists, saves), `passes`, `tackles`, `duels`, `dribbles`, `fouls`, `cards`, `penalty` (won, commited, scored, missed, saved).
 
+Beim Import festgestellt: `games.substitute` ist in den Spieler-Statistiken **immer `false`** und damit unbrauchbar –
+die Startelf wird aus `lineups.startXI` abgeleitet. `games.rating` enthält teils `"–"` statt einer Zahl.
+
 **Events**: `time.elapsed`, `time.extra`, `team`, `player`, `assist`, `type` (Goal, Card, subst, Var), `detail`
 (Normal Goal, Own Goal, Penalty, Missed Penalty, …).
 

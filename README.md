@@ -24,5 +24,6 @@ mit Buchmacherquoten verglichen und per Backtest validiert.
 5. [Modelle & Backtesting](docs/05_modelle_und_backtesting.md)
 6. [Roadmap](docs/06_roadmap.md)
 7. [Entwicklung](docs/07_entwicklung.md) – Setup, CLI, Tests
+8. [Betano-Quellen](docs/08_betano_quellen.md) – Recherche zu Quoten-APIs mit Betano
 
 Hinweise für KI-gestützte Entwicklung: [CLAUDE.md](CLAUDE.md)

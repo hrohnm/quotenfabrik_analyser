@@ -47,6 +47,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/05_modelle_und_backtesting.md` | Wahrscheinlichkeitsmodelle, Value-Berechnung, Backtest-Methodik |
 | `docs/06_roadmap.md` | Phasen & offene Entscheidungen |
 | `docs/07_entwicklung.md` | Setup, Befehle, Konventionen |
+| `docs/08_betano_quellen.md` | Recherche: Quellen für Betano-Quoten |
 
 ## Harte Regeln
 
@@ -90,7 +91,16 @@ docker compose up -d db                       # PostgreSQL starten
 cd backend && pip install -e ".[dev]"         # Abhängigkeiten
 alembic upgrade head                          # Schema anlegen
 qf ingest football-data --seasons 2015-2026   # Historie (kostet keine API-Quota)
-qf ingest api-football --seasons 2015-2026    # Fixtures + Details (~250 Requests)
+qf ingest api-football --seasons 2015-2026 --half-stats   # Backfill (~1.000 Requests)
+qf map-teams && qf quality                    # Verknüpfen + Datenqualität prüfen
 qf odds snapshot                              # Quoten-Snapshot (Cron alle 3 h)
-pytest && ruff check .
+pytest && ruff check . && ruff format --check .
 ```
+
+## Code-Struktur (Backend)
+
+- `quotenfabrik/sources/` – reine Abrufe (API-Football-Client mit Drosselung/Quota-Wächter, football-data-Download)
+- `quotenfabrik/ingest/parsers.py` – reine Funktionen Payload → Zeilen (ohne DB, unit-getestet)
+- `quotenfabrik/ingest/*.py` – `process_*` (Payload → DB, auch für `qf rebuild`) und `sync_*` (Abruf + Verarbeitung)
+- `quotenfabrik/markets.py` – welche Wettarten zu welcher Marktgruppe gehören (asiatische Märkte ausgeschlossen)
+- Tests: `backend/tests/`, Beispielantworten unter `backend/tests/data/` – Tests machen nie echte API-Requests

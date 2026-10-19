@@ -140,7 +140,8 @@ core.odds_snapshots (
   captured_at  timestamptz not null,
   api_updated_at timestamptz,             -- 'update' aus der API-Antwort
   primary key (fixture_id, bookmaker_id, bet_id, selection, handicap, captured_at)
-) partition by range (captured_at);       -- Monats-Partitionen
+);
+-- Für den PoV nicht partitioniert (nur 3 Buchmacher, nur Änderungen). Ab mehreren Ligen: Monats-Partitionen.
 
 -- Bequemer Zugriff
 core.v_odds_latest   -- letzte Quote je (fixture, bookmaker, bet, selection, handicap)
@@ -206,5 +207,9 @@ app.bets (                         -- eigenes Wett-Tracking (privates Frontend)
   payout numeric(10,2), notes text, value_bet_ref jsonb
 );
 ```
+
+**Umsetzungsstand:** `raw` und `core` sind als Migration `0001` umgesetzt (`backend/quotenfabrik/models/`).
+Abweichungen zum Entwurf oben: `fixtures` hat zusätzlich `details_synced_at` / `half_stats_synced_at`,
+`fixture_events` hat `seq` und `player_name`, `odds_snapshots` hat `suspended`. `analytics` und `app` folgen in Phase 2/3.
 
 Die finalen Definitionen entstehen als Alembic-Migrationen; dieses Dokument wird bei Änderungen mitgepflegt.
