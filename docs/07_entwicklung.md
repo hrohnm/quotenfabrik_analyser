@@ -61,14 +61,15 @@ Details zum Seed: `seed/README.md`.
 | `qf value betano` | Betano-Nebenmärkte (OddsPapi-Verläufe) gegen faire Preise des marktbasierten Modells `mkt-v1` (Fit auf Pinnacle) zu 48/24/6/1 h vor Anpfiff: Edge, CLV, Marge je Markt → `docs/11_betano_nebenmaerkte.md` | 0 |
 | `qf picks build [--if-empty]` / `qf picks report` | 3 Tipps pro Spiel und Profil für alle Prognosen speichern (`analytics.picks`, läuft auch nach `qf model forecast` / `backtest`) / Trefferquote → `docs/12_tipps.md` | 0 |
 | `qf model settle` | Ergebnis (eingetreten ja/nein) für Prognosen beendeter Spiele eintragen | 0 |
-| `qf seed export` / `qf seed import [--force]` | Datenbank-Seed schreiben / einspielen (`seed/quotenfabrik_seed.dump`) | 0 |
+| `qf seed export` / `qf seed import [--force] [--file backup.dump]` | Datenbank-Seed schreiben / einspielen (`seed/quotenfabrik_seed.dump` oder ein Backup) | 0 |
 | `qf backup [--reason manuell]` | Backup der Datenbank nach `backups/` (pg_dump, die letzten N bleiben; ersetzt standardmäßig auch den Seed) | 0 |
 | `qf jobs run <id>` | Hintergrund-Job aus `app.jobs` ausführen (startet die API selbst, manuell nur zum Debuggen) | je nach Job |
 | `qf model show <fixture_id>` | letzte Prognose eines Spiels: Hauptmärkte, faire Quoten, Torschützen, Pattern-Signale | 0 |
 | `qf rebuild` | `core.*` aus `raw.*` neu aufbauen (nach Parser-Änderungen, inkl. OddsPapi) | 0 |
 | `qf quality` | Datenqualitäts-Report pro Saison | 0 |
 
-Laufender Betrieb (Cron, bis ein Scheduler eingebaut ist):
+Laufender Betrieb (Cron, bis ein Scheduler eingebaut ist; fertige Crontab für den Server: `deploy/crontab`,
+Installation: `docs/13_deployment_vps.md`):
 
 ```cron
 # Quoten-Archiv alle 3 Stunden

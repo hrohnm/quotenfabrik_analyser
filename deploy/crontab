@@ -1,0 +1,21 @@
+# Quotenfabrik – Crontab des Benutzers qf. Installieren: crontab deploy/crontab (ersetzt die bisherige Crontab).
+# Zeiten in Serverzeit (Hostinger: UTC, prüfen mit "timedatectl"). Ligen kommen aus den Einstellungen (aktive Ligen).
+# flock verhindert, dass ein Lauf startet, solange der vorige noch läuft.
+SHELL=/bin/bash
+QF=/home/qf/quotenfabrik_analyser/backend/.venv/bin/qf
+LOG=/home/qf/logs
+
+# Quoten-Archiv API-Football alle 3 Stunden (verpasste Quoten sind nicht nachholbar)
+5 */3 * * *     flock -n /tmp/qf-odds.lock $QF odds snapshot >> $LOG/odds.log 2>&1
+# Betano-Quotenverläufe (OddsPapi, kostenlos) alle 3 Stunden, Spielplan max. 1x/Woche
+15 */3 * * *    flock -n /tmp/qf-oddspapi.lock $QF oddspapi update >> $LOG/oddspapi.log 2>&1
+# Aktuelle Saison täglich nachziehen (Ergebnisse, Details, Halbzeit-Stats, Ausfälle).
+# Saison = Startjahr: ab Juli 2027 auf 2027 ändern (auch in der Zeile darunter).
+30 4 * * *      flock -n /tmp/qf-ingest.lock $QF ingest api-football --seasons 2026 --half-stats >> $LOG/ingest.log 2>&1
+45 4 * * 2      flock -n /tmp/qf-ingest.lock bash -c "$QF ingest football-data --seasons 2026 && $QF map-teams" >> $LOG/ingest.log 2>&1
+# Ergebnisse abrechnen, Prognosen + Tipps für die nächsten 10 Tage
+0 6,12,18 * * * flock -n /tmp/qf-model.lock bash -c "$QF model settle && $QF model forecast" >> $LOG/model.log 2>&1
+# Spielernamen für Torschützen-Märkte an Spieltagen (Fr/Sa/So, je 1 OddsPapi-Request)
+0 10 * * 5,6,0  flock -n /tmp/qf-oddspapi.lock $QF oddspapi players >> $LOG/oddspapi.log 2>&1
+# Nächtliches Backup nach backups/ (Anzahl: Einstellung "Backups behalten")
+30 2 * * *      flock -n /tmp/qf-backup.lock $QF backup --reason nacht >> $LOG/backup.log 2>&1

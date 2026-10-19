@@ -60,6 +60,7 @@ cd frontend-private && npm install && npm run dev           # http://localhost:3
 10. [Quoten-Backtest](docs/10_quoten_backtest.md) – 1X2 und Ü/U 2,5 gegen historische Quoten (Phase 3, automatisch erzeugt)
 11. [Betano-Nebenmärkte](docs/11_betano_nebenmaerkte.md) – Betano-Quoten gegen faire Preise aus Pinnacle (Phase 3, automatisch erzeugt)
 12. [Tipps](docs/12_tipps.md) – 3 Tipps pro Spiel, Trefferquote einzeln und als Kombi (automatisch erzeugt)
+13. [Installation auf einem VPS](docs/13_deployment_vps.md) – Hostinger/Ubuntu: Datenbank, Dienste, nginx mit Passwort, Cron, Updates
 
 Die Berichte 09–12 gibt es je Liga: ohne Suffix für die Bundesliga, mit `_2_bundesliga` für die 2. Bundesliga
 (z. B. [`docs/12_tipps_2_bundesliga.md`](docs/12_tipps_2_bundesliga.md)).
