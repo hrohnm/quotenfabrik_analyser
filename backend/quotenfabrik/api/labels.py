@@ -1,4 +1,12 @@
-"""German labels for markets and selections (shared by API and frontend)."""
+"""German labels for markets and selections and media URLs (shared by API and frontend)."""
+
+# API-Football media (logos, player photos): free of quota, but rate limited -> the frontend caches them.
+MEDIA_BASE = "https://media.api-sports.io/football"
+
+
+def league_logo(league_id: int) -> str:
+    return f"{MEDIA_BASE}/leagues/{league_id}.png"
+
 
 GROUP_LABELS = {
     "1x2": "Spielausgang",

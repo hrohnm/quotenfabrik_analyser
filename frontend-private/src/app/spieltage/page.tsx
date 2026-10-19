@@ -4,6 +4,8 @@ import { addDays, berlinToday, dateLong, dayMonth, pct, time, weekday } from "@/
 import { Card, OutcomeBadge, SourceBadge, TeamLogo, ThreeWayBar } from "@/components/ui";
 import type { Day, Fixture } from "@/lib/types";
 import { ScrollToActive } from "@/components/ScrollToActive";
+import { Logo } from "@/components/Logo";
+import { leagueLogo } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,7 @@ export default async function MatchdaysPage({ searchParams }: { searchParams: Pr
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Spieltagsübersicht</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight"><Logo src={leagueLogo(78)} alt="Bundesliga" size={32} />Spieltagsübersicht</h1>
           <p className="text-sm text-slate-500">Spiele pro Tag mit Modellwahrscheinlichkeiten. Vergangene Spiele zeigen die rückwirkende Prognose und ob sie eingetreten ist.</p>
         </div>
         <form className="flex items-end gap-2" action="/spieltage">

@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.api.data import chosen_runs_cte, df, model_data
-from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS
+from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS, league_logo
 from quotenfabrik.config import get_settings
 
 router = APIRouter(prefix="/api", tags=["fixtures"])
@@ -17,8 +17,9 @@ FIXTURE_SQL = """
     select f.id, f.league_id, f.season, f.round, f.matchday, f.kickoff_utc, f.status, f.referee,
            f.home_team_id, h.name as home_name, h.logo_url as home_logo,
            f.away_team_id, a.name as away_name, a.logo_url as away_logo,
-           f.ft_home, f.ft_away, f.ht_home, f.ht_away, v.name as venue
+           f.ft_home, f.ft_away, f.ht_home, f.ht_away, v.name as venue, l.name as league_name
     from core.fixtures f
+    join core.leagues l on l.id = f.league_id
     join core.teams h on h.id = f.home_team_id
     join core.teams a on a.id = f.away_team_id
     left join core.venues v on v.id = f.venue_id
@@ -51,6 +52,7 @@ def _fixture_dict(r) -> dict:
     return {
         "id": int(r.id),
         "league_id": int(r.league_id),
+        "league": {"id": int(r.league_id), "name": r.league_name, "logo": league_logo(int(r.league_id))},
         "season": int(r.season),
         "round": r.round,
         "matchday": _clean(r.matchday),
@@ -255,7 +257,7 @@ def _stats(fixture_id: int, fixture: dict) -> dict:
 
 def _goals(fixture_id: int) -> list[dict]:
     rows = df(
-        """select minute, extra_minute, team_id, player_name, detail, comments from core.fixture_events
+        """select minute, extra_minute, team_id, player_id, player_name, detail, comments from core.fixture_events
            where fixture_id = :id and type = 'Goal' and detail <> 'Missed Penalty' order by seq""",
         id=fixture_id,
     )

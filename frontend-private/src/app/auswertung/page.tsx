@@ -6,6 +6,8 @@ import { num, pct, seasonLabel, signedPct } from "@/lib/format";
 import type { Meta } from "@/lib/types";
 import { Card, Select, StatTile } from "@/components/ui";
 import { CalibrationChart, HitRateBars } from "@/components/charts";
+import { Logo } from "@/components/Logo";
+import { leagueLogo } from "@/lib/media";
 
 type GroupStat = { group: string; label: string; picks: number; hit_rate: number; expected_hit_rate: number };
 type Overview = { fixtures: number; seasons: number[]; groups: GroupStat[]; scorers: { picks: number; hit_rate: number; expected_hit_rate: number } | null };
@@ -73,7 +75,12 @@ export default function EvaluationPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Auswertung</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+            {meta?.leagues.find((l) => String(l.id) === league) && (
+              <Logo src={leagueLogo(Number(league))} alt={meta.leagues.find((l) => String(l.id) === league)?.name ?? "Liga"} size={32} />
+            )}
+            Auswertung
+          </h1>
           <p className="max-w-3xl text-sm text-slate-500">
             Wie oft hat die Vorhersage zugetroffen? <b>Getroffen</b> = die wahrscheinlichste Auswahl eines Marktes ist eingetreten
             (bei Ja/Nein-Märkten: Ja ab 50 %). <b>Erwartet</b> = durchschnittliche Modellwahrscheinlichkeit dieser Tipps – liegen beide nah beieinander, ist das Modell gut kalibriert.

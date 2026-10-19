@@ -8,9 +8,12 @@ export type FixtureSummary = {
   pick_1x2_hit?: boolean | null;
 };
 
+export type League = { id: number; name: string; logo?: string | null };
+
 export type Fixture = {
   id: number;
   league_id: number;
+  league?: League;
   season: number;
   round: string | null;
   matchday: number | null;
@@ -78,11 +81,11 @@ export type FixtureDetail = {
   scorers: Scorer[];
   patterns: Pattern[];
   stats: { home: Record<string, TeamStats>; away: Record<string, TeamStats> };
-  goals: { minute: number; extra_minute: number | null; team_id: number; player_name: string; detail: string; comments: string | null }[];
+  goals: { minute: number; extra_minute: number | null; team_id: number; player_id: number | null; player_name: string; detail: string; comments: string | null }[];
 };
 
 export type Meta = {
-  leagues: { id: number; name: string; country: string }[];
+  leagues: { id: number; name: string; country: string; logo?: string }[];
   seasons: number[];
   teams: Team[] & { logo_url?: string }[];
   groups: Record<string, string>;

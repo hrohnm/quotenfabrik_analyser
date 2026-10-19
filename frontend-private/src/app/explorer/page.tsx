@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, getMeta } from "@/lib/api";
 import { dateShort, num, odd, pct, seasonLabel } from "@/lib/format";
 import type { Meta } from "@/lib/types";
-import { Card, OutcomeBadge, ProbabilityBar, Select, SourceBadge, StatTile } from "@/components/ui";
+import { Card, OutcomeBadge, ProbabilityBar, Select, SourceBadge, StatTile, TeamLogo } from "@/components/ui";
 
 type Row = {
   id: number;
@@ -166,7 +166,7 @@ export default function ExplorerPage() {
                 <tr key={r.id} className="hover:bg-slate-50">
                   <td className="py-1.5 tabular-nums text-slate-600">{dateShort(r.kickoff)}</td>
                   <td className="py-1.5 text-slate-500">{seasonLabel(r.season)}{r.matchday ? ` · ${r.matchday}.` : ""}</td>
-                  <td className="py-1.5"><Link href={`/spiel/${r.id}`} className="font-medium hover:underline">{r.home.name} – {r.away.name}</Link> <SourceBadge kind={r.source === "forecast" ? "forecast" : null} /></td>
+                  <td className="py-1.5"><Link href={`/spiel/${r.id}`} className="inline-flex items-center gap-1.5 font-medium hover:underline"><TeamLogo team={r.home} size={16} />{r.home.name} – {r.away.name}<TeamLogo team={r.away} size={16} /></Link> <SourceBadge kind={r.source === "forecast" ? "forecast" : null} /></td>
                   <td className="py-1.5 text-center tabular-nums">{r.finished ? `${r.score.ft[0]}:${r.score.ft[1]} (${r.score.ht[0]}:${r.score.ht[1]})` : "–"}</td>
                   <td className="py-1.5"><div className="flex items-center gap-2"><span className="w-14 shrink-0 whitespace-nowrap tabular-nums">{pct(r.probability)}</span><div className="w-28"><ProbabilityBar value={r.probability} /></div></div></td>
                   <td className="py-1.5 text-right tabular-nums">{odd(r.fair_odd)}</td>
