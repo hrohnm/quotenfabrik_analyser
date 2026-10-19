@@ -90,7 +90,8 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 Siehe `docs/07_entwicklung.md`. Kurzfassung:
 
 ```bash
-docker compose up -d db                       # PostgreSQL starten
+docker compose up -d db                       # PostgreSQL starten (leeres Volume → Seed automatisch)
+bash scripts/ensure_schema.sh                 # Migrationen bzw. stamp nach Seed
 cd backend && pip install -e ".[dev]"         # Abhängigkeiten
 alembic upgrade head                          # Schema anlegen
 qf ingest football-data --seasons 2015-2026   # Historie (kostet keine API-Quota)
@@ -119,5 +120,6 @@ pytest && ruff check . && ruff format --check .
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, explorer, stats), Labels in `api/labels.py`
 - `frontend-private/` – Next.js App Router (`src/app/spieltage`, `spiel/[id]`, `explorer`, `auswertung`)
+- `.devcontainer/` – GitHub Codespaces: App-Container + PostgreSQL, Seed beim ersten Start, startet API und Frontend
 - `seed/` – Datenbank-Seed (pg_dump); nur bewusst neu erzeugen (`qf seed export`), jede Version vergrößert die Git-Historie
 - Tests: `backend/tests/`, Beispielantworten unter `backend/tests/data/` – Tests machen nie echte API-Requests

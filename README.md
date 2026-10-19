@@ -17,9 +17,19 @@ mit Buchmacherquoten verglichen und per Backtest validiert.
 
 ## Schnellstart
 
+**GitHub Codespaces (empfohlen zum Testen):** Repository → *Code* → *Codespaces* → *Create codespace on main*.
+Der Devcontainer (`.devcontainer/`) startet PostgreSQL 16, spielt beim ersten Start den Seed ein (alle Daten und
+Prognosen, ≈ 1–2 Minuten), installiert Backend und Frontend und startet beides automatisch:
+Frontend auf Port **3000** (öffnet sich im Browser), API auf Port **8000** (`/docs`).
+API-Keys sind zum Ansehen nicht nötig; für neue Datenabrufe als Codespaces-Secrets `API_FOOTBALL_KEY` und
+`ODDSPAPI_API_KEY` hinterlegen. Logs: `/tmp/api.log`, `/tmp/frontend.log`; Neustart: `bash .devcontainer/start.sh`.
+
+**Lokal mit Docker:**
+
 ```bash
-docker compose up -d db && ./scripts/seed_import.sh       # Datenbank mit allen bisherigen Daten
-cd backend && pip install -e ".[dev]" && uvicorn quotenfabrik.api.main:app --port 8000
+docker compose up -d db          # erster Start mit leerem Volume spielt seed/ automatisch ein
+cd backend && python -m venv .venv && .venv/bin/pip install -e ".[dev]" && bash ../scripts/ensure_schema.sh
+.venv/bin/uvicorn quotenfabrik.api.main:app --port 8000
 cd frontend-private && npm install && npm run dev           # http://localhost:3000
 ```
 

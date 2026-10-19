@@ -10,6 +10,9 @@ services:
       - "5432:5432"
     volumes:
       - qf_pgdata:/var/lib/postgresql/data
+      # first start with an empty volume: restore seed/quotenfabrik_seed.dump automatically
+      - ./seed:/seed:ro
+      - ./scripts/db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U qf -d quotenfabrik"]
       interval: 5s

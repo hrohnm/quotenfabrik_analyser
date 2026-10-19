@@ -19,6 +19,12 @@ Nicht enthalten: `raw.oddspapi_responses` (gzip-Rohantworten, ≈ 60 MB) – bei
 
 ## Einspielen
 
+**Automatisch:** Beim ersten Start des PostgreSQL-Containers (leeres Volume) spielt `scripts/db-init/10-seed.sh` den
+Seed ein – im Codespace/Devcontainer und mit `docker compose up -d db`. Danach `scripts/ensure_schema.sh` (setzt die
+Migrationsversion per `alembic stamp head`; macht der Devcontainer selbst).
+
+**Manuell** (z. B. in eine bestehende Datenbank):
+
 ```bash
 # mit lokalem pg_restore (PostgreSQL-Client 16)
 cd backend && qf seed import            # leere Datenbank; --force löscht vorhandene Schemas

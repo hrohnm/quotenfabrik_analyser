@@ -31,9 +31,12 @@ alembic upgrade head              # Schemas raw + core anlegen
 
 ### Schnellstart mit Seed (ohne API-Abrufe)
 
+GitHub Codespaces / VS Code Dev Container: `.devcontainer/` richtet alles automatisch ein (siehe `README.md`).
+
 ```bash
-docker compose up -d db
-./scripts/seed_import.sh               # oder: cd backend && qf seed import
+docker compose up -d db                # leeres Volume: Seed wird automatisch eingespielt (scripts/db-init/)
+bash scripts/ensure_schema.sh          # Migrationsstand setzen (stamp nach Seed, sonst upgrade)
+# bestehendes Volume: ./scripts/seed_import.sh --force  oder  cd backend && qf seed import --force
 cd backend && uvicorn quotenfabrik.api.main:app --port 8000
 cd frontend-private && npm install && npm run dev   # http://localhost:3000
 ```
