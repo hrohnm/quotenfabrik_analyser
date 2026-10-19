@@ -50,6 +50,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/08_betano_quellen.md` | Betano-Quoten über OddsPapi (Test, Umsetzung, Quota) |
 | `docs/09_modell_evaluation.md` | Automatisch erzeugter Evaluationsbericht der Modelle (Phase 2) |
 | `docs/10_quoten_backtest.md` | Automatisch erzeugter Quoten-Backtest 1X2 / Ü/U 2,5 gegen football-data (Phase 3) |
+| `docs/11_betano_nebenmaerkte.md` | Automatisch erzeugt: Betano-Nebenmärkte gegen faire Preise aus Pinnacle (`mkt-v1`, Phase 3) |
 
 ## Harte Regeln
 
@@ -104,6 +105,7 @@ qf model evaluate --seasons 2022-2026         # Walk-Forward-Evaluation → docs
 qf model forecast && qf model show <id>       # Prognosen für kommende Spiele
 qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebnisse eintragen
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
+qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md
 qf seed import                                # Datenbank aus seed/quotenfabrik_seed.dump (statt API-Abruf)
 uvicorn quotenfabrik.api.main:app --port 8000 # REST-API für das Frontend
 cd ../frontend-private && npm run dev          # privates Frontend auf :3000
@@ -119,7 +121,9 @@ pytest && ruff check . && ruff format --check .
 - `quotenfabrik/markets.py` – welche Wettarten zu welcher Marktgruppe gehören, für API-Football und OddsPapi
   (asiatische Märkte ausgeschlossen)
 - `quotenfabrik/analytics/` – Modelle (Dixon-Coles, Halbzeiten, Torschützen), Märkte, Pattern, Evaluation,
-  Value-Rechnung (`value.py`: Margenentfernung, EV, Kelly, CLV) und Quoten-Backtest (`odds_backtest.py`)
+  Value-Rechnung (`value.py`: Margenentfernung, EV, Kelly, CLV), Quoten-Backtest (`odds_backtest.py`),
+  marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
+  (`betano_value.py`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, explorer, stats), Labels in `api/labels.py`
 - `frontend-private/` – Next.js App Router (`src/app/spieltage`, `spiel/[id]`, `explorer`, `auswertung`)
