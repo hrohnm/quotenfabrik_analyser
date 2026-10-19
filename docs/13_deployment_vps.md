@@ -69,7 +69,25 @@ hPanel → VPS → **Docker Manager** → neues Projekt (Compose) **aus einer UR
 | `ODDSPAPI_API_KEY` | OddsPapi-Key |
 
 - Deployen. Der erste Start dauert einige Minuten (Images bauen, Seed einspielen, Zertifikat holen).
-  `POSTGRES_PASSWORD` wirkt nur beim ersten Start der Datenbank – später ändern heißt: Volume `qf_pgdata` neu anlegen.
+  `POSTGRES_PASSWORD` wirkt nur beim ersten Start der Datenbank (leeres Volume `qf_pgdata`).
+
+**Erst deployen, dann Variablen eintragen** (Ablauf im Docker Manager): Der erste Start läuft dann mit den
+Standardwerten – `caddy` startet ohne `QF_LOGIN_PASSWORD` nicht (gewollt, die Seite ist bis dahin nicht erreichbar),
+die Datenbank wird mit dem Passwort `qf` angelegt. Danach:
+
+1. Datenbank-Passwort setzen, **bevor** `POSTGRES_PASSWORD` eingetragen wird – im Terminal des Containers `db`
+   (Docker Manager) bzw. per SSH:
+   ```bash
+   docker ps --format '{{.Names}}' | grep db                      # Name des Datenbank-Containers
+   docker exec <db-container> psql -U qf -d quotenfabrik -c "ALTER USER qf PASSWORD '<neues-passwort>'"
+   ```
+   (Alternative, solange noch keine neuen Daten gesammelt wurden: Volume `qf_pgdata` löschen – beim nächsten Start
+   wird der Seed mit dem neuen Passwort neu eingespielt, kostet keine API-Requests.)
+2. Alle Variablen eintragen, `POSTGRES_PASSWORD` = dasselbe neue Passwort, und **neu deployen**.
+
+Wer `POSTGRES_PASSWORD` gar nicht setzt, behält `qf` – die Datenbank ist nur intern bzw. auf `127.0.0.1` erreichbar,
+ein eigenes Passwort ist trotzdem besser. Passen Passwort in der Datenbank und `POSTGRES_PASSWORD` nicht zusammen,
+startet `api` nicht (Log: `password authentication failed`) – dann Schritt 1 mit dem Wert aus `POSTGRES_PASSWORD`.
 
 Danach `https://<hostname>` öffnen → Benutzername/Passwort → Spieltage. Unter **Einstellungen** prüfen, ob beide
 API-Keys erkannt werden. „Seed aktualisieren“ hat im Docker-Betrieb keine Wirkung (Backups landen im Volume).
