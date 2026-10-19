@@ -47,7 +47,8 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/05_modelle_und_backtesting.md` | Wahrscheinlichkeitsmodelle, Value-Berechnung, Backtest-Methodik |
 | `docs/06_roadmap.md` | Phasen & offene Entscheidungen |
 | `docs/07_entwicklung.md` | Setup, Befehle, Konventionen |
-| `docs/08_betano_quellen.md` | Recherche: Quellen für Betano-Quoten |
+| `docs/08_betano_quellen.md` | Betano-Quoten über OddsPapi (Test, Umsetzung, Quota) |
+| `docs/09_modell_evaluation.md` | Automatisch erzeugter Evaluationsbericht der Modelle (Phase 2) |
 
 ## Harte Regeln
 
@@ -97,6 +98,8 @@ qf ingest api-football --seasons 2015-2026 --half-stats   # Backfill (~1.000 Req
 qf map-teams && qf quality                    # Verknüpfen + Datenqualität prüfen
 qf odds snapshot                              # Quoten-Snapshot API-Football (Cron alle 3 h)
 qf oddspapi update                            # Betano-Verläufe über OddsPapi (Cron alle 3 h, kostenlos)
+qf model evaluate --seasons 2022-2026         # Walk-Forward-Evaluation → docs/09_modell_evaluation.md
+qf model forecast && qf model show <id>       # Prognosen für kommende Spiele
 pytest && ruff check . && ruff format --check .
 ```
 
@@ -108,4 +111,6 @@ pytest && ruff check . && ruff format --check .
 - `quotenfabrik/sources/oddspapi.py`, `ingest/oddspapi*.py` – Betano-Quotenverläufe (OddsPapi), Spiel-/Team-Mapping
 - `quotenfabrik/markets.py` – welche Wettarten zu welcher Marktgruppe gehören, für API-Football und OddsPapi
   (asiatische Märkte ausgeschlossen)
+- `quotenfabrik/analytics/` – Modelle (Dixon-Coles, Halbzeiten, Torschützen), Märkte, Pattern, Evaluation
+  (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - Tests: `backend/tests/`, Beispielantworten unter `backend/tests/data/` – Tests machen nie echte API-Requests

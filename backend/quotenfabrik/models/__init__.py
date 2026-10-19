@@ -1,5 +1,6 @@
 """SQLAlchemy models. Importing this package registers all tables on ``Base.metadata``."""
 
+from quotenfabrik.models.analytics import Evaluation, ModelRun, PatternResultRow, Prediction
 from quotenfabrik.models.base import Base
 from quotenfabrik.models.core import (
     BetType,
@@ -25,6 +26,10 @@ from quotenfabrik.models.core import (
 from quotenfabrik.models.raw import ApiResponse, FootballDataFile, OddsPapiResponse
 
 __all__ = [
+    "Evaluation",
+    "ModelRun",
+    "PatternResultRow",
+    "Prediction",
     "ApiResponse",
     "Base",
     "BetType",

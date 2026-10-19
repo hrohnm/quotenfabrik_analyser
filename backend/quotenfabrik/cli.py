@@ -2,6 +2,7 @@
 
 import logging
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import httpx
 import typer
@@ -16,13 +17,17 @@ from quotenfabrik.models import OddsPapiFixture
 from quotenfabrik.sources.api_football import ApiFootballClient, QuotaExhausted
 from quotenfabrik.sources.oddspapi import OddsPapiClient, OddsPapiQuotaExhausted
 
+DEFAULT_REPORT = Path(__file__).resolve().parents[2] / "docs" / "09_modell_evaluation.md"
+
 app = typer.Typer(help="Quotenfabrik Analyser", no_args_is_help=True)
 ingest_app = typer.Typer(help="Daten importieren", no_args_is_help=True)
 odds_app = typer.Typer(help="Quoten-Archiv (API-Football)", no_args_is_help=True)
 oddspapi_app = typer.Typer(help="Betano-Quoten über OddsPapi", no_args_is_help=True)
+model_app = typer.Typer(help="Modelle, Prognosen und Evaluation (Phase 2)", no_args_is_help=True)
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(odds_app, name="odds")
 app.add_typer(oddspapi_app, name="oddspapi")
+app.add_typer(model_app, name="model")
 
 
 def _seasons(spec: str) -> list[int]:
@@ -276,6 +281,45 @@ def oddspapi_update(league: int | None = typer.Option(None)) -> None:
         except OddsPapiQuotaExhausted as exc:
             typer.secho(f"Abgebrochen: {exc}", fg="red")
         _oddspapi_echo_quota(client)
+
+
+# --------------------------------------------------------------------------- models (phase 2)
+
+
+@model_app.command("evaluate")
+def model_evaluate(
+    seasons: str = typer.Option("2022-2026", help="Testsaisons (Walk-Forward), z. B. 2022-2026"),
+    league: int | None = typer.Option(None),
+    report: Path | None = typer.Option(DEFAULT_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Walk-Forward-Evaluation aller Marktgruppen ohne Quoten, speichert Kennzahlen und Bericht."""
+    from quotenfabrik.analytics.service import run_evaluation
+
+    for league_id in _leagues(league):
+        result = run_evaluation(get_engine(), league_id, _seasons(seasons), report_path=report)
+        typer.echo(f"Liga {league_id}: {result}")
+    if report:
+        typer.echo(f"Bericht: {report}")
+
+
+@model_app.command("forecast")
+def model_forecast(
+    days: int = typer.Option(10, help="Spiele der nächsten N Tage"),
+    league: int | None = typer.Option(None),
+) -> None:
+    """Prognosen und Pattern für kommende Spiele berechnen und speichern."""
+    from quotenfabrik.analytics.service import run_forecast
+
+    for league_id in _leagues(league):
+        typer.echo(f"Liga {league_id}: {run_forecast(get_engine(), league_id, days)}")
+
+
+@model_app.command("show")
+def model_show(fixture: int = typer.Argument(..., help="API-Football Fixture-ID")) -> None:
+    """Letzte Prognose eines Spiels anzeigen (Hauptmärkte, Top-Torschützen, Pattern-Signale)."""
+    from quotenfabrik.analytics.service import show_fixture
+
+    typer.echo(show_fixture(get_engine(), fixture))
 
 
 @app.command("rebuild")

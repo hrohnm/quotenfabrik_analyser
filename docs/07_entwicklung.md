@@ -40,6 +40,9 @@ alembic upgrade head              # Schemas raw + core anlegen
 | `qf odds snapshot` | aktuelle Quoten (nur Betano/Pinnacle/Bet365, nur Änderungen) | 2–4 |
 | `qf odds reference-data` | Buchmacher- und Wettarten-Stammdaten | 2 |
 | `qf oddspapi status` / `markets` / `fixtures` / `history` / `players` / `update` | Betano-Quoten über OddsPapi (siehe `08_betano_quellen.md`) | OddsPapi: 0–1 je Befehl (Free-Plan 250/Monat) |
+| `qf model evaluate --seasons 2022-2026` | Walk-Forward-Evaluation aller Marktgruppen ohne Quoten → `analytics.*` + `docs/09_modell_evaluation.md` | 0 |
+| `qf model forecast --days 10` | Prognosen + Pattern für kommende Spiele → `analytics.predictions` / `analytics.pattern_results` | 0 |
+| `qf model show <fixture_id>` | letzte Prognose eines Spiels: Hauptmärkte, faire Quoten, Torschützen, Pattern-Signale | 0 |
 | `qf rebuild` | `core.*` aus `raw.*` neu aufbauen (nach Parser-Änderungen, inkl. OddsPapi) | 0 |
 | `qf quality` | Datenqualitäts-Report pro Saison | 0 |
 

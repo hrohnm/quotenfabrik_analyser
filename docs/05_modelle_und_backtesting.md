@@ -27,6 +27,37 @@ Siehe `04_analysepattern.md`, Abschnitt 5. Kalibrierung: Summe aller Spieler-λ 
 - Gradient-Boosting-Modell auf Pattern-Features als Korrektur des Basismodells (Stacking)
 - Markt als Feature: Mischung aus Modell und Pinnacle-Wahrscheinlichkeit (oft stärker als jedes allein)
 
+## 4b. Umsetzung Phase 2 (Stand 19.10.2026, Modell `dc-v1`)
+
+Code: `backend/quotenfabrik/analytics/`
+
+| Datei | Inhalt |
+|---|---|
+| `data.py` | Lädt Spiele (nur `Regular Season`), Spieler-Einsätze und Tor-Events aus `core` |
+| `poisson.py` | Zeitgewichtetes Dixon-Coles-Modell (analytischer Gradient, L-BFGS, ~0,1 s pro Fit), Aufsteiger-Prior, optional xG-Mischung |
+| `prediction.py` | `MatchModel` = Vollzeit-Modell + je ein Poisson-Modell für 1. und 2. Halbzeit → Ergebnismatrizen |
+| `markets/` | Je Marktgruppe `probabilities(pred)` und `outcomes(match)` (gleiche Schlüssel `(market, selection, line)`) |
+| `scorers.py` | Torschützen-Modell (Rate pro 90 Min. mit Positions-Shrinkage × erwartete Minuten × Team-Faktor) |
+| `patterns.py` | Deskriptive Pattern je Marktgruppe mit Wilson-Intervall und Signal *hoch*/*niedrig* |
+| `evaluation.py` | Walk-Forward je Spieltag, Vergleichswerte *Liga* und *Form*, Brier/Log-Loss/RPS/ECE, Kalibrierung, Pattern-Signal-Auswertung, Tuning |
+| `service.py` | `qf model forecast` (speichert in `analytics.*`), `qf model evaluate` (Bericht `docs/09_modell_evaluation.md`), `qf model show` |
+
+**Gewählte Parameter** (Validierung 2018–2021 für das Teammodell, 2020–2021 für Torschützen; Test ab 2022):
+
+| Parameter | Wert | Bedeutung |
+|---|---|---|
+| ξ | 0,0015 / Tag | Zeitgewichtung, Halbwertszeit ≈ 15 Monate |
+| Regularisierung | 10 (Halbzeiten 25) | zieht Teamstärken zum Mittelwert, Halbzeiten stärker (verrauschter) |
+| Fenster | 3 Jahre | Trainingsdaten vor dem Spieltag |
+| Aufsteiger-Prior | Angriff −0,3 / Abwehr −0,3 | Teams ohne Bundesligaspiel in den letzten 400 Tagen |
+| Torschützen-Shrinkage | 15 × 90 Min. | Spieler mit wenig Spielzeit werden zum Positionsschnitt gezogen |
+| Team-Faktor-Exponent | 0,6 | gedämpfte Anpassung der Spielerrate an die erwartete Torzahl des Teams im Spiel |
+
+Halbzeit-Varianten (getrennte Modelle vs. fester Ligaanteil vs. teamspezifischer Anteil) wurden verglichen; getrennte
+Modelle mit stärkerer Regularisierung waren minimal besser. Unterschiede sind klein – Halbzeit-Tore sind schwer vorherzusagen.
+
+Ergebnisse: siehe **`docs/09_modell_evaluation.md`** (wird von `qf model evaluate` erzeugt).
+
 ## 5. Quoten & Value
 
 | Größe | Formel |

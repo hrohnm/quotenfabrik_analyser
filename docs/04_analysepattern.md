@@ -1,5 +1,10 @@
 # 04 – Analysepattern pro Marktgruppe
 
+> **Umsetzungsstand (Phase 2):** Modelle und Märkte in `backend/quotenfabrik/analytics/markets/` und `scorers.py`,
+> deskriptive Pattern in `analytics/patterns.py` (≈ 50 Pattern pro Spiel: Serien mit Wilson-Signal, Tordifferenz/xG,
+> Halbzeit-Anteile, Tor-Timing, Top-Torschützen). Noch offen aus dem Katalog unten: Ruhetage/englische Wochen,
+> Schiedsrichter, Ausfälle-Gewichtung, Comeback-Verhalten, Gegnerstärke-Bereinigung der Serien.
+
 Jede Marktgruppe kombiniert drei Ebenen:
 
 1. **Modellwahrscheinlichkeit** – aus einem statistischen Modell (siehe `05_modelle_und_backtesting.md`).
@@ -12,14 +17,17 @@ Jede Marktgruppe kombiniert drei Ebenen:
 Jedes Modul unter `analytics/markets/` implementiert:
 
 ```python
-class MarketAnalyzer(Protocol):
-    market_group: str                                        # '1x2', 'totals', ...
-    def probabilities(self, fixture_id, as_of) -> list[MarketProbability]   # market, selection, line, p
-    def patterns(self, fixture_id, as_of) -> list[PatternResult]           # key, value, signal, erklärung
-    def settle(self, fixture, market, selection, line) -> Settlement        # won/lost/void/half_*
+# backend/quotenfabrik/analytics/markets/<gruppe>.py
+def probabilities(pred: MatchPrediction) -> list[MarketProbability]  # (market, selection, line, p)
+def outcomes(match) -> dict[(market, selection, line), bool]          # tatsächliches Ergebnis → Evaluation/Abrechnung
+
+# backend/quotenfabrik/analytics/patterns.py
+def patterns_<gruppe>(ctx: PatternContext, home, away) -> list[PatternResult]
 ```
 
-`as_of` erzwingt, dass nur Daten vor diesem Zeitpunkt genutzt werden (Backtests!).
+`PatternContext.build(matches, as_of, …)` enthält nur Daten vor `as_of` – so bleiben Pattern und Modelle frei von
+Data Leakage (durch Tests abgesichert). Torschützen nutzen `ScorerModel` (`analytics/scorers.py`).
+
 
 ## Gemeinsame Bausteine (für alle Gruppen)
 
