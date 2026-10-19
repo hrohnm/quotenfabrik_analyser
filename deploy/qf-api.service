@@ -1,0 +1,19 @@
+# Quotenfabrik REST-API (FastAPI) – nur lokal erreichbar, nginx/Next.js leiten /api weiter.
+# Pfade gelten für Benutzer "qf" mit Repository unter /home/qf/quotenfabrik_analyser (sonst anpassen).
+[Unit]
+Description=Quotenfabrik API
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=qf
+WorkingDirectory=/home/qf/quotenfabrik_analyser/backend
+ExecStart=/home/qf/quotenfabrik_analyser/backend/.venv/bin/uvicorn quotenfabrik.api.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+# Hintergrund-Jobs (Liga hinzufügen, Neuberechnung, Backup) laufen als eigene Prozesse:
+# bei einem Neustart der API nur den API-Prozess beenden, laufende Jobs weiterlaufen lassen.
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

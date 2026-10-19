@@ -431,10 +431,21 @@ def seed_export() -> None:
 @seed_app.command("import")
 def seed_import(
     force: bool = typer.Option(False, "--force", help="Vorhandene Schemas raw/core/analytics löschen"),
+    file: Path | None = typer.Option(
+        None, "--file", help="Anderes Dump einspielen, z. B. ein Backup (.revision-Datei daneben)"
+    ),
 ) -> None:
     """Seed in eine leere Datenbank einspielen (statt Import über die APIs)."""
     from quotenfabrik.seed import SEED_FILE, database_is_empty, drop_schemas, import_seed, require_tools
 
+    path = file or SEED_FILE
+    if not path.is_file():
+        typer.secho(f"Datei nicht gefunden: {path}", fg="red")
+        raise typer.Exit(1)
+    if file and not path.with_suffix(".revision").is_file():
+        revision = path.with_suffix(".revision").name
+        typer.secho(f"{revision} fehlt (Schema-Stand des Dumps) – bitte mitkopieren.", fg="red")
+        raise typer.Exit(1)
     require_tools("pg_restore")  # check before dropping anything
     if not database_is_empty():
         if not force:
@@ -443,7 +454,7 @@ def seed_import(
             )
             raise typer.Exit(1)
         drop_schemas()
-    import_seed(SEED_FILE)
+    import_seed(path)
     typer.echo("Seed eingespielt und Schema auf aktuellen Stand gebracht (Seed-Revision + alembic upgrade).")
 
 

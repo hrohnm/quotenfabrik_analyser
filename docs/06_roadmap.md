@@ -62,7 +62,8 @@
 - [ ] Weitere Ligen (Premier League, …) – jetzt über die Einstellungsseite hinzufügbar
 - [ ] Ligaübergreifende Teamstärke (Auf-/Absteiger mit Daten aus der anderen Liga statt festem Prior)
 - [ ] Modell-Verbesserungen (xG-Integration, Stacking, Marktmischung)
-- [ ] Hosting/Deployment, Monitoring (Backups: `qf backup`, automatisch nach jedem Liga-Import)
+- [x] Hosting auf eigenem VPS (`docs/13_deployment_vps.md`, `deploy/`), Backups (`qf backup`, nächtlich + nach jedem Liga-Import)
+- [ ] Monitoring/Alarme (fehlgeschlagene Cron-Läufe, Quota)
 
 ## Phase 5 – Öffentliches Frontend mit Abo
 - [ ] Rechtliche Prüfung (siehe unten)

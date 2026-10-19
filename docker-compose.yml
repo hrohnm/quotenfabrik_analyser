@@ -4,10 +4,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: qf
-      POSTGRES_PASSWORD: qf
+      # set POSTGRES_PASSWORD in .env on a server (only applied when the volume is initialised)
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-qf}
       POSTGRES_DB: quotenfabrik
     ports:
-      - "5432:5432"
+      # localhost only: Docker bypasses ufw, a public port would expose the database
+      - "127.0.0.1:5432:5432"
     volumes:
       - qf_pgdata:/var/lib/postgresql/data
       # first start with an empty volume: restore seed/quotenfabrik_seed.dump automatically
