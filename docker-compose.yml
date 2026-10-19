@@ -1,10 +1,36 @@
+# Quotenfabrik – kompletter Stack für einen Server (Hostinger Docker Manager oder "docker compose up -d --build"),
+# siehe docs/13_deployment_vps.md. Lokale Entwicklung: nur die Datenbank starten mit "docker compose up -d db".
+#
+# Variablen (Hostinger: Umgebungsvariablen des Projekts, sonst .env neben dieser Datei):
+#   QF_DOMAIN           Hostname, z. B. srv123456.hstgr.cloud (HTTPS-Zertifikat von Let's Encrypt)
+#   QF_LOGIN_USER       Benutzername für den Zugang (Standard: admin)
+#   QF_LOGIN_PASSWORD   Passwort für den Zugang (Pflicht – ohne startet der Zugang nicht)
+#   POSTGRES_PASSWORD   Datenbank-Passwort (nur Buchstaben/Ziffern; wirkt nur beim ersten Start der Datenbank)
+#   API_FOOTBALL_KEY, ODDSPAPI_API_KEY   API-Keys (nur für neue Datenabrufe nötig)
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: docker/backend.Dockerfile
+  image: quotenfabrik-backend
+  restart: unless-stopped
+  init: true                      # reaps the background job processes started by the API
+  environment:
+    DATABASE_URL: postgresql+psycopg://qf:${POSTGRES_PASSWORD:-qf}@db:5432/quotenfabrik
+    API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:-}
+    ODDSPAPI_API_KEY: ${ODDSPAPI_API_KEY:-}
+  volumes:
+    - qf_backups:/app/backups
+
 services:
   db:
-    image: postgres:16
+    build:
+      context: .
+      dockerfile: docker/db.Dockerfile
+    image: quotenfabrik-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: qf
-      # set POSTGRES_PASSWORD in .env on a server (only applied when the volume is initialised)
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-qf}
       POSTGRES_DB: quotenfabrik
     ports:
@@ -12,14 +38,63 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - qf_pgdata:/var/lib/postgresql/data
-      # first start with an empty volume: restore seed/quotenfabrik_seed.dump automatically
-      - ./seed:/seed:ro
-      - ./scripts/db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U qf -d quotenfabrik"]
+      test: ["CMD-SHELL", "pg_isready -U qf -d quotenfabrik -h 127.0.0.1"]   # TCP: not ready while the seed loads
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 15m
+
+  api:
+    <<: *backend
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5m
+
+  cron:
+    <<: *backend
+    command: ["supercronic", "/app/docker/crontab"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    image: quotenfabrik-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  caddy:
+    build:
+      context: .
+      dockerfile: docker/caddy.Dockerfile
+    image: quotenfabrik-caddy
+    restart: unless-stopped
+    environment:
+      QF_DOMAIN: ${QF_DOMAIN:-localhost}
+      QF_LOGIN_USER: ${QF_LOGIN_USER:-admin}
+      QF_LOGIN_PASSWORD: ${QF_LOGIN_PASSWORD:-}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
 
 volumes:
   qf_pgdata:
+  qf_backups:
+  caddy_data:
+  caddy_config:

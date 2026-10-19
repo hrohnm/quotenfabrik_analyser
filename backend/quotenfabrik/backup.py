@@ -19,7 +19,7 @@ def create_backup(reason: str = "manuell") -> Path:
     BACKUP_DIR.mkdir(exist_ok=True)
     slug = "".join(c if c.isalnum() else "_" for c in reason.lower()).strip("_") or "backup"
     path = export_seed(BACKUP_DIR / f"quotenfabrik_{datetime.now(UTC):%Y%m%d_%H%M%S}_{slug}.dump")
-    if app_config.get("backup.update_seed"):
+    if app_config.get("backup.update_seed") and SEED_FILE.exists():  # the Docker image has no seed dump
         shutil.copyfile(path, SEED_FILE)
         shutil.copyfile(path.with_suffix(".revision"), SEED_FILE.with_suffix(".revision"))
     prune(app_config.get("backup.keep"))

@@ -53,7 +53,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/09_modell_evaluation.md` | Automatisch erzeugter Evaluationsbericht der Modelle (Phase 2) |
 | `docs/10_quoten_backtest.md` | Automatisch erzeugter Quoten-Backtest 1X2 / Ü/U 2,5 gegen football-data (Phase 3) |
 | `docs/12_tipps.md` | Automatisch erzeugt: 3 Tipps pro Spiel, Trefferquote einzeln und als Kombi |
-| `docs/13_deployment_vps.md` | Installation auf einem VPS (Hostinger): Docker-DB, systemd, nginx mit Passwort, Cron, Updates |
+| `docs/13_deployment_vps.md` | Installation auf einem VPS (Hostinger): Docker-Stack per Docker Manager oder manuell (systemd, nginx), Cron, Updates |
 | `docs/11_betano_nebenmaerkte.md` | Automatisch erzeugt: Betano-Nebenmärkte gegen faire Preise aus Pinnacle (`mkt-v1`, Phase 3) |
 
 ## Harte Regeln
@@ -100,7 +100,8 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 Siehe `docs/07_entwicklung.md`. Kurzfassung:
 
 ```bash
-docker compose up -d db                       # PostgreSQL starten (leeres Volume → Seed automatisch)
+docker compose up -d db                       # nur PostgreSQL starten (leeres Volume → Seed automatisch)
+docker compose up -d --build                  # kompletter Server-Stack (Variablen: docs/13_deployment_vps.md)
 bash scripts/ensure_schema.sh                 # Migrationen bzw. stamp nach Seed
 cd backend && pip install -e ".[dev]"         # Abhängigkeiten
 alembic upgrade head                          # Schema anlegen
@@ -141,6 +142,8 @@ pytest && ruff check . && ruff format --check .
 - `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, explorer, stats, admin = Einstellungsseite), Labels in `api/labels.py`
 - `frontend-private/` – Next.js App Router (`src/app/spieltage`, `tipps`, `spiel/[id]`, `explorer`, `auswertung`, `einstellungen`)
 - `.devcontainer/` – GitHub Codespaces: App-Container + PostgreSQL, Seed beim ersten Start, startet API und Frontend
-- `deploy/` – Server-Betrieb: systemd-Units, nginx-Konfiguration, Crontab, `update.sh` (siehe `docs/13_deployment_vps.md`)
+- `docker-compose.yml` + `docker/` – kompletter Server-Stack (db mit Seed, api, cron, frontend, caddy mit HTTPS und Passwort),
+  z. B. über den Hostinger Docker Manager; `deploy/` – dasselbe ohne Docker (systemd, nginx, Crontab, `update.sh`);
+  Zeitpläne in `docker/crontab` und `deploy/crontab` gemeinsam pflegen (siehe `docs/13_deployment_vps.md`)
 - `seed/` – Datenbank-Seed (pg_dump); nur bewusst neu erzeugen (`qf seed export`), jede Version vergrößert die Git-Historie
 - Tests: `backend/tests/`, Beispielantworten unter `backend/tests/data/` – Tests machen nie echte API-Requests

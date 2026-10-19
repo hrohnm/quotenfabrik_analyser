@@ -1,0 +1,9 @@
+# QF_DOMAIN: Hostname des Servers (z. B. srv123456.hstgr.cloud) -> Zertifikat von Let's Encrypt.
+# Lokal (localhost) nutzt Caddy ein selbst signiertes Zertifikat.
+{$QF_DOMAIN:localhost} {
+	basic_auth {
+		{$QF_LOGIN_USER:admin} {$QF_LOGIN_HASH}
+	}
+	encode gzip
+	reverse_proxy frontend:3000
+}
