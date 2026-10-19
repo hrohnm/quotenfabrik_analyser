@@ -7,8 +7,9 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, Query
 
+from quotenfabrik.analytics.picks import DEFAULT_PROFILE, PROFILES, evaluate_picks
 from quotenfabrik.api.data import chosen_runs_cte, df
-from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, PICK_SETS, SELECTION_LABELS
+from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, PICK_SETS, SELECTION_LABELS, pick_label
 from quotenfabrik.config import get_settings
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
@@ -187,3 +188,47 @@ def scorers(league: int | None = None, season: int | None = None) -> dict:
               "predicted": float(g["probability"].mean()), "observed": float(g["outcome"].mean())}
              for b, g in sc.groupby(cut, observed=True)]  # fmt: skip
     return {"top_picks": _scorer_top_picks(data), "calibration": calib}
+
+
+_picks_cache: dict = {}
+
+
+def _settled_picks(league_id: int) -> pd.DataFrame:
+    """Settled picks of all profiles (chosen run per fixture), cached."""
+    with _lock:
+        hit = _picks_cache.get(league_id)
+        if hit and time.time() - hit[0] < CACHE_TTL_S:
+            return hit[1]
+        data = df(
+            f"""with runs as ({chosen_runs_cte("and f.league_id = :league")})
+                select k.fixture_id, f.season, k.profile, k.rank, k.market, k.selection, k.line, k.probability,
+                       p.outcome, jsonb_typeof(k.reasons) = 'array' as has_reason
+                from analytics.picks k
+                join runs on runs.model_run_id = k.model_run_id and runs.fixture_id = k.fixture_id
+                join analytics.predictions p on p.id = k.prediction_id
+                join core.fixtures f on f.id = k.fixture_id
+                where f.league_id = :league and p.outcome is not null""",
+            league=league_id,
+        )
+        data["line"] = data["line"].astype(float)
+        data["has_reason"] = data["has_reason"].fillna(False).astype(bool)
+        _picks_cache[league_id] = (time.time(), data)
+        return data
+
+
+@router.get("/picks")
+def pick_stats(league: int | None = None, season: int | None = None, profile: str = DEFAULT_PROFILE) -> dict:
+    """Hit rates of the suggested picks: per profile (singles and 3-pick combo) and details for one profile."""
+    data = _settled_picks(_league(league))
+    if season:
+        data = data[data["season"] == season]
+    overview = []
+    for key, p in PROFILES.items():
+        result = evaluate_picks(data[data["profile"] == key])
+        overview.append(
+            {"profile": key, "label": p.label, "singles": result["singles"], "combo": result["combo"]}
+        )
+    detail = evaluate_picks(data[data["profile"] == profile])
+    for m in detail["per_market"]:
+        m["label"] = pick_label(m["market"], m["selection"], m["line"], "Heimteam", "Gastteam")
+    return {"profiles": overview, "profile": profile, "detail": detail}

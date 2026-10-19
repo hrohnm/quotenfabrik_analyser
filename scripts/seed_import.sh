@@ -17,5 +17,5 @@ if [[ "${1:-}" == "--force" ]]; then
 fi
 
 docker compose exec -T db pg_restore -U "$DB_USER" -d "$DB_NAME" --no-owner --no-privileges --exit-on-error < "$SEED"
-(cd backend && alembic stamp head)
+(cd backend && alembic stamp "$(cat ../seed/quotenfabrik_seed.revision 2>/dev/null || echo 0004)" && alembic upgrade head)
 echo "Seed eingespielt."

@@ -76,3 +76,25 @@ class Evaluation(Base):
     line: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     n: Mapped[int] = mapped_column(Integer)
     metrics: Mapped[dict] = mapped_column(JSONB)
+
+
+class Pick(Base):
+    """Suggested picks per fixture and profile (``qf picks build``); the outcome comes from the prediction."""
+
+    __tablename__ = "picks"
+    __table_args__ = (Index(None, "fixture_id"), Index(None, "model_run_id", "profile"), ANALYTICS)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    model_run_id: Mapped[int] = mapped_column(ForeignKey("analytics.model_runs.id", ondelete="CASCADE"))
+    prediction_id: Mapped[int] = mapped_column(ForeignKey("analytics.predictions.id", ondelete="CASCADE"))
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("core.fixtures.id"))
+    profile: Mapped[str] = mapped_column(Text)  # 'sicher', 'ausgewogen', 'mutig'
+    rank: Mapped[int] = mapped_column(Integer)
+    market_group: Mapped[str] = mapped_column(Text)
+    market: Mapped[str] = mapped_column(Text)
+    selection: Mapped[str] = mapped_column(Text)
+    line: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    probability: Mapped[float] = mapped_column(Float)
+    base_rate: Mapped[float | None] = mapped_column(Float)  # league frequency (3 seasons before the matchday)
+    score: Mapped[float] = mapped_column(Float)
+    reasons: Mapped[list | None] = mapped_column(JSONB(none_as_null=True))  # supporting pattern signals

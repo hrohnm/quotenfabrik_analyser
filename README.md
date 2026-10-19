@@ -12,7 +12,7 @@ mit Buchmacherquoten verglichen und per Backtest validiert.
 | Bereich | Ordner | Status |
 |---|---|---|
 | Backend: Datenimport, PostgreSQL, Analytik, REST-API | `backend/` | in Arbeit |
-| Privates Frontend: Spieltage, Spiel-Detail, Daten-Explorer, Auswertung | `frontend-private/` | in Arbeit |
+| Privates Frontend: Spieltage, Tipps, Spiel-Detail, Daten-Explorer, Auswertung | `frontend-private/` | in Arbeit |
 | Öffentliches Frontend: Login & Abo-Modell | `frontend-public/` | später |
 
 ## Schnellstart
@@ -51,5 +51,6 @@ cd frontend-private && npm install && npm run dev           # http://localhost:3
 9. [Modell-Evaluation](docs/09_modell_evaluation.md) – Ergebnisse Phase 2 (automatisch erzeugt)
 10. [Quoten-Backtest](docs/10_quoten_backtest.md) – 1X2 und Ü/U 2,5 gegen historische Quoten (Phase 3, automatisch erzeugt)
 11. [Betano-Nebenmärkte](docs/11_betano_nebenmaerkte.md) – Betano-Quoten gegen faire Preise aus Pinnacle (Phase 3, automatisch erzeugt)
+12. [Tipps](docs/12_tipps.md) – 3 Tipps pro Spiel, Trefferquote einzeln und als Kombi (automatisch erzeugt)
 
 Hinweise für KI-gestützte Entwicklung: [CLAUDE.md](CLAUDE.md)

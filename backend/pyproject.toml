@@ -51,6 +51,10 @@ known-third-party = ["alembic"]
 "quotenfabrik/analytics/service.py" = ["E501"]
 "quotenfabrik/analytics/odds_report.py" = ["E501"]
 "quotenfabrik/analytics/betano_report.py" = ["E501"]
+"quotenfabrik/analytics/picks_report.py" = ["E501"]
+# tabular market / pattern definitions
+"quotenfabrik/analytics/picks.py" = ["E501"]
+"tests/*.py" = ["E501"]
 # SQL strings and compact response dicts
 "quotenfabrik/api/routers/*.py" = ["E501"]
 

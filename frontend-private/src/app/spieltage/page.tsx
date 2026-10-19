@@ -6,6 +6,7 @@ import type { Day, Fixture } from "@/lib/types";
 import { ScrollToActive } from "@/components/ScrollToActive";
 import { Logo } from "@/components/Logo";
 import { leagueLogo } from "@/lib/media";
+import { PickChips } from "@/components/picks/PickList";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +125,12 @@ function FixtureRow({ f }: { f: Fixture }) {
       <div className="flex justify-end" title="Hat der 1X2-Favorit des Modells getroffen?">
         {f.prediction ? <OutcomeBadge outcome={f.prediction.pick_1x2_hit} /> : <SourceBadge kind={null} />}
       </div>
+      {f.picks && f.picks.length > 0 && (
+        <div className="flex items-center gap-2 md:col-start-2 md:col-end-8">
+          <span className="text-xs font-medium text-slate-400">Tipps</span>
+          <PickChips picks={f.picks} finished={f.finished} />
+        </div>
+      )}
     </Link>
   );
 }

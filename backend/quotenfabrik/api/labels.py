@@ -8,6 +8,41 @@ def league_logo(league_id: int) -> str:
     return f"{MEDIA_BASE}/leagues/{league_id}.png"
 
 
+def _line(line: float | None) -> str:
+    return "" if line is None else f"{line:g}".replace(".", ",")
+
+
+def pick_label(market: str, selection: str, line: float | None, home: str, away: str) -> str:
+    """Readable German text of a pick, e.g. "Über 2,5 Tore" or "Bayern München trifft"."""
+    side = "Über" if selection == "over" else "Unter"
+    team_markets = {"ou_home": (home, ""), "ou_away": (away, ""), "ou_home_1h": (home, " in der 1. HZ"),
+                    "ou_away_1h": (away, " in der 1. HZ"), "ou_home_2h": (home, " in der 2. HZ"),
+                    "ou_away_2h": (away, " in der 2. HZ")}  # fmt: skip
+    if market == "1x2":
+        return {"H": f"Sieg {home}", "D": "Unentschieden", "A": f"Sieg {away}"}[selection]
+    if market == "dc":
+        return {"1X": f"{home} oder Remis", "X2": f"{away} oder Remis", "12": "Kein Remis"}[selection]
+    if market == "ht_1x2":
+        return {"H": f"Halbzeitführung {home}", "D": "Remis zur Halbzeit", "A": f"Halbzeitführung {away}"}[
+            selection
+        ]
+    if market in {"btts", "btts_1h", "btts_2h"}:
+        suffix = {"btts": "", "btts_1h": " in der 1. HZ", "btts_2h": " in der 2. HZ"}[market]
+        return f"Beide Teams treffen{suffix}" if selection == "yes" else f"Nicht beide Teams treffen{suffix}"
+    if market == "clean_sheet":
+        return f"{home if selection == 'home' else away} spielt zu null"
+    if market in team_markets:
+        team, suffix = team_markets[market]
+        if line == 0.5:
+            return f"{team} trifft{suffix}" if selection == "over" else f"{team} trifft nicht{suffix}"
+        return f"{team}: {side} {_line(line)} Tore{suffix}"
+    if market in {"ou_ft", "ou_1h", "ou_2h"}:
+        prefix = {"ou_ft": "", "ou_1h": "1. HZ: ", "ou_2h": "2. HZ: "}[market]
+        return f"{prefix}{side} {_line(line)} Tore"
+    label = f"{MARKET_LABELS.get(market, market)} {SELECTION_LABELS.get(selection, selection)}"
+    return f"{label} {_line(line)}".strip()
+
+
 GROUP_LABELS = {
     "1x2": "Spielausgang",
     "totals": "Tore gesamt",
