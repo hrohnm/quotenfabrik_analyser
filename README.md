@@ -22,7 +22,11 @@ Der Devcontainer (`.devcontainer/`) startet PostgreSQL 16, spielt beim ersten St
 Prognosen, ≈ 1–2 Minuten), installiert Backend und Frontend und startet beides automatisch:
 Frontend auf Port **3000** (öffnet sich im Browser), API auf Port **8000** (`/docs`).
 API-Keys sind zum Ansehen nicht nötig; für neue Datenabrufe als Codespaces-Secrets `API_FOOTBALL_KEY` und
-`ODDSPAPI_API_KEY` hinterlegen. Logs: `/tmp/api.log`, `/tmp/frontend.log`; Neustart: `bash .devcontainer/start.sh`.
+`ODDSPAPI_API_KEY` hinterlegen.
+
+Start-Status: `cat /tmp/qf-services.log` (Logs der Dienste: `/tmp/api.log`, `/tmp/frontend.log`).
+Dienste (neu) starten: `bash .devcontainer/start.sh` – startet nur, was noch nicht läuft. Setup erneut ausführen:
+`bash .devcontainer/post-create.sh`.
 
 **Lokal mit Docker:**
 
