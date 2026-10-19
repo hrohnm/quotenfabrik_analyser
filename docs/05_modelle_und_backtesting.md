@@ -58,6 +58,18 @@ Modelle mit stärkerer Regularisierung waren minimal besser. Unterschiede sind k
 
 Ergebnisse: siehe **`docs/09_modell_evaluation.md`** (wird von `qf model evaluate` erzeugt).
 
+**Fazit der ersten Evaluation** (Test 2022/23–2026/27, 1.278 Spiele, ohne Quoten):
+- **1X2:** RPS 0,203 vs. 0,231 (Liga) / 0,218 (Form) → +12 % ggü. Liga, in jeder Testsaison besser; gut kalibriert.
+- **Tore pro Team:** +6,7 % Brier-Skill ggü. Liga – das Modell trennt starke/schwache Angriffe und Abwehren gut.
+- **Tore gesamt:** nur +1,6 %; Über-2,5 wird im Bereich 40–60 % leicht unterschätzt (Liga wird torreicher).
+- **Halbzeiten:** +2,4 %; Halbzeit-Ergebnis +6,5 % RPS. Halbzeit-Tore bleiben schwer vorhersagbar.
+- **Torschützen:** +2,8 % Brier ggü. Positions-/Startelf-Schnitt, gut kalibriert bis ≈ 40 %.
+- **Pattern-Signale:** zeigen klare Unterschiede zum Ligaschnitt (z. B. „Heimteam 2+ Tore“ hoch: 72 % statt 51 %), das
+  Modell kennt diese Information aber größtenteils bereits (Rest meist ≤ ±5 % bei n ≈ 100–250 → im Rauschen).
+  Pattern dienen damit vor allem der **Erklärung** der Modellwerte; echte Zusatzinformation muss sich in Phase 3
+  gegen die Quoten beweisen.
+- Wichtig: Ein besseres Modell als Liga/Form heißt noch nicht, dass es besser als Betano/Pinnacle ist – das prüft Phase 3.
+
 ## 5. Quoten & Value
 
 | Größe | Formel |

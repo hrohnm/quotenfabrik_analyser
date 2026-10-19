@@ -19,14 +19,17 @@
 - [ ] Phase 3: OddsPapi-Spieler-IDs auf API-Football-Spieler mappen (Torschützen-Märkte)
 
 ## Phase 2 – Pattern & Modelle trainieren (Fokus, ohne Quoten)
-- [ ] Feature-Basis: Rolling-Form, Heim/Auswärts-Splits, Halbzeit-Anteile, Tor-Timing, Spieler-Anteile
-- [ ] Dixon-Coles-Modell (1X2, Ü/U gesamt, Team-Totals) mit Walk-Forward-Training
-- [ ] Halbzeitmodelle (1. / 2. HZ)
-- [ ] Torschützen-Modell
-- [ ] Pattern-Bibliothek je Marktgruppe (`04_analysepattern.md`)
-- [ ] Bewertung **ohne Quoten**: Log-Loss, Brier, Kalibrierungskurven je Markt und Linie, Vergleich gegen
+- [x] Feature-Basis: Rolling-Form, Heim/Auswärts-Splits, Halbzeit-Anteile, Tor-Timing, Spieler-Anteile
+- [x] Dixon-Coles-Modell (1X2, Ü/U gesamt, Team-Totals) mit Walk-Forward-Training
+- [x] Halbzeitmodelle (1. / 2. HZ)
+- [x] Torschützen-Modell
+- [x] Pattern-Bibliothek je Marktgruppe (`04_analysepattern.md`)
+- [x] Bewertung **ohne Quoten**: Log-Loss, Brier, Kalibrierungskurven je Markt und Linie, Vergleich gegen
       einfache Baselines (Ligaschnitt, Heim/Auswärts-Quoten); Pattern-Trefferquoten out-of-sample
-- [ ] Hyperparameter (Zeitgewichtung, Regularisierung, Fenster) per Validierungsperiode wählen
+- [x] Hyperparameter (Zeitgewichtung, Regularisierung, Fenster) per Validierungsperiode wählen
+- [ ] Nächste Modell-Verbesserungen (aus `09_modell_evaluation.md`): Ü/U leicht unterschätzt bei 40–60 %
+      (steigende Torquote der Liga → Trend im Ligaschnitt), xG-Mischung testen (ab 2023 voll verfügbar),
+      Halbzeit-Modelle, offene Pattern (Ruhetage, Schiedsrichter, Ausfälle), Torschützen: Elfmeterschützen
 
 ## Phase 3 – Value-Suche mit Quoten
 - [ ] Margenentfernung, Edge/EV, Kelly
