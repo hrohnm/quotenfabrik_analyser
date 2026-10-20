@@ -162,3 +162,16 @@ def test_oddspapi_mapping_history_and_rebuild(session):
     rebuild.rebuild_from_raw(session)
     assert session.scalar(select(func.count()).select_from(OddsHistory)) == stored
     assert session.scalar(select(func.count()).select_from(OddsPapiResponse)) == 1
+
+    # odds reload: finished fixtures without prices are fetched again, fixtures with prices stay final
+    session.get(OddsPapiFixture, "id1000003572513246").history_final = True
+    session.get(OddsPapiFixture, "id_reverse").history_final = True
+    session.commit()
+    assert oddspapi.reset_empty_histories(session, 35) == 1
+    assert session.get(OddsPapiFixture, "id_reverse").history_final is False
+    assert session.get(OddsPapiFixture, "id1000003572513246").history_final is True
+
+    # tournament ID changed: the old tournament's links to the league are removed
+    assert oddspapi.unlink_tournament(session, 78, 35) == 2
+    session.commit()
+    assert session.get(OddsPapiFixture, "id1000003572513246").fixture_id is None

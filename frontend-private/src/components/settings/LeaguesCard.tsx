@@ -12,11 +12,20 @@ type Props = {
   jobRunning: boolean;
   onChanged: () => void;
   onReload: (leagueId: number) => void;
+  onReloadOdds: (leagueId: number) => void;
   onError: (msg: string) => void;
 };
 
-export function LeaguesCard({ leagues, status, jobRunning, onChanged, onReload, onError }: Props) {
+export function LeaguesCard({ leagues, status, jobRunning, onChanged, onReload, onReloadOdds, onError }: Props) {
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<number | null>(null);
+
+  const reloadOdds = (lg: ConfiguredLeague) => {
+    const ok = window.confirm(
+      `${lg.name}: Betano-Quoten neu laden (OddsPapi-Turnier ${lg.oddspapi_tournament})?\n\nLädt den Spielplan des Turniers (1 OddsPapi-Request), verknüpft die Spiele neu und holt die Quotenverläufe aller offenen Spiele seit Januar 2026 – auch solcher, für die bisher keine Quoten gespeichert sind (kostenlos, ca. 5 Sekunden pro Spiel).`,
+    );
+    if (ok) onReloadOdds(lg.id);
+  };
 
   const toggle = async (lg: ConfiguredLeague) => {
     try {
@@ -58,7 +67,33 @@ export function LeaguesCard({ leagues, status, jobRunning, onChanged, onReload, 
                   </span>
                 </td>
                 <td className="py-2 font-mono text-xs">{lg.fd_code ?? "–"}</td>
-                <td className="py-2 font-mono text-xs">{lg.oddspapi_tournament ?? "–"}</td>
+                <td className="py-2 text-xs">
+                  {editing === lg.id ? (
+                    <TournamentEditor
+                      league={lg}
+                      onCancel={() => setEditing(null)}
+                      onSaved={(reload) => { setEditing(null); onChanged(); if (reload) onReloadOdds(lg.id); }}
+                      jobRunning={jobRunning}
+                      onError={onError}
+                    />
+                  ) : (
+                    <span className="flex flex-wrap items-center gap-x-2">
+                      <span className="font-mono">{lg.oddspapi_tournament ?? "–"}</span>
+                      <button type="button" onClick={() => setEditing(lg.id)} className="text-emerald-700 hover:underline">ändern</button>
+                      {lg.oddspapi_tournament && (
+                        <button
+                          type="button"
+                          disabled={jobRunning}
+                          onClick={() => reloadOdds(lg)}
+                          className="text-emerald-700 hover:underline disabled:text-slate-300 disabled:no-underline"
+                          title={jobRunning ? "Es läuft bereits ein Hintergrund-Job" : "Spielplan und Quotenverläufe neu laden"}
+                        >
+                          Quoten neu laden
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </td>
                 <td className="py-2 text-xs text-slate-500">
                   {lg.seasons ? `${lg.seasons[0]}/${String((lg.seasons[0] + 1) % 100).padStart(2, "0")} – ${lg.seasons[1]}/${String((lg.seasons[1] + 1) % 100).padStart(2, "0")} · ${lg.finished.toLocaleString("de-DE")} Spiele` : "noch keine Daten"}
                   <button
@@ -97,6 +132,57 @@ export function LeaguesCard({ leagues, status, jobRunning, onChanged, onReload, 
         />
       )}
     </Card>
+  );
+}
+
+/** Changes the OddsPapi tournament of a league (search in the stored tournament list, free) and offers a reload. */
+function TournamentEditor({ league, jobRunning, onCancel, onSaved, onError }: { league: ConfiguredLeague; jobRunning: boolean; onCancel: () => void; onSaved: (reload: boolean) => void; onError: (m: string) => void }) {
+  const [q, setQ] = useState(`${league.country ?? ""} ${league.name}`.trim());
+  const [list, setList] = useState<Tournament[]>([]);
+  const [value, setValue] = useState(league.oddspapi_tournament ? String(league.oddspapi_tournament) : "");
+  const [reload, setReload] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => { api<Tournament[]>("/admin/oddspapi/tournaments", { q }).then(setList).catch(() => setList([])); }, 250);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const id = value.trim() ? Number(value) : null;
+  const valid = id === null || (Number.isInteger(id) && id > 0);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await apiSend("PATCH", `/admin/leagues/${league.id}`, { oddspapi_tournament: id });
+      onSaved(reload && id !== null && !jobRunning);
+    } catch (e) {
+      onError(String(e instanceof Error ? e.message : e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex min-w-72 flex-col gap-1.5 rounded-md border border-slate-200 bg-slate-50 p-2">
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Turnier suchen" className="rounded border border-slate-300 bg-white px-2 py-1" />
+      <select value={list.some((t) => String(t.id) === value) ? value : ""} onChange={(e) => e.target.value && setValue(e.target.value)} className="rounded border border-slate-300 bg-white px-2 py-1">
+        <option value="">{list.length ? "– Treffer wählen –" : "keine Treffer"}</option>
+        {list.map((t) => <option key={t.id} value={t.id}>{t.category} · {t.name} (ID {t.id})</option>)}
+      </select>
+      <label className="flex items-center gap-2">
+        ID
+        <input value={value} onChange={(e) => setValue(e.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric" placeholder="leer = keines" className="w-24 rounded border border-slate-300 bg-white px-2 py-1 font-mono" />
+      </label>
+      <label className="flex items-center gap-2 text-slate-600">
+        <input type="checkbox" checked={reload && id !== null} disabled={id === null || jobRunning} onChange={(e) => setReload(e.target.checked)} />
+        danach Quoten neu laden{jobRunning ? " (erst nach dem laufenden Job möglich)" : ""}
+      </label>
+      <div className="flex gap-2">
+        <button type="button" disabled={!valid || saving} onClick={save} className="rounded bg-slate-900 px-2 py-1 text-white disabled:opacity-40">{saving ? "speichert …" : "Speichern"}</button>
+        <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-900">abbrechen</button>
+      </div>
+    </div>
   );
 }
 

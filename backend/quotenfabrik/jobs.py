@@ -21,6 +21,7 @@ import threading
 import traceback
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from pathlib import Path
 
 from sqlalchemy import select, update
@@ -71,6 +72,8 @@ def steps_for(kind: str, params: dict) -> list[str]:
     if kind == "add_league":
         return ["football_data", "api_football", "map_teams", "oddspapi_fixtures", "oddspapi_history",
                 "backup_data", "backtest", "forecast", "reports", "backup"]  # fmt: skip
+    if kind == "odds":
+        return ["oddspapi_fixtures", "oddspapi_history", "backup_data"]
     if kind == "add_ratings":
         return ["results", "backup_data", "backtest", "forecast"]
     if kind == "models":
@@ -279,6 +282,8 @@ def _handlers() -> dict[str, Handler]:
         return _oddspapi(pipeline.oddspapi_fixtures, params, log)
 
     def oddspapi_history(params, log):
+        if params.get("retry_empty"):
+            return _oddspapi(partial(pipeline.oddspapi_history, retry_empty=True), params, log)
         return _oddspapi(pipeline.oddspapi_history, params, log)
 
     def backup_step(reason):

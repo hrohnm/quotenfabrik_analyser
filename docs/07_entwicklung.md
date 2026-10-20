@@ -111,13 +111,13 @@ Einstellungsseite (`/api/admin/*`):
 |---|---|
 | `GET /api/admin/status` | Key vorhanden?, Kontingent API-Football (`/status`, kostenlos) und OddsPapi, Backups, Reserven |
 | `GET` / `PUT /api/admin/settings` | Einstellungen mit Standard, Hilfetext und Grenzen / speichern (422 bei ungültigen Werten) |
-| `GET /api/admin/leagues`, `PATCH /api/admin/leagues/{id}` | konfigurierte Ligen / aktiv schalten, Kürzel ändern |
+| `GET /api/admin/leagues`, `PATCH /api/admin/leagues/{id}` | konfigurierte Ligen / aktiv schalten, Kürzel oder OddsPapi-Turnier ändern (Verknüpfungen des alten Turniers werden gelöst) |
 | `GET /api/admin/leagues/search?q=` | Liga bei API-Football suchen (**1 Request**, roh gespeichert) |
 | `GET /api/admin/football-data/codes`, `GET /api/admin/oddspapi/tournaments?q=` | Kürzel-Liste / Turniersuche (kostenlos, aus Rohdaten bzw. `quotenfabrik/data/oddspapi_tournaments.json`) |
 | `GET /api/admin/leagues/estimate?first_season&last_season` | geschätzte API-Football-Requests für den Import |
 | `GET /api/admin/leagues/presets`, `POST /api/admin/leagues/ratings` | 27 erste Ligen Europas (`quotenfabrik/data/european_leagues.json`, IDs gegen API-Football geprüft) / als Stärke-Ligen anlegen und Ergebnisse laden (Job `add_ratings`) |
 | `POST /api/admin/leagues` | Liga anlegen und Job `add_league` starten; eine Stärke-Liga wird dabei zur vollen Liga hochgestuft (Ergebnisse bleiben) |
-| `POST /api/admin/jobs`, `GET /api/admin/jobs[/{id}]` | Job starten (`models`, `picks`, `backup`, `add_league`) / Fortschritt |
+| `POST /api/admin/jobs`, `GET /api/admin/jobs[/{id}]` | Job starten (`models`, `picks`, `backup`, `add_league`, `odds` = Betano-Quoten einer Liga neu laden: OddsPapi-Spielplan (1 Request), Verknüpfung, Quotenverläufe inkl. bisher leerer Spiele) / Fortschritt |
 | `GET /api/admin/backups[/{name}]` | Backups auflisten / herunterladen |
 
 Job `add_league` (läuft als eigener Prozess `qf jobs run <id>`, immer nur ein Job gleichzeitig): football-data →
