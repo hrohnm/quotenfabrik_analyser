@@ -72,12 +72,22 @@ def test_build_day_takes_higher_line_when_target_unreachable():
     preds = pd.DataFrame(
         rows, columns=["fixture_id", "market", "selection", "line", "probability", "base_rate", "outcome"]
     )
-    s = ComboSettings(max_legs=6)
+    s = ComboSettings(max_legs=6, min_leg_odds=1.0)
     # six times Über 1,5 (≈ 1.13 each) would only reach ≈ 2.1
     (combo,) = build_day(preds, s)
     assert s.target_min <= combo.odds <= s.target_max
     assert any(leg["line"] == 2.5 for leg in combo.legs)
     assert combo.legs[0]["line"] == 1.5  # still starts with the best leg while the target is reachable
+
+
+def test_min_leg_odds():
+    preds = day_preds()
+    preds.loc[preds["fixture_id"] == 8, "probability"] = 0.84  # estimated odds 1.13
+    s = ComboSettings()
+    assert 8 not in set(candidates(preds, s)["tore"]["fixture_id"])
+    assert 8 in set(candidates(preds, ComboSettings(min_leg_odds=1.0))["tore"]["fixture_id"])
+    for c in build_day(preds, s):
+        assert all(leg["odds"] >= s.min_leg_odds for leg in c.legs)
 
 
 def test_build_day_without_enough_fixtures():

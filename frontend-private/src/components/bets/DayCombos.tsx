@@ -49,7 +49,7 @@ export function DayCombos() {
           <p className="max-w-3xl text-sm text-slate-500">
             Pro Tag je eine Kombi aus Tore-Über-, Team-Tore-Über- und Doppelte-Chance-Tipps über alle Spiele, Zielquote 5–10.
             Die Kombis ziehen abwechselnd die jeweils besten Tipps und nutzen jedes Spiel möglichst nur einmal.
-            Quoten sind geschätzt (faire Quote abzüglich Buchmacher-Marge).
+            Tipps mit sehr niedriger Quote (Standard: unter 1,20) werden ausgelassen. Quoten sind geschätzt (faire Quote abzüglich Buchmacher-Marge).
           </p>
         </div>
         <div className="flex items-center gap-1 text-sm">
