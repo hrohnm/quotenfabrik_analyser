@@ -185,10 +185,14 @@ def build_picks(engine: Engine, league_id: int, run_id: int | None = None) -> di
     matches = load_matches(engine, league_id)
     fixtures = matches[matches["fixture_id"].isin(preds["fixture_id"].unique())][
         ["fixture_id", "season", "matchday", "kickoff", "home_id", "away_id"]
-    ]
+    ].copy()
+    cup = fixtures["matchday"].isna().all()  # European cups: no matchdays, results only
+    if cup:  # group by ISO week instead of matchday
+        iso = fixtures["kickoff"].dt.isocalendar()
+        fixtures["matchday"] = iso["year"].astype(int) * 100 + iso["week"].astype(int)
     rates = base_rates(matches, fixtures)
     preds = preds.merge(rates, on=["fixture_id", "market", "selection", "line"], how="left")
-    reasons = pattern_reasons(matches, fixtures)
+    reasons = {} if cup else pattern_reasons(matches, fixtures)  # patterns are validated for leagues only
 
     rows = []
     for name, profile in profiles().items():

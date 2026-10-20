@@ -150,7 +150,9 @@ def test_ratings_leagues_are_kept_out_of_full_league_lists(monkeypatch):
     assert [lg.id for lg in app_config.ratings_leagues()] == [39]  # inactive ratings league is left out
     assert [lg.id for lg in app_config.cup_leagues()] == [2]
     assert [lg.id for lg in app_config.all_leagues()] == [78, 39, 88, 2]
-    assert jobs.steps_for("add_ratings", {}) == ["results", "backup_data"]
+    assert jobs.steps_for("add_ratings", {}) == ["results", "backup_data", "backtest", "forecast"]
+    assert app_config.shown_league_ids() == [78, 2]  # frontend + forecasts: full leagues and cups
+    assert app_config.is_cup(2) and not app_config.is_cup(39)
 
 
 def test_presets_are_verified_european_top_divisions():
@@ -188,3 +190,15 @@ def test_load_matches_all_rounds(engine):
     assert list(load_matches(engine, 179)["fixture_id"]) == [1]
     assert sorted(load_matches(engine, 179, all_rounds=True)["fixture_id"]) == [1, 2]
     assert sorted(load_leagues(engine, [179], all_rounds={179})["fixture_id"]) == [1, 2]
+
+
+def test_round_labels():
+    from quotenfabrik.api.labels import round_label
+
+    assert round_label("League Stage - 3") == "Ligaphase, 3. Spieltag"
+    assert round_label("Group B - 2") == "Gruppe B, 2. Spieltag"
+    assert round_label("Round of 16") == round_label("8th Finals") == "Achtelfinale"
+    assert round_label("2nd Qualifying Round") == "2. Qualifikationsrunde"
+    assert round_label("Regular Season - 7") == "7. Spieltag"
+    assert round_label("Final") == "Finale"
+    assert round_label(None) is None

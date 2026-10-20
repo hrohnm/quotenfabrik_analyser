@@ -72,7 +72,7 @@ def steps_for(kind: str, params: dict) -> list[str]:
         return ["football_data", "api_football", "map_teams", "oddspapi_fixtures", "oddspapi_history",
                 "backup_data", "backtest", "forecast", "reports", "backup"]  # fmt: skip
     if kind == "add_ratings":
-        return ["results", "backup_data"]
+        return ["results", "backup_data", "backtest", "forecast"]
     if kind == "models":
         return ["backtest", "forecast"]
     if kind == "picks":
@@ -206,7 +206,20 @@ Handler = Callable[[dict, Callable[[str], None]], str]
 
 
 def _target_leagues(params: dict) -> list[int]:
-    return [params["league_id"]] if params.get("league_id") else app_config.league_ids()
+    """Leagues of a job: the given league, the cups of an add_ratings job, else all leagues and cups."""
+    if params.get("league_id"):
+        return [params["league_id"]]
+    if params.get("league_ids"):  # add_ratings: only the cups get forecasts
+        cups = [i for i in params["league_ids"] if app_config.is_cup(i)]
+        if not cups:
+            raise StepSkipped("keine Europapokale ausgewählt – Stärke-Ligen bekommen keine Prognosen")
+        return cups
+    return app_config.shown_league_ids()
+
+
+CUP_BACKTEST_SEASONS = (
+    2  # cups: retroactive forecasts for the current and previous season (big European pool)
+)
 
 
 def _seasons(params: dict) -> list[int]:
@@ -282,7 +295,8 @@ def _handlers() -> dict[str, Handler]:
         out = []
         for league_id in _target_leagues(params):
             lg = app_config.league(league_id)
-            seasons = list(range(min(lg.first_season + 1, current_season()), current_season() + 1))
+            first = current_season() - CUP_BACKTEST_SEASONS + 1 if lg.kind == "cup" else lg.first_season + 1
+            seasons = list(range(min(first, current_season()), current_season() + 1))
             log(f"Liga {league_id}: Saisons {seasons[0]}–{seasons[-1]}")
             result = run_backtest(engine, league_id, seasons)
             picks = build_picks(engine, league_id, result["model_run_id"])["picks"]

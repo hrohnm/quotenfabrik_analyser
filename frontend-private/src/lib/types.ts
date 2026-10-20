@@ -51,6 +51,12 @@ export type Fixture = {
   league?: League;
   season: number;
   round: string | null;
+  /** German label of the round, e.g. "Achtelfinale" or "Ligaphase, 3. Spieltag" */
+  round_label?: string | null;
+  /** European cup (results only: no goalscorers, patterns or statistics) */
+  cup?: boolean;
+  /** Second leg of a cup tie: first leg, score from the perspective of this fixture (home:away) */
+  first_leg?: { fixture_id: number; kickoff: string; finished: boolean; score: [number | null, number | null] | null } | null;
   matchday: number | null;
   kickoff: string;
   status: string;

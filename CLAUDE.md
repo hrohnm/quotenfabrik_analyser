@@ -85,9 +85,11 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 - **Ligen und Einstellungen kommen aus der DB** (`app.leagues`, `app.settings`, Zugriff nur über `quotenfabrik/app_config.py`);
   `QF_LEAGUES` & Co. sind nur Fallback. Neue Schwellen/Parameter als `SettingDef` in `app_config.SETTINGS` ergänzen.
   Ligaarten: `full` (alles, `app_config.league_ids()`), `ratings` (nur Ergebnisse für die Stärkeskala,
-  `app_config.ratings_leagues()`) und `cup` (Europapokal, verbindet die Ligen, `app_config.cup_leagues()`) –
-  Stärke-Ligen und Pokale nie in Frontend, Quoten-Snapshots oder Prognose-Schleifen aufnehmen.
-  Pokalspiele: Abrechnung nach 90 Minuten (`ft_*` = API `score.fulltime`), Endspiele neutral, keine eigene Ligaebene.
+  `app_config.ratings_leagues()`) und `cup` (Europapokal, verbindet die Ligen, `app_config.cup_leagues()`).
+  Frontend und Prognosen: `app_config.shown_league_ids()` (volle Ligen + Pokale); Stärke-Ligen nie anzeigen.
+  Quoten-Snapshots und Details nur für volle Ligen. Pokalspiele: Prognose mit dem Europa-Pool
+  (`service.run_cup_forecast/backtest`), Abrechnung nach 90 Minuten (`ft_*` = API `score.fulltime`), Endspiele neutral,
+  keine eigene Ligaebene, keine Torschützen/Pattern.
 - **Nach jedem Liga-Import entsteht automatisch ein Backup** (`backups/`, ersetzt standardmäßig den Seed), damit
   verbrauchte Requests nicht verloren gehen.
 - Teams werden intern über die **API-Football Team-ID** identifiziert; football-data-Namen werden über

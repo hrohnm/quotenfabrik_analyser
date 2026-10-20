@@ -32,7 +32,7 @@ export default async function FixturePage({ params }: { params: Promise<{ id: st
       <Hero data={data} />
       {prediction?.kind === "backtest" && (
         <p className="-mt-3 text-center text-xs text-slate-400">
-          Rückwirkende Prognose: Modell nur mit Spielen vor diesem Spieltag trainiert (Walk-Forward), Torschützen mit bekannter Aufstellung.
+          Rückwirkende Prognose: Modell nur mit Spielen vor diesem {data.fixture.cup ? "Spiel" : "Spieltag"} trainiert (Walk-Forward){data.fixture.cup ? "." : ", Torschützen mit bekannter Aufstellung."}
         </p>
       )}
       <section className="space-y-3">

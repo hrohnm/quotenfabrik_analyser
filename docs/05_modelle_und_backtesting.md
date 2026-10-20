@@ -76,6 +76,9 @@ keine eigene Ligaebene; Endspiele zählen als neutraler Platz, Europapokalspiele
 (Qualifikation kleiner Länder) starten mit dem Aufsteiger-Prior. Ergebnis (Test 2022/23–2026/27, 4.044 Pokalspiele,
 Log-Loss 1X2): 0,948 gegenüber 1,042 ohne Pokalspiele (Ligen gleich stark) und 1,044 Basisrate. Die eigenen Ligen
 gewinnen durch den Europa-Pool nichts messbar und werden weiter nur mit verbundenen Ligen gerechnet.
+Im Betrieb (`service.run_cup_forecast` / `run_cup_backtest`) werden Pokalspiele mit dem Europa-Pool vorhergesagt
+(Fit je Kalenderwoche, Halbzeitmodelle ebenso), ohne Torschützen und Pattern; Tipps wie in der Liga, der
+„Ligaschnitt“ ist dort der Schnitt des Wettbewerbs. Rückwirkende Prognosen: laufende und vorige Pokalsaison.
 
 Halbzeit-Varianten (getrennte Modelle vs. fester Ligaanteil vs. teamspezifischer Anteil) wurden verglichen; getrennte
 Modelle mit stärkerer Regularisierung waren minimal besser. Unterschiede sind klein – Halbzeit-Tore sind schwer vorherzusagen.
