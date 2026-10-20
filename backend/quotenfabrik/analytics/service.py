@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from quotenfabrik.analytics import evaluation as ev
 from quotenfabrik.analytics.data import (
     league_name,
+    load_competitions,
     load_goal_events,
     load_matches,
     load_player_matches,
@@ -571,8 +572,10 @@ def run_backtest(
 # --------------------------------------------------------------------------- European cups
 #
 # Cup competitions are forecast with the European pool (all leagues + cups, one strength scale, validated in
-# docs/15_europapokal.md). Cups are imported results-only, so there are no goalscorer predictions and no
-# patterns. Fixtures are grouped by ISO week (cups have no matchdays); finals are on neutral ground.
+# docs/15_europapokal.md). Goalscorers use the player data of every competition with match details (full
+# leagues and the recent cup seasons), so a Bundesliga team's scorers come from its league matches too; teams
+# without player data get none. Patterns are computed over all competitions of the pool (baseline: all of
+# Europe). Fixtures are grouped by ISO week (cups have no matchdays); finals are on neutral ground.
 
 
 def _cup_teams(pool: pd.DataFrame, season: int) -> dict[int, int]:
@@ -581,7 +584,19 @@ def _cup_teams(pool: pd.DataFrame, season: int) -> dict[int, int]:
     return {**by_season.get(season - 1, {}), **by_season.get(season, {})}
 
 
-def _cup_rows(run_id: int, model, fixtures: pd.DataFrame, with_outcomes: bool) -> list[dict]:
+def _cup_data(engine: Engine) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """European pool plus matches, player matches and goal events of all competitions with player data."""
+    from quotenfabrik.app_config import cup_leagues, league_ids
+
+    pool = europe_pool(engine)
+    matches, players, goals = load_competitions(engine, league_ids(), [lg.id for lg in cup_leagues()])
+    return pool, matches, players, goals
+
+
+def _cup_rows(
+    run_id: int, model, fixtures: pd.DataFrame, with_outcomes: bool, scorer_model: ScorerModel,
+    players: pd.DataFrame, goals: pd.DataFrame, as_of: pd.Timestamp,
+) -> list[dict]:  # fmt: skip
     rows = []
     for f in fixtures.itertuples(index=False):
         pred = model.predict(f.fixture_id, f.home_id, f.away_id, cup=True, neutral=f.round == "Final")
@@ -591,6 +606,20 @@ def _cup_rows(run_id: int, model, fixtures: pd.DataFrame, with_outcomes: bool) -
                 row = _prediction_row(run_id, f.fixture_id, group, p)
                 if with_outcomes:
                     row["outcome"] = outcomes.get(_key(p.market, p.selection, p.line))
+                rows.append(row)
+        # backtest: the actual line-up where the cup fixture has details, otherwise the likely squad
+        lineup = players[(players["fixture_id"] == f.fixture_id) & players["position"].isin(["D", "M", "F"])]
+        lineup = lineup[lineup["player_id"].isin(scorer_model.players.keys())]
+        squads = [lineup[["player_id", "team_id", "is_starter"]]] if with_outcomes else []
+        for team in (f.home_id, f.away_id):
+            if not with_outcomes or lineup[lineup["team_id"] == team].empty:
+                squads.append(_squad(players, scorer_model, team, as_of))
+        s_out = scorer_outcomes(f.fixture_id, players, goals) if with_outcomes else {}
+        for p in scorer_model.probabilities(pd.concat(squads), pred.lh, pred.la, f.home_id):
+            if p.probability >= MIN_SCORER_PROBABILITY or p.market == "scorer_first":
+                row = _prediction_row(run_id, f.fixture_id, "scorers", p)
+                if with_outcomes:
+                    row["outcome"] = s_out.get((p.market, p.selection, None))
                 rows.append(row)
     return rows
 
@@ -602,7 +631,8 @@ def run_cup_forecast(
     params: PoissonParams | None = None,
     as_of: pd.Timestamp | None = None,
 ) -> dict:
-    """Forecast of the cup fixtures in the next ``days_ahead`` days (European pool, no scorers/patterns)."""
+    """Forecast of the cup fixtures in the next ``days_ahead`` days (European pool, scorers and patterns from
+    all competitions)."""
     params = params or model_params()
     as_of = as_of or pd.Timestamp(datetime.now(UTC))
     matches = load_matches(engine, league_id)
@@ -614,21 +644,32 @@ def run_cup_forecast(
     if upcoming.empty:
         return {"fixtures": 0}
     season = int(upcoming["season"].iloc[0])
-    pool = europe_pool(engine)
+    pool, all_matches, players, goals = _cup_data(engine)
     teams = set(upcoming["home_id"]) | set(upcoming["away_id"])
     model = fit_match_model(pool, as_of, params, teams, _cup_teams(pool, season))
+    scorer_model = ScorerModel().fit(players, all_matches, as_of)
+    ctx = PatternContext.build(pool, as_of, goals, players)
     with Session(engine) as session:
         run = ModelRun(
             kind="forecast", model_version=MODEL_VERSION, league_id=league_id, as_of=as_of.to_pydatetime(),
-            params={"poisson": dataclasses.asdict(params), "leagues": _pool_leagues(pool, league_id), "cup": True},
+            params={"poisson": dataclasses.asdict(params), "scorers": dataclasses.asdict(scorer_model.params),
+                    "leagues": _pool_leagues(pool, league_id), "cup": True},
         )  # fmt: skip
         session.add(run)
         session.flush()
-        rows = _cup_rows(run.id, model, upcoming, with_outcomes=False)
+        rows = _cup_rows(run.id, model, upcoming, False, scorer_model, players, goals, as_of)
         for row in rows:
             row["predicted_at"] = as_of.to_pydatetime()
+        patterns = [
+            {"model_run_id": run.id, "fixture_id": f.fixture_id, "market_group": p.group, "key": p.key,
+             "label": p.label, "scope": p.scope, "value": p.value, "n": p.n, "baseline": p.baseline,
+             "signal": p.signal, "details": p.details or None}
+            for f in upcoming.itertuples(index=False)
+            for p in compute_patterns(ctx, f.home_id, f.away_id)
+        ]  # fmt: skip
         upsert(session, Prediction, rows, update=False)
-        run.summary = {"fixtures": len(upcoming), "predictions": len(rows), "patterns": 0}
+        upsert(session, PatternResultRow, patterns, update=False)
+        run.summary = {"fixtures": len(upcoming), "predictions": len(rows), "patterns": len(patterns)}
         session.commit()
         return {"model_run_id": run.id, **run.summary}
 
@@ -642,7 +683,7 @@ def run_cup_backtest(
     params = params or model_params()
     seasons = list(seasons)
     matches = load_matches(engine, league_id)
-    pool = europe_pool(engine)
+    pool, all_matches, players, goals = _cup_data(engine)
     test = matches[matches["season"].isin(seasons) & matches["finished"]].copy()
     iso = test["kickoff"].dt.isocalendar()
     test["week"] = iso["year"].astype(int) * 100 + iso["week"].astype(int)
@@ -660,7 +701,8 @@ def run_cup_backtest(
             as_of = week["kickoff"].min()
             teams = set(week["home_id"]) | set(week["away_id"])
             model = fit_match_model(pool, as_of, params, teams, _cup_teams(pool, int(week["season"].iloc[0])))
-            rows = _cup_rows(run.id, model, week, with_outcomes=True)
+            scorer_model = ScorerModel().fit(players, all_matches, as_of)
+            rows = _cup_rows(run.id, model, week, True, scorer_model, players, goals, as_of)
             for row in rows:
                 row["predicted_at"] = as_of.to_pydatetime()
             upsert(session, Prediction, rows, update=False)

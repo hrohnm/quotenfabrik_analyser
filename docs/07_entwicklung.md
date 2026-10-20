@@ -49,7 +49,7 @@ Details zum Seed: `seed/README.md`.
 |---|---|---|
 | `qf status` | Quota und Abo-Ende (warnt 7 Tage vorher) | 0 |
 | `qf ingest football-data --seasons 2015-2026` | CSVs laden, roh speichern, normalisieren | 0 |
-| `qf ingest results [--seasons aktuell] [--league 39]` | Nur Ergebnisse der Stärke-Ligen und Europapokale (Einstellungsseite → „Stärke-Ligen und Europapokal“), ohne Details | 1 pro Saison und Wettbewerb |
+| `qf ingest results [--seasons aktuell] [--league 39]` | Ergebnisse der Stärke-Ligen und Europapokale (Einstellungsseite → „Stärke-Ligen und Europapokal“); Europapokale der laufenden und vorigen Saison zusätzlich mit Spieldetails (Aufstellungen, Tore, Spielerstatistik für Torschützen) | 1 pro Saison und Wettbewerb, Pokal-Details 1 pro 20 Spiele |
 | `qf ingest api-football --seasons 2015-2026 [--half-stats] [--no-details] [--no-injuries]` | Spielplan, Ergebnisse, Events, Lineups, Team-/Spieler-Stats, Ausfälle; bereits geladene Details werden übersprungen | ≈20 pro Saison (+≈306 mit `--half-stats` ab 2024) |
 | `qf map-teams` | football-data-Teamnamen ↔ API-Team-IDs, Spiele verknüpfen, Report | 0 |
 | `qf odds snapshot` | aktuelle Quoten (nur Betano/Pinnacle/Bet365, nur Änderungen) | 2–4 |
@@ -57,6 +57,7 @@ Details zum Seed: `seed/README.md`.
 | `qf oddspapi status` / `markets` / `fixtures` / `history` / `players` / `update` | Betano-Quoten über OddsPapi (siehe `08_betano_quellen.md`) | OddsPapi: 0–1 je Befehl (Free-Plan 250/Monat) |
 | `qf model evaluate --seasons 2022-2026` | Walk-Forward-Evaluation aller Marktgruppen ohne Quoten → `analytics.*` + `docs/09_modell_evaluation.md` | 0 |
 | `qf model joint-eval [--validation 2018-2020 --test 2021-2026]` | Gemeinsames Modell über verbundene Ligen gegen getrennte Modelle (Walk-Forward, 1X2/Ü-U/BTTS, Auf-/Absteiger) → `docs/14_gemeinsames_modell.md` | 0 |
+| `qf model form-eval` | Form-Pattern (Punkte minus Modell-Erwartung der letzten 6 Spiele aller Wettbewerbe) gegen das nächste Spiel → `docs/17_form.md` | 0 |
 | `qf model cup-eval [--validation 2019-2021 --test 2022-2026]` | Europapokal: gemeinsames Modell über alle Ligen und Pokale, Walk-Forward auf Pokalspielen (Basisrate, ohne Pokalspiele, gemeinsam, eigener Heimvorteil) + Auswirkung auf die eigenen Ligen → `docs/15_europapokal.md` | 0 |
 | `qf model forecast --days 10` (auch Europapokale, `--league 2`) | Prognosen + Pattern für kommende Spiele → `analytics.predictions` / `analytics.pattern_results` | 0 |
 | `qf model backtest --seasons 2016-2026` | rückwirkende Walk-Forward-Prognosen aller beendeten Spiele inkl. Ergebnis → Explorer/Auswertung | 0 |
@@ -98,7 +99,7 @@ Installation: `docs/13_deployment_vps.md`):
 | `GET /api/meta` | Ligen, Saisons, Teams, Märkte, Labels |
 | `GET /api/days?from&to` | Tage mit Spielen (Kalender Europe/Berlin) |
 | `GET /api/fixtures?date=YYYY-MM-DD` (oder `from`/`to`, `season`, `team`) | Spiele mit Kurzprognose (1X2, Ü2,5, BTTS) |
-| `GET /api/fixtures/{id}` | Detail: alle Märkte (je Auswahl `betano`, `pinnacle` ohne Marge, `edge` = p × Betano − 1; letzte Quote vor Anpfiff aus OddsPapi), Torschützen, Pattern (vor Anpfiff berechnet), Statistik, Tore |
+| `GET /api/fixtures/{id}` | Detail: letzte 10 Spiele beider Teams in allen Wettbewerben mit Form (`form`), alle Märkte (je Auswahl `betano`, `pinnacle` ohne Marge, `edge` = p × Betano − 1; letzte Quote vor Anpfiff aus OddsPapi), Torschützen, Pattern (vor Anpfiff berechnet), Statistik, Tore |
 | `GET /api/explorer?market&selection&line&…` | Prognosen eines Marktes über viele Spiele + Zusammenfassung |
 | `GET /api/stats/overview|markets|confidence|calibration|seasons|scorers` | Trefferquoten und Kalibrierung |
 | `GET /api/stats/picks?profile&season` | Trefferquote der 3 Tipps pro Spiel (einzeln, Kombi, je Saison/Rang/Markt) |

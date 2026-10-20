@@ -35,7 +35,7 @@ export function Summary({ data }: { data: FixtureDetail }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      <Card title="Spielausgang" className={f.cup ? "lg:col-span-3" : "lg:col-span-2"}>
+      <Card title="Spielausgang" className="lg:col-span-2">
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {tiles.map((t) => {
             const s = m1x2.selections.find((x) => x.selection === t.sel);
@@ -73,7 +73,7 @@ export function Summary({ data }: { data: FixtureDetail }) {
         </div>
       </Card>
 
-      {!data.fixture.cup && <div className="space-y-4">
+      <div className="space-y-4">
         <Card title="Wahrscheinlichste Torschützen">
           {scorers.length === 0 ? (
             <p className="text-sm text-slate-500">Keine Prognose vorhanden.</p>
@@ -123,7 +123,7 @@ export function Summary({ data }: { data: FixtureDetail }) {
             </ul>
           )}
         </Card>
-      </div>}
+      </div>
     </div>
   );
 }

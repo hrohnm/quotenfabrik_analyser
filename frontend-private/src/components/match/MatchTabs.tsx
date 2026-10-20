@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FixtureDetail } from "@/lib/types";
+import { FormPanel } from "./FormPanel";
 import { MarketsPanel } from "./MarketsPanel";
 import { PatternsPanel } from "./PatternsPanel";
 import { ScorersPanel } from "./ScorersPanel";
@@ -9,6 +10,7 @@ import { StatsPanel } from "./StatsPanel";
 
 const TABS = [
   { key: "maerkte", label: "Märkte" },
+  { key: "form", label: "Letzte Spiele" },
   { key: "torschuetzen", label: "Torschützen" },
   { key: "pattern", label: "Pattern" },
   { key: "statistik", label: "Statistik" },
@@ -25,8 +27,7 @@ export function MatchTabs({ data }: { data: FixtureDetail }) {
     setTab(key);
     window.history.replaceState(null, "", `#${key}`);
   };
-  // European cups: results only – no goalscorers, patterns or match statistics
-  const tabs = data.fixture.cup ? TABS.filter((t) => t.key === "maerkte") : TABS;
+  const tabs = TABS;
   const counts: Record<string, number | undefined> = {
     torschuetzen: data.scorers.length || undefined,
     pattern: data.patterns.filter((p) => p.signal !== null && p.group !== "scorers").length || undefined,
@@ -52,14 +53,16 @@ export function MatchTabs({ data }: { data: FixtureDetail }) {
       </div>
       {data.fixture.cup && (
         <p className="text-xs text-slate-500">
-          Europapokal: Prognose aus der gemeinsamen Stärkeskala aller Ligen (Nachweis: docs/15_europapokal.md). Abgerechnet wird nach 90 Minuten;
-          Torschützen, Pattern und Spielstatistik gibt es für Pokalspiele nicht.
+          Europapokal: Prognose aus der gemeinsamen Stärkeskala aller Ligen (Nachweis: docs/15_europapokal.md), abgerechnet nach 90 Minuten.
+          Torschützen aus allen Wettbewerben mit Spielerdaten (volle Ligen und Europapokal); Teams ohne Spielerdaten haben keine.
+          Pattern über alle Wettbewerbe, Vergleichswert ist der Schnitt aller Ligen.
         </p>
       )}
-      {(tab === "maerkte" || data.fixture.cup) && <MarketsPanel markets={data.markets} fixture={data.fixture} odds={data.odds} />}
-      {!data.fixture.cup && tab === "torschuetzen" && <ScorersPanel data={data} />}
-      {!data.fixture.cup && tab === "pattern" && <PatternsPanel patterns={data.patterns} fixture={data.fixture} />}
-      {!data.fixture.cup && tab === "statistik" && <StatsPanel data={data} />}
+      {tab === "maerkte" && <MarketsPanel markets={data.markets} fixture={data.fixture} odds={data.odds} />}
+      {tab === "form" && <FormPanel data={data} />}
+      {tab === "torschuetzen" && <ScorersPanel data={data} />}
+      {tab === "pattern" && <PatternsPanel patterns={data.patterns} fixture={data.fixture} />}
+      {tab === "statistik" && <StatsPanel data={data} />}
     </div>
   );
 }

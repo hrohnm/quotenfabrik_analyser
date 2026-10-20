@@ -134,6 +134,8 @@ export type FixtureDetail = {
   picks: Record<string, Pick[]>;
   stats: { home: Record<string, TeamStats>; away: Record<string, TeamStats> };
   goals: { minute: number; extra_minute: number | null; team_id: number; player_id: number | null; player_name: string; detail: string; comments: string | null }[];
+  /** last matches in all competitions before kickoff and the form (points above/below the model's expectation) */
+  form?: Record<"home" | "away", TeamForm>;
   /** last Betano price change; closing = prices are the last ones before kickoff */
   odds?: { betano_at: string | null; closing: boolean };
 };
@@ -227,3 +229,31 @@ export type BetBlock = {
 export type BetStats = { total: BetBlock; open: number; by_source: Record<string, BetBlock>; curve: { at: string; profit: number }[] };
 
 export type NewBetLeg = Omit<BetLegItem, "outcome" | "kickoff" | "fixture_status" | "ft_home" | "ft_away">;
+
+export type TeamForm = {
+  form: {
+    matches: number;
+    ppg: number | null;
+    goal_diff: number | null;
+    expected_ppg: number | null;
+    /** points minus expected points per match (null with fewer than 4 predicted matches) */
+    residual: number | null;
+    n_expected: number;
+    /** S/U/N, oldest first */
+    sequence: string;
+    signal: "high" | "low" | null;
+  };
+  matches: {
+    fixture_id: number;
+    kickoff: string;
+    league: { id: number; name: string | null; logo: string };
+    round_label: string | null;
+    venue: "home" | "away";
+    opponent: { id: number; name: string };
+    gf: number;
+    ga: number;
+    result: "S" | "U" | "N";
+    points: number;
+    xpts: number | null;
+  }[];
+};
