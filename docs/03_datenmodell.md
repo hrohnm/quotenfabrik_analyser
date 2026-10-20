@@ -226,11 +226,26 @@ Geplant (öffentliches Frontend):
 ```sql
 app.users         (id uuid pk, email citext unique, password_hash text, role text, created_at timestamptz)
 app.subscriptions (id uuid pk, user_id uuid, plan text, status text, provider_ref text, valid_until timestamptz)
-app.bets (                         -- eigenes Wett-Tracking (privates Frontend)
-  id uuid pk, user_id uuid, fixture_id bigint, market text, selection text, line numeric,
-  bookmaker text, odd numeric(8,3), stake numeric(10,2), placed_at timestamptz,
-  closing_odd numeric(8,3), result text check (result in ('open','won','lost','void','half_won','half_lost')),
-  payout numeric(10,2), notes text, value_bet_ref jsonb
+```
+
+Wett-Tracking (Migration `0009`, Seite `/wetten`): eine Wette = Einzelwette oder Kombi mit ihren Tipps (Beinen).
+Beine mit Spiel und Modell-Markt werden nach Spielende automatisch abgerechnet (90 Minuten, wie die Prognosen);
+eine Wette ist verloren, sobald ein Bein verloren ist, und gewonnen, wenn alle Beine gewonnen sind.
+
+```sql
+app.bets (
+  id bigint pk, placed_at timestamptz default now(),
+  source text default 'manuell',       -- tageskombi | tipps | manuell
+  label text not null, bookmaker text default 'Betano',
+  stake numeric(10,2), odds numeric(8,3),  -- tatsächliche Quote der Wette
+  probability float,                   -- Modell-Chance bei Abgabe (für Erwartung vs. Ergebnis)
+  status text default 'open' check (status in ('open','won','lost','void')),
+  payout numeric(10,2), settled_at timestamptz, notes text
+);
+app.bet_legs (
+  id bigint pk, bet_id bigint → app.bets on delete cascade, fixture_id bigint → core.fixtures (null = freier Text),
+  market text, selection text, line numeric(5,2), label text not null,
+  probability float, odds numeric(8,3), outcome boolean
 );
 ```
 

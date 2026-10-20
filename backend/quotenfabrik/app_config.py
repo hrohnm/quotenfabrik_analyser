@@ -54,6 +54,17 @@ SETTINGS: list[SettingDef] = [
     *_profile("mutig", "Mutig", 0.45, 0.72, 1.0),
     SettingDef("picks.default_profile", "Tipps – Allgemein", "Standardprofil", "Profil auf Spieltagsübersicht und "
                "Tipps-Seite.", "choice", "ausgewogen", choices=tuple(PROFILE_KEYS)),
+    SettingDef("combos.target_min", "Tageskombis", "Zielquote ab", "Kombis werden aufgefüllt, bis die geschätzte "
+               "Quote diesen Wert erreicht.", "float", 5.0, 1.5, 100),
+    SettingDef("combos.target_max", "Tageskombis", "Zielquote bis", "Tipps, die darüber hinausführen, werden "
+               "übersprungen.", "float", 10.0, 2, 200),
+    SettingDef("combos.min_p", "Tageskombis", "Wahrscheinlichkeit je Tipp ab", "Untere Grenze je Kombi-Tipp.", "float",
+               0.55, 0.3, 0.95, percent=True),
+    SettingDef("combos.max_p", "Tageskombis", "Wahrscheinlichkeit je Tipp bis", "Obere Grenze (sehr sichere Tipps "
+               "bringen kaum Quote, aber zahlen trotzdem die Marge).", "float", 0.85, 0.35, 0.99, percent=True),
+    SettingDef("combos.margin", "Tageskombis", "Buchmacher-Marge je Tipp", "Für die geschätzte Quote: faire Quote "
+               "× (1 − Marge).", "float", 0.05, 0, 0.2, percent=True),
+    SettingDef("combos.max_legs", "Tageskombis", "Höchstens Tipps je Kombi", "Mehr Tipps = mehr Marge.", "int", 8, 2, 15),
     SettingDef("model.xi", "Modell (wirkt nach „Modelle neu berechnen“)", "Zeitgewichtung ξ pro Tag",
                "Höher = jüngere Spiele zählen mehr (0,0015 ≈ Halbwertszeit 15 Monate).", "float", 0.0015, 0, 0.01),
     SettingDef("model.reg", "Modell (wirkt nach „Modelle neu berechnen“)", "Regularisierung",
@@ -152,6 +163,10 @@ def validate(values: dict[str, Any]) -> dict[str, Any]:
     for key, label in PROFILE_KEYS.items():
         if merged[f"picks.{key}.min_p"] >= merged[f"picks.{key}.max_p"]:
             raise SettingsError(f"Profil {label}: „ab“ muss kleiner als „bis“ sein")
+    for lo, hi, label in (("combos.min_p", "combos.max_p", "Wahrscheinlichkeit je Tipp"),
+                          ("combos.target_min", "combos.target_max", "Zielquote")):  # fmt: skip
+        if merged[lo] >= merged[hi]:
+            raise SettingsError(f"Tageskombis, {label}: „ab“ muss kleiner als „bis“ sein")
     return clean
 
 
@@ -189,6 +204,20 @@ def model_pool(engine, league_id: int):
             ratings = {lg.id for lg in ratings_leagues()}
             return load_leagues(engine, linked, all_rounds=ratings)
     return load_matches(engine, league_id)
+
+
+def combo_settings():
+    """Settings of the daily combos (configuration page)."""
+    from quotenfabrik.analytics.combos import ComboSettings
+
+    return ComboSettings(
+        target_min=get("combos.target_min"),
+        target_max=get("combos.target_max"),
+        min_p=get("combos.min_p"),
+        max_p=get("combos.max_p"),
+        margin=get("combos.margin"),
+        max_legs=get("combos.max_legs"),
+    )
 
 
 def model_params():

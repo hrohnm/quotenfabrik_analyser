@@ -16,6 +16,7 @@ from quotenfabrik.ingest.db_utils import raw_response_saver
 from quotenfabrik.models import OddsPapiFixture
 from quotenfabrik.reports import (
     BETANO_REPORT,
+    COMBO_REPORT,
     CUP_REPORT,
     JOINT_REPORT,
     ODDS_REPORT,
@@ -31,6 +32,7 @@ ingest_app = typer.Typer(help="Daten importieren", no_args_is_help=True)
 odds_app = typer.Typer(help="Quoten-Archiv (API-Football)", no_args_is_help=True)
 oddspapi_app = typer.Typer(help="Betano-Quoten über OddsPapi", no_args_is_help=True)
 model_app = typer.Typer(help="Modelle, Prognosen und Evaluation (Phase 2)", no_args_is_help=True)
+combos_app = typer.Typer(help="Tageskombis (Über-Tore, Team-Tore, Doppelte Chance)", no_args_is_help=True)
 seed_app = typer.Typer(help="Datenbank-Seed exportieren/importieren", no_args_is_help=True)
 value_app = typer.Typer(help="Value-Suche mit Quoten (Phase 3)", no_args_is_help=True)
 picks_app = typer.Typer(help="3 Tipps pro Spiel und ihre Trefferquote", no_args_is_help=True)
@@ -41,6 +43,7 @@ app.add_typer(model_app, name="model")
 app.add_typer(value_app, name="value")
 app.add_typer(picks_app, name="picks")
 app.add_typer(seed_app, name="seed")
+app.add_typer(combos_app, name="combos")
 
 
 def _seasons(spec: str) -> list[int]:
@@ -477,6 +480,20 @@ def value_betano(
 
 
 # --------------------------------------------------------------------------- picks
+
+
+@combos_app.command("report")
+def combos_report(report: Path = typer.Option(COMBO_REPORT, help="Markdown-Bericht")) -> None:
+    """Tageskombis: Erfolgschance auf den rückwirkenden Prognosen aller Ligen und Pokale → Bericht."""
+    from quotenfabrik.analytics import combos
+    from quotenfabrik.analytics.data import league_name
+
+    engine = get_engine()
+    leagues = app_config.shown_league_ids()
+    preds = combos.load_backtest(engine, leagues)
+    names = [league_name(engine, lg) for lg in leagues]
+    report.write_text(combos.report(preds, app_config.combo_settings(), names), encoding="utf-8")
+    typer.echo(f"Bericht: {report}")
 
 
 @picks_app.command("build")

@@ -12,7 +12,7 @@
 - [x] football-data.co.uk 2015/16–2026/27 importieren
 - [x] Team-Mapping + Verknüpfung, Datenqualitäts-Report (fehlende Spiele, ungemappte Teams, xG-Abdeckung)
 - [x] Quoten-Snapshot-Job gebaut (`qf odds snapshot`, nur Archivaufbau, ≈30 Requests/Tag – wird erst in Phase 3 ausgewertet)
-- [ ] **Dauerhafte Umgebung**: PostgreSQL + Snapshot-Job + tägliche Aktualisierung auf einem dauerhaft laufenden Rechner/Server
+- [x] **Dauerhafte Umgebung**: PostgreSQL + Snapshot-Job + tägliche Aktualisierung auf einem dauerhaft laufenden Rechner/Server
       (die Cloud-Entwicklungsumgebung ist flüchtig – die dort importierten Daten gehen beim Beenden verloren)
 - [x] Betano-Quelle getestet: OddsPapi liefert Betano DE inkl. kostenloser Quotenverläufe seit 01/2026 (`08_betano_quellen.md`)
 - [x] OddsPapi-Ingest: Fixture-Mapping, Quotenverläufe Betano + Pinnacle (Backfill ab 04/2026, danach `qf oddspapi update`)
@@ -53,7 +53,9 @@
 - [x] Seed der Datenbank im Repository (`seed/`, `qf seed import`)
 - [x] 3 Tipps pro Spiel (Profile Sicher/Ausgewogen/Mutig) mit Trefferquote einzeln und als Kombi (`12_tipps.md`, Seite `/tipps`)
 - [x] Einstellungsseite (`/einstellungen`): Schwellen der Tipps, Modellparameter, Reserven; Ligen hinzufügen mit automatischem Import und Backup
-- [ ] Wett-Tracking mit ROI/CLV-Auswertung
+- [x] Wett-Tracking (`/wetten`): Einsatz, echte Quote, automatische Abrechnung, ROI und Trefferquote gegen Modell-Erwartung
+- [x] Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance; Zielquote 5–10) mit Backtest (`16_tageskombis.md`)
+- [ ] Wett-Tracking: CLV (Schlussquote je Wette aus dem Snapshot-Archiv)
 - [ ] Betano-/Pinnacle-Quoten im Spiel-Detail (nach Markt-Mapping OddsPapi ↔ eigene Märkte, Phase 3)
 - [ ] Datenqualitäts-Ansicht
 

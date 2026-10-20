@@ -63,6 +63,7 @@ Details zum Seed: `seed/README.md`.
 | `qf value backtest [--validation-until 2021] [--method shin]` | Prognosen gegen historische football-data-Quoten (1X2, Ü/U 2,5): Prognosegüte vs. Markt, Value-Wetten, ROI, CLV → `docs/10_quoten_backtest.md` | 0 |
 | `qf value betano` | Betano-Nebenmärkte (OddsPapi-Verläufe) gegen faire Preise des marktbasierten Modells `mkt-v1` (Fit auf Pinnacle) zu 48/24/6/1 h vor Anpfiff: Edge, CLV, Marge je Markt → `docs/11_betano_nebenmaerkte.md` | 0 |
 | `qf picks build [--if-empty]` / `qf picks report` | 3 Tipps pro Spiel und Profil für alle Prognosen speichern (`analytics.picks`, läuft auch nach `qf model forecast` / `backtest`) / Trefferquote → `docs/12_tipps.md` | 0 |
+| `qf combos report` | Backtest der Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance, Zielquote 5–10) in drei Varianten → `docs/16_tageskombis.md` | 0 |
 | `qf model settle` | Ergebnis (eingetreten ja/nein) für Prognosen beendeter Spiele eintragen | 0 |
 | `qf seed export` / `qf seed import [--force] [--file backup.dump]` | Datenbank-Seed schreiben / einspielen (`seed/quotenfabrik_seed.dump` oder ein Backup) | 0 |
 | `qf backup [--reason manuell]` | Backup der Datenbank nach `backups/` (pg_dump, die letzten N bleiben; ersetzt standardmäßig auch den Seed) | 0 |
@@ -101,6 +102,8 @@ Installation: `docs/13_deployment_vps.md`):
 | `GET /api/explorer?market&selection&line&…` | Prognosen eines Marktes über viele Spiele + Zusammenfassung |
 | `GET /api/stats/overview|markets|confidence|calibration|seasons|scorers` | Trefferquoten und Kalibrierung |
 | `GET /api/stats/picks?profile&season` | Trefferquote der 3 Tipps pro Spiel (einzeln, Kombi, je Saison/Rang/Markt) |
+| `GET /api/combos?date=YYYY-MM-DD` | Tageskombis eines Tages (Einstellungen „Tageskombis“: Zielquote, Wahrscheinlichkeitsfenster, Marge, max. Tipps) |
+| `GET /api/bets`, `POST /api/bets`, `PATCH` / `DELETE /api/bets/{id}` | Wetten (rechnet offene Wetten vorher ab) mit Auswertung / erfassen / Status, Einsatz, Quote ändern / löschen |
 
 Einstellungsseite (`/api/admin/*`):
 

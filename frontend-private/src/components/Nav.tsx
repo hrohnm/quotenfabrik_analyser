@@ -10,6 +10,7 @@ import { Logo } from "./Logo";
 const LINKS = [
   { href: "/spieltage", label: "Spieltage" },
   { href: "/tipps", label: "Tipps" },
+  { href: "/wetten", label: "Wetten" },
   { href: "/explorer", label: "Daten-Explorer" },
   { href: "/auswertung", label: "Auswertung" },
   { href: "/einstellungen", label: "Einstellungen" },
