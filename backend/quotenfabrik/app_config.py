@@ -228,7 +228,7 @@ class LeagueConfig:
     oddspapi_tournament: int | None
     first_season: int
     active: bool = True
-    kind: str = "full"  # 'ratings' = results only (strength scale), not shown and not forecast
+    kind: str = "full"  # 'ratings' = results only (strength scale); 'cup' = European cup (links the leagues)
 
 
 def _env_leagues() -> list[LeagueConfig]:
@@ -261,6 +261,11 @@ def leagues() -> list[LeagueConfig]:
 def ratings_leagues() -> list[LeagueConfig]:
     """Active results-only leagues (strength scale for the joint model)."""
     return [lg for lg in all_leagues() if lg.active and lg.kind == "ratings"]
+
+
+def cup_leagues() -> list[LeagueConfig]:
+    """Active European cups: their matches link the leagues of the strength scale (results only)."""
+    return [lg for lg in all_leagues() if lg.active and lg.kind == "cup"]
 
 
 def league_ids() -> list[int]:

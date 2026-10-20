@@ -42,7 +42,7 @@ export function RatingsLeaguesCard({ leagues, status, jobRunning, onChanged, onR
 
   return (
     <Card
-      title="Stärke-Ligen (nur Ergebnisse)"
+      title="Stärke-Ligen und Europapokal (nur Ergebnisse)"
       actions={
         <div className="flex gap-2">
           {leagues.length > 0 && (
@@ -59,8 +59,8 @@ export function RatingsLeaguesCard({ leagues, status, jobRunning, onChanged, onR
       }
     >
       <p className="mb-3 text-sm text-slate-500">
-        Nur Spielergebnisse (1 Request pro Saison) – für eine gemeinsame Stärkeskala über Ländergrenzen. Diese Ligen erscheinen nicht in Spieltagen und Tipps.
-        Verbunden mit den eigenen Ligen werden sie erst über gemeinsame Spiele (Europapokal, nächster Schritt).
+        Nur Spielergebnisse (1 Request pro Saison) – für eine gemeinsame Stärkeskala über Ländergrenzen. Die Ligen werden über die Europapokalspiele
+        miteinander verbunden. Sie erscheinen nicht in Spieltagen und Tipps.
       </p>
       {leagues.length > 0 && (
         <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -69,7 +69,7 @@ export function RatingsLeaguesCard({ leagues, status, jobRunning, onChanged, onR
               <span className="flex min-w-0 items-center gap-2">
                 <Logo src={lg.logo} alt={lg.name} size={18} />
                 <span className="truncate">{lg.name}</span>
-                <span className="shrink-0 text-xs text-slate-400">{lg.country}</span>
+                <span className="shrink-0 text-xs text-slate-400">{lg.kind === "cup" ? "Europapokal" : lg.country}</span>
               </span>
               <span className="flex shrink-0 items-center gap-2">
                 <span className="text-xs text-slate-400" title={lg.seasons ? `${seasonLabel(lg.seasons[0])} – ${seasonLabel(lg.seasons[1])}` : undefined}>
@@ -111,7 +111,7 @@ function ChoosePresets({ status, jobRunning, onCancel, onStarted, onError }: { s
     api<LeaguePreset[]>("/admin/leagues/presets")
       .then((list) => {
         setPresets(list);
-        setSelected(new Set(list.filter((p) => !p.configured).map((p) => p.id)));
+        setSelected(new Set(list.filter((p) => !p.configured).map((p) => p.id)));  // default: everything not yet configured
       })
       .catch((e) => onError(String(e instanceof Error ? e.message : e)));
   }, [onError]);
@@ -143,7 +143,7 @@ function ChoosePresets({ status, jobRunning, onCancel, onStarted, onError }: { s
   return (
     <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm font-semibold">Erste Ligen europäischer Länder</div>
+        <div className="text-sm font-semibold">Europapokal und erste Ligen europäischer Länder</div>
         <div className="flex gap-3 text-xs">
           <button type="button" onClick={() => choose(free.map((p) => p.id))} className="text-emerald-700 hover:underline">alle</button>
           <button type="button" onClick={() => choose(TOP5)} className="text-emerald-700 hover:underline">Top 5</button>
@@ -151,16 +151,21 @@ function ChoosePresets({ status, jobRunning, onCancel, onStarted, onError }: { s
           <button type="button" onClick={onCancel} className="text-slate-500 hover:underline">abbrechen</button>
         </div>
       </div>
+      {(["cup", "ratings"] as const).map((kind) => (
+        <div key={kind} className="mb-3">
+          <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">{kind === "cup" ? "Europapokal (verbindet die Ligen)" : "Ligen"}</div>
       <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
-        {presets.map((p) => (
+        {presets.filter((p) => p.kind === kind).map((p) => (
           <label key={p.id} className={`flex items-center gap-2 rounded px-1 py-1 text-sm ${p.configured ? "text-slate-400" : "cursor-pointer hover:bg-white"}`}>
             <input type="checkbox" disabled={!!p.configured} checked={!!p.configured || selected.has(p.id)} onChange={() => flip(p.id)} />
             <Logo src={p.logo} alt={p.name} size={18} />
             <span className="truncate">{p.name}</span>
-            <span className="shrink-0 text-xs text-slate-400">{p.country}{p.configured === "full" ? " · bereits volle Liga" : p.configured ? " · vorhanden" : ""}</span>
+            <span className="shrink-0 text-xs text-slate-400">{p.kind === "cup" ? "" : p.country}{p.configured === "full" ? " · bereits volle Liga" : p.configured ? " · vorhanden" : ""}</span>
           </label>
         ))}
       </div>
+        </div>
+      ))}
       <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <label className="text-sm">
           <div className="mb-1 text-xs text-slate-500">Ergebnisse ab Saison</div>
@@ -171,7 +176,7 @@ function ChoosePresets({ status, jobRunning, onCancel, onStarted, onError }: { s
         </label>
         <div className="text-right">
           <div className="text-sm">
-            {selected.size} Ligen · <b>{requests.toLocaleString("de-DE")} API-Football-Requests</b>
+            {selected.size} Wettbewerbe · <b>{requests.toLocaleString("de-DE")} API-Football-Requests</b>
             {freeQuota != null && <span className="text-slate-500"> · heute frei (ohne Reserve): {freeQuota.toLocaleString("de-DE")}</span>}
           </div>
           <button

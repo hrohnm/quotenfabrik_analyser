@@ -56,6 +56,7 @@ known-third-party = ["alembic"]
 "quotenfabrik/analytics/betano_report.py" = ["E501"]
 "quotenfabrik/analytics/picks_report.py" = ["E501"]
 "quotenfabrik/analytics/joint_eval.py" = ["E501"]
+"quotenfabrik/analytics/cup_eval.py" = ["E501"]
 # tabular market / pattern definitions
 "quotenfabrik/analytics/picks.py" = ["E501"]
 "quotenfabrik/app_config.py" = ["E501"]

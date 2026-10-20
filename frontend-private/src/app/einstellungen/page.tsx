@@ -77,7 +77,7 @@ export default function SettingsPage() {
       <StatusCard status={status} onBackup={() => startJob("backup")} busy={jobRunning} />
       <LeaguesCard leagues={leagues} status={status} jobRunning={jobRunning} onChanged={loadAll} onReload={(id) => startJob("add_league", id)} onError={setError} />
       <RatingsLeaguesCard
-        leagues={leagues.filter((l) => l.kind === "ratings")}
+        leagues={leagues.filter((l) => l.kind === "ratings" || l.kind === "cup")}
         status={status}
         jobRunning={jobRunning}
         onChanged={loadAll}

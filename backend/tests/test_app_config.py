@@ -142,12 +142,14 @@ def test_ratings_leagues_are_kept_out_of_full_league_lists(monkeypatch):
         (78, "Bundesliga", "Germany", "D1", 35, 2015, True, "full"),
         (39, "Premier League", "England", None, None, 2017, True, "ratings"),
         (88, "Eredivisie", "Netherlands", None, None, 2017, False, "ratings"),
+        (2, "UEFA Champions League", "Europa", None, None, 2016, True, "cup"),
     ]
     monkeypatch.setattr(app_config, "_query", lambda sql, engine=None: rows)
     app_config.invalidate()
     assert app_config.league_ids() == [78]  # frontend, forecasts, odds snapshots, cron updates
     assert [lg.id for lg in app_config.ratings_leagues()] == [39]  # inactive ratings league is left out
-    assert [lg.id for lg in app_config.all_leagues()] == [78, 39, 88]
+    assert [lg.id for lg in app_config.cup_leagues()] == [2]
+    assert [lg.id for lg in app_config.all_leagues()] == [78, 39, 88, 2]
     assert jobs.steps_for("add_ratings", {}) == ["results", "backup_data"]
 
 
@@ -156,7 +158,9 @@ def test_presets_are_verified_european_top_divisions():
 
     from quotenfabrik.api.routers.admin import PRESETS_FILE
 
-    leagues = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))["leagues"]
+    data = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
+    assert [c["id"] for c in data["cups"]] == [2, 3, 848]  # Champions, Europa, Conference League
+    leagues = data["leagues"]
     by_id = {lg["id"]: lg for lg in leagues}
     assert len(by_id) == len(leagues) >= 20
     assert by_id[39]["name"] == "Premier League" and by_id[39]["country"] == "England"

@@ -1,5 +1,5 @@
 {
- "source": "API-Football /leagues?type=league (1 Request, roh gespeichert), Stand 19.10.2026",
+ "source": "API-Football /leagues?type=league und ?type=cup (je 1 Request, roh gespeichert), Stand 20.10.2026",
  "note": "Erste Ligen der UEFA-Länder, deren Klubs regelmäßig im Europapokal spielen",
  "leagues": [
   {
@@ -190,6 +190,29 @@
    "country": "Slovenia",
    "logo": "https://media.api-sports.io/football/leagues/373.png",
    "seasons_from": 2018
+  }
+ ],
+ "cups": [
+  {
+   "id": 2,
+   "name": "UEFA Champions League",
+   "country": "Europa",
+   "logo": "https://media.api-sports.io/football/leagues/2.png",
+   "seasons_from": 2015
+  },
+  {
+   "id": 3,
+   "name": "UEFA Europa League",
+   "country": "Europa",
+   "logo": "https://media.api-sports.io/football/leagues/3.png",
+   "seasons_from": 2015
+  },
+  {
+   "id": 848,
+   "name": "UEFA Europa Conference League",
+   "country": "Europa",
+   "logo": "https://media.api-sports.io/football/leagues/848.png",
+   "seasons_from": 2021
   }
  ]
 }

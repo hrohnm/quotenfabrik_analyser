@@ -5,7 +5,7 @@ from sqlalchemy import Engine, text
 
 _MATCHES_SQL = text(
     """
-    select f.id as fixture_id, f.season, f.matchday, f.kickoff_utc as kickoff, f.status,
+    select f.id as fixture_id, f.season, f.matchday, f.round, f.kickoff_utc as kickoff, f.status,
            f.home_team_id as home_id, f.away_team_id as away_id,
            f.ft_home as hg, f.ft_away as ag, f.ht_home as hthg, f.ht_away as htag,
            sh.xg as hxg, sa.xg as axg, sh.shots_total as hs, sa.shots_total as as_, sh.shots_on as hst,
@@ -105,10 +105,17 @@ def connected_leagues(engine: Engine, league_id: int, candidates: list[int]) -> 
     return sorted(found)
 
 
-def load_leagues(engine: Engine, league_ids: list[int], all_rounds: set[int] = frozenset()) -> pd.DataFrame:
+def load_leagues(
+    engine: Engine, league_ids: list[int], all_rounds: set[int] = frozenset(), cups: set[int] = frozenset()
+) -> pd.DataFrame:
     """Matches of several leagues with a ``league_id`` column (input of the joint model); leagues in
-    ``all_rounds`` with all rounds, the others regular season only."""
-    frames = [load_matches(engine, lg, lg in all_rounds).assign(league_id=lg) for lg in league_ids]
+    ``all_rounds`` with all rounds, the others regular season only. ``cups``: cup competitions (all rounds,
+    flagged ``cup``; finals ``neutral``)."""
+    frames = []
+    for lg in league_ids:
+        df = load_matches(engine, lg, lg in all_rounds or lg in cups).assign(league_id=lg, cup=lg in cups)
+        df["neutral"] = df["cup"] & (df["round"] == "Final")
+        frames.append(df)
     return pd.concat(frames, ignore_index=True).sort_values(["kickoff", "fixture_id"], ignore_index=True)
 
 
@@ -117,6 +124,8 @@ def season_leagues(matches: pd.DataFrame) -> dict[int, dict[int, int]]:
     out: dict[int, dict[int, int]] = {}
     if "league_id" not in matches.columns:
         return out
+    if "cup" in matches.columns:
+        matches = matches[~matches["cup"].astype(bool)]  # a cup is not a team's league
     for (season, league), g in matches.groupby(["season", "league_id"]):
         for t in set(g["home_id"]) | set(g["away_id"]):
             out.setdefault(int(season), {})[int(t)] = int(league)

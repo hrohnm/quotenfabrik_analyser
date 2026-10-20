@@ -11,6 +11,7 @@ ODDS_REPORT = DOCS / "10_quoten_backtest.md"
 BETANO_REPORT = DOCS / "11_betano_nebenmaerkte.md"
 PICKS_REPORT = DOCS / "12_tipps.md"
 JOINT_REPORT = DOCS / "14_gemeinsames_modell.md"
+CUP_REPORT = DOCS / "15_europapokal.md"
 
 
 def report_path(path: Path | None, league_id: int) -> Path | None:

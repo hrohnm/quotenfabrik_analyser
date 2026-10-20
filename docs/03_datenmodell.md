@@ -212,7 +212,7 @@ app.leagues (                       -- konfigurierte Ligen; leer → Fallback au
   id bigint pk,                     -- API-Football league id
   name text, country text, fd_code text, oddspapi_tournament bigint,
   first_season int, active bool, added_at timestamptz,
-  kind text                        -- 'full' | 'ratings' (Migration 0007): nur Ergebnisse für die Stärkeskala,
+  kind text                        -- 'full' | 'ratings' (0007) | 'cup' (0008): Stärke-Ligen und Europapokale nur Ergebnisse,
 )                                  -- nicht im Frontend, keine Prognosen/Quoten
 app.jobs (                          -- Hintergrund-Jobs der Einstellungsseite (Liga hinzufügen, Neuberechnung, Backup)
   id bigserial pk, kind text, params jsonb, status text,   -- queued | running | done | failed
