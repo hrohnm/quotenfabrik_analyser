@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Card, OutcomeBadge, ProbabilityBar, TeamLogo } from "@/components/ui";
-import { odd, pct } from "@/lib/format";
+import { dateShort, odd, pct, time } from "@/lib/format";
 import { lineLabel, lines, market, pick, selectionLabel, signedLine } from "@/lib/markets";
-import type { Fixture, Market, Team } from "@/lib/types";
+import type { Fixture, FixtureDetail, Market, Team } from "@/lib/types";
+import { BetanoOdd } from "@/components/BetanoOdd";
 import { Segmented } from "./Segmented";
 
 const GROUPS = [
@@ -14,7 +15,7 @@ const GROUPS = [
   { key: "halves", label: "Halbzeiten" },
 ];
 
-export function MarketsPanel({ markets, fixture: f }: { markets: Market[]; fixture: Fixture }) {
+export function MarketsPanel({ markets, fixture: f, odds }: { markets: Market[]; fixture: Fixture; odds?: FixtureDetail["odds"] }) {
   const [group, setGroup] = useState("1x2");
   if (markets.length === 0) return <Card><p className="text-sm text-slate-500">Für dieses Spiel liegt noch keine Prognose vor.</p></Card>;
   const names = { home: f.home.name, away: f.away.name };
@@ -31,7 +32,17 @@ export function MarketsPanel({ markets, fixture: f }: { markets: Market[]; fixtu
     <div className="space-y-4">
       <Segmented options={GROUPS} value={group} onChange={setGroup} />
       <p className="text-xs text-slate-500">
-        Faire Quote = 1 / Wahrscheinlichkeit (ohne Buchmachermarge). Der wahrscheinlichere Ausgang ist hervorgehoben.
+        Faire Quote = 1 / Wahrscheinlichkeit (ohne Buchmachermarge). Der wahrscheinlichere Ausgang ist hervorgehoben.{" "}
+        {odds?.betano_at ? (
+          <>
+            <span className="rounded bg-orange-50 px-1 font-medium text-orange-700">Betano-Quote</span>{" "}
+            {odds.closing ? "letzte vor Anpfiff" : `Stand ${dateShort(odds.betano_at)} ${time(odds.betano_at)} Uhr`};{" "}
+            <span className="rounded bg-emerald-100 px-1 font-medium text-emerald-800">grün</span> = Modell sieht mindestens 5 % Vorteil (Wahrscheinlichkeit × Quote).
+            Details beim Darüberfahren.
+          </>
+        ) : (
+          "Für dieses Spiel liegen (noch) keine Betano-Quoten vor."
+        )}
       </p>
 
       {group === "1x2" && (
@@ -97,6 +108,7 @@ function SelectionCard({ m, title, names, finished }: { m: Market; title?: strin
                 <span className="flex shrink-0 items-center gap-2 tabular-nums">
                   <span className={isPick ? "font-semibold" : ""}>{pct(s.probability, 0)}</span>
                   <span className="w-10 text-right text-xs text-slate-400">{odd(s.fair_odd)}</span>
+                  <span className="w-11 text-right"><BetanoOdd prices={s} /></span>
                   {finished && <OutcomeBadge outcome={s.outcome} small />}
                 </span>
               </div>
@@ -134,13 +146,15 @@ function OverUnderTable({ title, team, lines: ls, finished }: { title: string; t
                 <td className="py-1.5 pr-3 font-medium tabular-nums">{lineLabel(m.line)}</td>
                 <td className="w-full py-1.5">
                   <div className="flex items-center gap-2">
-                    <span className={`w-20 shrink-0 tabular-nums ${p >= 0.5 ? "font-semibold" : "text-slate-500"}`}>
+                    <span className={`w-32 shrink-0 tabular-nums ${p >= 0.5 ? "font-semibold" : "text-slate-500"}`}>
                       {pct(p, 0)} <span className="text-xs font-normal text-slate-400">{odd(over?.fair_odd)}</span>
+                      {over && <BetanoOdd prices={over} className="ml-1" />}
                     </span>
                     <SplitBar value={p} />
                   </div>
                 </td>
                 <td className={`whitespace-nowrap py-1.5 pl-2 text-right tabular-nums ${p < 0.5 ? "font-semibold" : "text-slate-500"}`}>
+                  {under && <BetanoOdd prices={under} className="mr-1" />}
                   <span className="text-xs font-normal text-slate-400">{odd(under?.fair_odd)}</span> {pct(under?.probability, 0)}
                 </td>
                 {finished && (
@@ -192,6 +206,7 @@ function HandicapTable({ lines: ls, names, finished }: { lines: Market[]; names:
                         <span className="inline-flex items-center gap-1.5">
                           {pct(s?.probability, 0)}
                           <span className="hidden text-xs font-normal text-slate-400 sm:inline">{odd(s?.fair_odd)}</span>
+                          {s && <BetanoOdd prices={s} />}
                           {finished && s?.outcome && <OutcomeBadge outcome={s.selection === best?.selection} small />}
                         </span>
                       </td>

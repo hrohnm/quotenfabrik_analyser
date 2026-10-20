@@ -5,6 +5,7 @@ import { expectedGoals, market, pick, selection } from "@/lib/markets";
 import { playerPhoto } from "@/lib/media";
 import { patternValue, signals } from "@/lib/patterns";
 import type { FixtureDetail, Selection } from "@/lib/types";
+import { BetanoOdd } from "@/components/BetanoOdd";
 
 /** "Auf einen Blick": 1X2, key metrics, top scorers and the strongest pattern signals. */
 export function Summary({ data }: { data: FixtureDetail }) {
@@ -46,6 +47,7 @@ export function Summary({ data }: { data: FixtureDetail }) {
                 <div className="mt-1 text-xs text-slate-500">{t.label}</div>
                 <div className={`text-2xl font-semibold tabular-nums ${isPick ? "text-emerald-700" : ""}`}>{pct(s?.probability, 0)}</div>
                 <div className="text-xs text-slate-400">faire Quote {odd(s?.fair_odd)}</div>
+                {s?.betano != null && <div className="mt-1 text-xs text-slate-500">Betano <BetanoOdd prices={s} /></div>}
               </div>
             );
           })}

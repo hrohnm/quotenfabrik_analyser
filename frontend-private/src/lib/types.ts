@@ -12,7 +12,16 @@ export type League = { id: number; name: string; logo?: string | null };
 
 export type PickReason = { label: string; value: number | null; baseline: number | null; n: number | null; signal: "high" | "low" };
 
-export type Pick = {
+/** Bookmaker prices (OddsPapi, last price before kickoff): Betano odds, Pinnacle without margin, model edge. */
+export type BookPrices = {
+  betano?: number | null;
+  /** Pinnacle probability without margin */
+  pinnacle?: number | null;
+  /** model probability × Betano odds − 1 */
+  edge?: number | null;
+};
+
+export type Pick = BookPrices & {
   rank: number;
   group: string;
   market: string;
@@ -72,7 +81,7 @@ export type Fixture = {
 
 export type Day = { date: string; fixtures: number; finished: number };
 
-export type Selection = {
+export type Selection = BookPrices & {
   selection: string;
   label: string;
   probability: number;
@@ -125,6 +134,8 @@ export type FixtureDetail = {
   picks: Record<string, Pick[]>;
   stats: { home: Record<string, TeamStats>; away: Record<string, TeamStats> };
   goals: { minute: number; extra_minute: number | null; team_id: number; player_id: number | null; player_name: string; detail: string; comments: string | null }[];
+  /** last Betano price change; closing = prices are the last ones before kickoff */
+  odds?: { betano_at: string | null; closing: boolean };
 };
 
 export type Meta = {
@@ -138,7 +149,7 @@ export type Meta = {
   markets: { group: string; market: string; line: number | null; selections: string[] }[];
 };
 
-export type ComboLeg = {
+export type ComboLeg = BookPrices & {
   fixture_id: number;
   kickoff: string;
   league: { id: number; logo?: string | null };
@@ -149,8 +160,9 @@ export type ComboLeg = {
   line: number | null;
   label: string;
   probability: number;
-  /** estimated bookmaker odds (fair odds minus margin) */
+  /** Betano odds, or estimated (fair odds minus margin) when OddsPapi has no price */
   odds: number;
+  odds_source: "betano" | "geschätzt";
   outcome: boolean | null;
 };
 
@@ -158,6 +170,8 @@ export type DayCombo = {
   kind: "tore" | "team_tore" | "doppelte_chance";
   label: string;
   odds: number;
+  /** all legs priced with real Betano odds */
+  real_odds: boolean;
   probability: number;
   outcome: boolean | null;
   legs: ComboLeg[];

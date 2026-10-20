@@ -1,6 +1,7 @@
 import { OutcomeBadge, ProbabilityBar } from "@/components/ui";
 import { odd, pct } from "@/lib/format";
 import type { Pick } from "@/lib/types";
+import { BetanoOdd } from "@/components/BetanoOdd";
 
 /** Combined outcome: true if all picks came true, false as soon as one failed, null while open. */
 export function comboOutcome(picks: Pick[]): boolean | null {
@@ -25,6 +26,7 @@ export function PickList({ picks, finished, reasons = true }: { picks: Pick[]; f
                 <span className="flex shrink-0 items-center gap-2 tabular-nums">
                   <span className="font-semibold">{pct(p.probability, 0)}</span>
                   <span className="w-10 text-right text-xs text-slate-400" title="faire Quote">{odd(p.fair_odd)}</span>
+                  <span className="w-11 text-right"><BetanoOdd prices={p} /></span>
                   {finished && <OutcomeBadge outcome={p.outcome} small />}
                 </span>
               </div>
@@ -47,6 +49,11 @@ export function PickList({ picks, finished, reasons = true }: { picks: Pick[]; f
           <span className="flex items-center gap-3 tabular-nums">
             <span title="Produkt der Einzelwahrscheinlichkeiten">rechnerisch {pct(combo, 0)}</span>
             <span className="text-xs text-slate-400" title="faire Kombi-Quote">{odd(1 / combo)}</span>
+            {picks.every((p) => p.betano != null) && (
+              <span className="rounded bg-orange-50 px-1 text-xs font-medium text-orange-700" title="Produkt der Betano-Einzelquoten (als Bet Builder im selben Spiel meist niedriger)">
+                {odd(picks.reduce((o, p) => o * (p.betano ?? 1), 1))}
+              </span>
+            )}
             {finished && <OutcomeBadge outcome={comboOutcome(picks)} small />}
           </span>
         </div>

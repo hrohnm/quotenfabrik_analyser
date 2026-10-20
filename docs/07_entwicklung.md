@@ -98,11 +98,11 @@ Installation: `docs/13_deployment_vps.md`):
 | `GET /api/meta` | Ligen, Saisons, Teams, Märkte, Labels |
 | `GET /api/days?from&to` | Tage mit Spielen (Kalender Europe/Berlin) |
 | `GET /api/fixtures?date=YYYY-MM-DD` (oder `from`/`to`, `season`, `team`) | Spiele mit Kurzprognose (1X2, Ü2,5, BTTS) |
-| `GET /api/fixtures/{id}` | Detail: alle Märkte, Torschützen, Pattern (vor Anpfiff berechnet), Statistik, Tore |
+| `GET /api/fixtures/{id}` | Detail: alle Märkte (je Auswahl `betano`, `pinnacle` ohne Marge, `edge` = p × Betano − 1; letzte Quote vor Anpfiff aus OddsPapi), Torschützen, Pattern (vor Anpfiff berechnet), Statistik, Tore |
 | `GET /api/explorer?market&selection&line&…` | Prognosen eines Marktes über viele Spiele + Zusammenfassung |
 | `GET /api/stats/overview|markets|confidence|calibration|seasons|scorers` | Trefferquoten und Kalibrierung |
 | `GET /api/stats/picks?profile&season` | Trefferquote der 3 Tipps pro Spiel (einzeln, Kombi, je Saison/Rang/Markt) |
-| `GET /api/combos?date=YYYY-MM-DD` | Tageskombis eines Tages (Einstellungen „Tageskombis“: Zielquote, Wahrscheinlichkeitsfenster, Marge, max. Tipps) |
+| `GET /api/combos?date=YYYY-MM-DD` | Tageskombis eines Tages mit echten Betano-Quoten, sonst geschätzt (Einstellungen „Tageskombis“: Zielquote, Wahrscheinlichkeitsfenster, Marge, max. Tipps) |
 | `GET /api/bets`, `POST /api/bets`, `PATCH` / `DELETE /api/bets/{id}` | Wetten (rechnet offene Wetten vorher ab) mit Auswertung / erfassen / Status, Einsatz, Quote ändern / löschen |
 
 Einstellungsseite (`/api/admin/*`):

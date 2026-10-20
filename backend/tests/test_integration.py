@@ -163,6 +163,17 @@ def test_oddspapi_mapping_history_and_rebuild(session):
     assert session.scalar(select(func.count()).select_from(OddsHistory)) == stored
     assert session.scalar(select(func.count()).select_from(OddsPapiResponse)) == 1
 
+    # latest prices before kickoff in model-market keys
+    from quotenfabrik.analytics.bookmaker_odds import latest_prices, odds_table
+
+    prices = latest_prices(session.get_bind(), [1575189])
+    assert not prices.empty and (prices["changed_at"] < start).all()
+    assert set(prices["bookmaker"]) <= {"betano.de", "pinnacle"}
+    assert not prices.duplicated(["fixture_id", "bookmaker", "market", "line", "selection"]).any()
+    assert "1x2" in set(prices["market"])
+    table = odds_table(session.get_bind(), [1575189])
+    assert table["betano"].notna().any()
+
     # odds reload: finished fixtures without prices are fetched again, fixtures with prices stay final
     session.get(OddsPapiFixture, "id1000003572513246").history_final = True
     session.get(OddsPapiFixture, "id_reverse").history_final = True

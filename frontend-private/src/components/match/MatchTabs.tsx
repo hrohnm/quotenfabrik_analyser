@@ -56,7 +56,7 @@ export function MatchTabs({ data }: { data: FixtureDetail }) {
           Torschützen, Pattern und Spielstatistik gibt es für Pokalspiele nicht.
         </p>
       )}
-      {(tab === "maerkte" || data.fixture.cup) && <MarketsPanel markets={data.markets} fixture={data.fixture} />}
+      {(tab === "maerkte" || data.fixture.cup) && <MarketsPanel markets={data.markets} fixture={data.fixture} odds={data.odds} />}
       {!data.fixture.cup && tab === "torschuetzen" && <ScorersPanel data={data} />}
       {!data.fixture.cup && tab === "pattern" && <PatternsPanel patterns={data.patterns} fixture={data.fixture} />}
       {!data.fixture.cup && tab === "statistik" && <StatsPanel data={data} />}

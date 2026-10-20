@@ -1,6 +1,6 @@
 # 16 – Tageskombis: Erfolgschance im Backtest
 
-Automatisch erzeugt von `qf combos report` am 20.10.2026 09:46 UTC. Wettbewerbe: Bundesliga, 2. Bundesliga, UEFA Champions League, UEFA Europa League, UEFA Europa Conference League; 1275 Spieltage mit rückwirkenden Prognosen (Walk-Forward, kein Data Leakage).
+Automatisch erzeugt von `qf combos report` am 20.10.2026 10:09 UTC. Wettbewerbe: Bundesliga, 2. Bundesliga, UEFA Champions League, UEFA Europa League, UEFA Europa Conference League; 1275 Spieltage mit rückwirkenden Prognosen (Walk-Forward, kein Data Leakage).
 
 **Regeln:** Pro Tag bis zu drei Kombis – Tore gesamt Über, Tore einer Mannschaft Über, Doppelte Chance – über alle Spiele des Tages. Je Spiel und Art zählt der stärkste Tipp (Wahrscheinlichkeit plus Abweichung vom Ligaschnitt); die Kombis wählen abwechselnd, Spiele ohne Kombi werden bevorzugt. Aufgefüllt wird bis zur Zielquote 5–10. Die Quote je Tipp ist geschätzt: faire Quote × (1 − 5,0 % Marge); Tipps unter 1,20 werden ausgelassen. Gewonnen ist eine Kombi nur, wenn alle Tipps sitzen (nach 90 Minuten).
 
@@ -8,22 +8,22 @@ Automatisch erzeugt von `qf combos report` am 20.10.2026 09:46 UTC. Wettbewerbe:
 
 ## Ergebnis je Variante
 
-| Variante | Kombi | Kombis | getroffen | Modell erwartet | Ø Quote | Ø Tipps | Rendite (geschätzte Quote) |
+| Variante | Kombi | Kombis | getroffen | Modell erwartet | Ø Quote | Ø Tipps | Rendite |
 |---|---|---:|---:|---:|---:|---:|---:|
-| sicherere Tipps (65–90 %) | Tore gesamt – Über | 89 | 12,4 % | 12,8 % | 5,67 | 6,4 | -29,6 % |
-| sicherere Tipps (65–90 %) | Tore Mannschaft – Über | 350 | 11,4 % | 12,6 % | 5,70 | 6,6 | -34,1 % |
-| sicherere Tipps (65–90 %) | Doppelte Chance | 398 | 10,8 % | 12,6 % | 5,69 | 6,8 | -39,3 % |
-| Standard (55–85 %) | Tore gesamt – Über | 601 | 13,0 % | 12,5 % | 6,15 | 5,5 | -21,3 % |
-| Standard (55–85 %) | Tore Mannschaft – Über | 603 | 14,1 % | 12,9 % | 5,85 | 5,8 | -17,9 % |
-| Standard (55–85 %) | Doppelte Chance | 550 | 12,5 % | 13,0 % | 5,64 | 6,2 | -29,8 % |
-| Standard ohne Mindestquote je Tipp | Tore gesamt – Über | 616 | 14,4 % | 12,4 % | 5,76 | 6,8 | -18,0 % |
-| Standard ohne Mindestquote je Tipp | Tore Mannschaft – Über | 610 | 13,6 % | 13,0 % | 5,56 | 6,6 | -24,8 % |
-| Standard ohne Mindestquote je Tipp | Doppelte Chance | 575 | 11,8 % | 12,9 % | 5,57 | 6,7 | -34,5 % |
-| riskantere Tipps (45–75 %) | Tore gesamt – Über | 855 | 13,8 % | 13,1 % | 6,31 | 4,3 | -15,4 % |
-| riskantere Tipps (45–75 %) | Tore Mannschaft – Über | 836 | 12,7 % | 13,2 % | 6,18 | 4,4 | -23,9 % |
-| riskantere Tipps (45–75 %) | Doppelte Chance | 708 | 11,7 % | 13,6 % | 5,85 | 5,0 | -32,4 % |
+| sicherere Tipps (65–90 %) | Tore gesamt – Über | 89 | 12,4 % | 13,0 % | 5,70 | 6,4 | -29,6 % |
+| sicherere Tipps (65–90 %) | Tore Mannschaft – Über | 352 | 11,4 % | 12,8 % | 5,69 | 6,6 | -34,5 % |
+| sicherere Tipps (65–90 %) | Doppelte Chance | 398 | 10,6 % | 12,7 % | 5,69 | 6,7 | -40,9 % |
+| Standard (55–85 %) | Tore gesamt – Über | 599 | 13,0 % | 12,5 % | 6,15 | 5,5 | -21,2 % |
+| Standard (55–85 %) | Tore Mannschaft – Über | 605 | 14,2 % | 12,9 % | 5,87 | 5,8 | -16,8 % |
+| Standard (55–85 %) | Doppelte Chance | 552 | 12,5 % | 13,2 % | 5,64 | 6,2 | -30,0 % |
+| Standard ohne Mindestquote je Tipp | Tore gesamt – Über | 616 | 14,4 % | 12,4 % | 5,76 | 6,8 | -18,1 % |
+| Standard ohne Mindestquote je Tipp | Tore Mannschaft – Über | 610 | 13,6 % | 13,0 % | 5,56 | 6,6 | -24,7 % |
+| Standard ohne Mindestquote je Tipp | Doppelte Chance | 577 | 11,8 % | 13,0 % | 5,58 | 6,7 | -34,7 % |
+| riskantere Tipps (45–75 %) | Tore gesamt – Über | 852 | 13,6 % | 13,1 % | 6,30 | 4,3 | -16,7 % |
+| riskantere Tipps (45–75 %) | Tore Mannschaft – Über | 837 | 12,7 % | 13,2 % | 6,18 | 4,4 | -24,3 % |
+| riskantere Tipps (45–75 %) | Doppelte Chance | 710 | 12,1 % | 13,7 % | 5,84 | 4,9 | -30,0 % |
 
-Getroffen > erwartet heißt: das Modell war bei diesen Tipps eher zu vorsichtig; die Rendite ist mit der geschätzten (nicht der echten) Quote gerechnet.
+Getroffen > erwartet heißt: das Modell war bei diesen Tipps eher zu vorsichtig. Die Rendite ist mit der geschätzten Quote gerechnet, für Spiele mit OddsPapi-Verlauf (seit Januar 2026) mit der echten Betano-Schlussquote.
 
 ## Standard je Saison
 
@@ -56,24 +56,41 @@ Getroffen > erwartet heißt: das Modell war bei diesen Tipps eher zu vorsichtig;
 | 2024/25 | Doppelte Chance | 52 | 11,5 % | 13,2 % | -38,9 % |
 | 2024/25 | Tore Mannschaft – Über | 59 | 6,8 % | 12,6 % | -57,2 % |
 | 2024/25 | Tore gesamt – Über | 62 | 16,1 % | 12,5 % | -8,3 % |
-| 2025/26 | Doppelte Chance | 75 | 24,0 % | 12,9 % | 35,5 % |
-| 2025/26 | Tore Mannschaft – Über | 80 | 15,0 % | 12,8 % | -13,5 % |
-| 2025/26 | Tore gesamt – Über | 88 | 10,2 % | 12,5 % | -35,9 % |
-| 2026/27 | Doppelte Chance | 20 | 5,0 % | 13,1 % | -74,7 % |
-| 2026/27 | Tore Mannschaft – Über | 24 | 25,0 % | 13,1 % | 36,7 % |
-| 2026/27 | Tore gesamt – Über | 25 | 8,0 % | 12,5 % | -49,0 % |
+| 2025/26 | Doppelte Chance | 76 | 23,7 % | 13,5 % | 34,2 % |
+| 2025/26 | Tore Mannschaft – Über | 80 | 15,0 % | 12,8 % | -13,3 % |
+| 2025/26 | Tore gesamt – Über | 87 | 10,3 % | 12,5 % | -35,8 % |
+| 2026/27 | Doppelte Chance | 21 | 4,8 % | 15,4 % | -75,9 % |
+| 2026/27 | Tore Mannschaft – Über | 26 | 26,9 % | 13,2 % | 57,0 % |
+| 2026/27 | Tore gesamt – Über | 24 | 8,3 % | 13,1 % | -47,9 % |
 
 ## Wie knapp war es? (Standard)
 
 | Kombi | alle Tipps richtig | einer daneben | zwei oder mehr daneben |
 |---|---:|---:|---:|
-| Doppelte Chance | 12,5 % | 29,5 % | 58,0 % |
-| Tore Mannschaft – Über | 14,1 % | 35,2 % | 50,7 % |
-| Tore gesamt – Über | 13,0 % | 34,8 % | 52,2 % |
+| Doppelte Chance | 12,5 % | 29,3 % | 58,2 % |
+| Tore Mannschaft – Über | 14,2 % | 35,0 % | 50,7 % |
+| Tore gesamt – Über | 13,0 % | 34,9 % | 52,1 % |
+
+## Mit echten Betano-Quoten
+
+Spieltage mit Betano-Verlauf (OddsPapi, seit Januar 2026): 40. Quote = letzte Betano-Quote vor Anpfiff. „Nur Value-Tipps“ nimmt nur Tipps, bei denen Modell-Wahrscheinlichkeit × Betano-Quote über 1 + Mindestvorteil liegt.
+
+| Variante | Kombi | Kombis | getroffen | Modell erwartet | Ø Quote | Ø Tipps | Rendite |
+|---|---|---:|---:|---:|---:|---:|---:|
+| Standard, alle Tipps mit Betano-Quote | Tore gesamt – Über | 21 | 14,3 % | 13,3 % | 6,04 | 5,6 | -8,8 % |
+| Standard, alle Tipps mit Betano-Quote | Tore Mannschaft – Über | 22 | 13,6 % | 12,8 % | 6,25 | 5,9 | -7,4 % |
+| Standard, alle Tipps mit Betano-Quote | Doppelte Chance | 23 | 8,7 % | 16,7 % | 5,83 | 5,7 | -48,0 % |
+| nur Value-Tipps (Vorteil ≥ 0 %) | Tore gesamt – Über | 1 | 100,0 % | 15,2 % | 7,45 | 5,0 | 644,7 % |
+| nur Value-Tipps (Vorteil ≥ 0 %) | Tore Mannschaft – Über | 6 | 16,7 % | 20,5 % | 6,35 | 4,7 | -0,3 % |
+| nur Value-Tipps (Vorteil ≥ 0 %) | Doppelte Chance | 16 | 25,0 % | 22,6 % | 6,53 | 3,6 | 50,7 % |
+| nur Value-Tipps (Vorteil ≥ 5 %) | Tore Mannschaft – Über | 1 | 0,0 % | 24,0 % | 6,43 | 4,0 | -100,0 % |
+| nur Value-Tipps (Vorteil ≥ 5 %) | Doppelte Chance | 13 | 38,5 % | 25,4 % | 6,68 | 3,2 | 145,7 % |
+
+Wenige Kombis: die Rendite schwankt hier stark und ist noch kein Beleg für einen Vorteil.
 
 ## Bewertung
 
-- Tage mit Kombi: 689 von 1275 – an Tagen mit wenigen Spielen wird die Zielquote nicht erreicht, dann gibt es keine Kombi.
+- Tage mit Kombi: 690 von 1275 – an Tagen mit wenigen Spielen wird die Zielquote nicht erreicht, dann gibt es keine Kombi.
 - Eine Kombi mit Quote 5–10 gewinnt erwartungsgemäß nur in rund 10–20 % der Fälle; längere Serien ohne Gewinn sind normal. Einsatz pro Kombi daher klein halten.
 - Weniger, dafür riskantere Tipps verlieren weniger an Marge; sehr sichere Tipps brauchen viele Beine und kosten mehr Marge – die Varianten oben zeigen den Effekt.
 - Ob sich das Spielen lohnt, entscheidet die echte Betano-Quote: im Wett-Tracking die tatsächliche Quote eintragen und Rendite gegen die Modell-Erwartung vergleichen.

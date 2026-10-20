@@ -5,7 +5,7 @@ import { apiSend } from "@/lib/api";
 import { odd, pct } from "@/lib/format";
 import type { BetSource, NewBetLeg } from "@/lib/types";
 
-export type BetDraft = { label: string; source: BetSource; odds: number; probability: number | null; legs: NewBetLeg[] };
+export type BetDraft = { label: string; source: BetSource; odds: number; realOdds?: boolean; probability: number | null; legs: NewBetLeg[] };
 
 const parse = (v: string) => Number(v.replace(",", "."));
 
@@ -73,7 +73,9 @@ export function BetDialog({ draft, onClose, onSaved }: { draft: BetDraft; onClos
               </label>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Vorbelegt mit der geschätzten Quote {odd(draft.odds)} – bitte die tatsächliche Quote eintragen.
+              {draft.realOdds
+                ? <>Vorbelegt mit der aktuellen Betano-Quote {odd(draft.odds)} (Produkt der Einzelquoten) – vor der Abgabe auf dem Wettschein prüfen.</>
+                : <>Vorbelegt mit der geschätzten Quote {odd(draft.odds)} – bitte die tatsächliche Quote eintragen.</>}
               {draft.probability != null && <> Modell-Chance {pct(draft.probability)}{ev != null && <>, erwarteter Gewinn {ev.toFixed(2).replace(".", ",")} €</>}.</>}
             </p>
             <label className="mt-3 block text-xs font-medium text-slate-500">
