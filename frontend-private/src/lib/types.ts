@@ -137,3 +137,79 @@ export type Meta = {
   selection_labels: Record<string, string>;
   markets: { group: string; market: string; line: number | null; selections: string[] }[];
 };
+
+export type ComboLeg = {
+  fixture_id: number;
+  kickoff: string;
+  league: { id: number; logo?: string | null };
+  home: Team;
+  away: Team;
+  market: string;
+  selection: string;
+  line: number | null;
+  label: string;
+  probability: number;
+  /** estimated bookmaker odds (fair odds minus margin) */
+  odds: number;
+  outcome: boolean | null;
+};
+
+export type DayCombo = {
+  kind: "tore" | "team_tore" | "doppelte_chance";
+  label: string;
+  odds: number;
+  probability: number;
+  outcome: boolean | null;
+  legs: ComboLeg[];
+};
+
+export type BetSource = "tageskombi" | "tipps" | "manuell";
+export type BetStatus = "open" | "won" | "lost" | "void";
+
+export type BetLegItem = {
+  fixture_id: number | null;
+  market: string | null;
+  selection: string | null;
+  line: number | null;
+  label: string;
+  probability: number | null;
+  odds: number | null;
+  outcome: boolean | null;
+  kickoff: string | null;
+  fixture_status: string | null;
+  ft_home: number | null;
+  ft_away: number | null;
+};
+
+export type BetItem = {
+  id: number;
+  placed_at: string;
+  source: BetSource;
+  label: string;
+  bookmaker: string;
+  stake: number;
+  odds: number;
+  probability: number | null;
+  status: BetStatus;
+  payout: number | null;
+  settled_at: string | null;
+  notes: string | null;
+  legs: BetLegItem[];
+};
+
+export type BetBlock = {
+  n: number;
+  won?: number;
+  stake?: number;
+  return?: number;
+  profit?: number;
+  roi?: number | null;
+  hit_rate?: number;
+  expected_hit_rate?: number | null;
+  expected_profit?: number | null;
+  avg_odds?: number;
+};
+
+export type BetStats = { total: BetBlock; open: number; by_source: Record<string, BetBlock>; curve: { at: string; profit: number }[] };
+
+export type NewBetLeg = Omit<BetLegItem, "outcome" | "kickoff" | "fixture_status" | "ft_home" | "ft_away">;

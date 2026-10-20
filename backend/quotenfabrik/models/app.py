@@ -1,8 +1,9 @@
 """Schema ``app``: settings, configured leagues and background jobs (configuration page)."""
 
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Integer, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, Numeric, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -55,3 +56,41 @@ class Job(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Bet(Base):
+    """A placed bet (single or combo) – tracked on the configuration page "Wetten"."""
+
+    __tablename__ = "bets"
+    __table_args__ = APP
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    placed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    source: Mapped[str] = mapped_column(Text, server_default="manuell")  # tageskombi | tipps | manuell
+    label: Mapped[str] = mapped_column(Text)
+    bookmaker: Mapped[str] = mapped_column(Text, server_default="Betano")
+    stake: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    odds: Mapped[Decimal] = mapped_column(Numeric(8, 3))
+    probability: Mapped[float | None] = mapped_column(Float)
+    status: Mapped[str] = mapped_column(Text, server_default="open")  # open | won | lost | void
+    payout: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    notes: Mapped[str | None] = mapped_column(Text)
+
+
+class BetLeg(Base):
+    """One tip of a bet; settled automatically from the fixture result (after 90 minutes)."""
+
+    __tablename__ = "bet_legs"
+    __table_args__ = APP
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    bet_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("app.bets.id", ondelete="CASCADE"))
+    fixture_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("core.fixtures.id"))
+    market: Mapped[str | None] = mapped_column(Text)
+    selection: Mapped[str | None] = mapped_column(Text)
+    line: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    label: Mapped[str] = mapped_column(Text)
+    probability: Mapped[float | None] = mapped_column(Float)
+    odds: Mapped[Decimal | None] = mapped_column(Numeric(8, 3))
+    outcome: Mapped[bool | None] = mapped_column(Boolean)

@@ -41,11 +41,12 @@ async function errorText(res: Response, path: string): Promise<string> {
   return `API ${path}: HTTP ${res.status}`;
 }
 
-/** POST / PUT / PATCH with a JSON body (browser only, via the /api rewrite). */
-export async function apiSend<T>(method: "POST" | "PUT" | "PATCH", path: string, body: unknown): Promise<T> {
+/** POST / PUT / PATCH / DELETE with a JSON body (browser only, via the /api rewrite). */
+export async function apiSend<T>(method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${base()}/api${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const init: RequestInit = body === undefined ? { method } : { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
+    res = await fetch(`${base()}/api${path}`, init);
   } catch {
     throw new ApiError("API nicht erreichbar. Läuft das Backend auf Port 8000?", 0);
   }

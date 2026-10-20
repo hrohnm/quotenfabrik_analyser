@@ -56,6 +56,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/13_deployment_vps.md` | Installation auf einem VPS (Hostinger): Docker-Stack per Docker Manager oder manuell (systemd, nginx), Cron, Updates |
 | `docs/14_gemeinsames_modell.md` | Automatisch erzeugt: gemeinsames Modell über verbundene Ligen vs. getrennte Modelle (`qf model joint-eval`) |
 | `docs/15_europapokal.md` | Automatisch erzeugt: Europapokal-Backtest der gemeinsamen Stärkeskala (`qf model cup-eval`) |
+| `docs/16_tageskombis.md` | Automatisch erzeugt: Backtest der Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance, Quote 5–10, `qf combos report`) |
 | `docs/11_betano_nebenmaerkte.md` | Automatisch erzeugt: Betano-Nebenmärkte gegen faire Preise aus Pinnacle (`mkt-v1`, Phase 3) |
 
 ## Harte Regeln
@@ -126,6 +127,7 @@ qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebn
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
 qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md
 qf picks build && qf picks report             # 3 Tipps pro Spiel speichern / Trefferquote → docs/12_tipps.md
+qf combos report                              # Tageskombis im Backtest → docs/16_tageskombis.md
 qf seed import                                # Datenbank aus seed/quotenfabrik_seed.dump (statt API-Abruf)
 qf backup                                     # Backup nach backups/ (auch automatisch nach Liga-Import)
 uvicorn quotenfabrik.api.main:app --port 8000 # REST-API für das Frontend
@@ -145,13 +147,14 @@ pytest && ruff check . && ruff format --check .
   `app_config.model_pool`, Nachweis `joint_eval.py`), Märkte, Pattern, Evaluation,
   Value-Rechnung (`value.py`: Margenentfernung, EV, Kelly, CLV), Quoten-Backtest (`odds_backtest.py`),
   marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
-  (`betano_value.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`)
+  (`betano_value.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`), Tageskombis (`combos.py`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
+- `quotenfabrik/bets.py` – Wett-Tracking (`app.bets`, `app.bet_legs`): Abrechnung aus Ergebnissen, Auswertung
 - `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)
 - `quotenfabrik/pipeline.py` – Import-Schritte je Liga (CLI und Jobs); `jobs.py` – Hintergrund-Jobs (`app.jobs`,
   Prozess `qf jobs run <id>`); `backup.py` – Backups; `reports.py` – Berichtspfade je Liga
 - `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, explorer, stats, admin = Einstellungsseite), Labels in `api/labels.py`
-- `frontend-private/` – Next.js App Router (`src/app/spieltage`, `tipps`, `spiel/[id]`, `explorer`, `auswertung`, `einstellungen`)
+- `frontend-private/` – Next.js App Router (`src/app/spieltage`, `tipps`, `wetten`, `spiel/[id]`, `explorer`, `auswertung`, `einstellungen`)
 - `.devcontainer/` – GitHub Codespaces: App-Container + PostgreSQL, Seed beim ersten Start, startet API und Frontend
 - `docker-compose.yml` + `docker/` – kompletter Server-Stack (db mit Seed, api, cron, frontend, caddy mit HTTPS und Passwort),
   z. B. über den Hostinger Docker Manager; `deploy/` – dasselbe ohne Docker (systemd, nginx, Crontab, `update.sh`);

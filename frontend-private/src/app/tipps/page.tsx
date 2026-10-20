@@ -10,6 +10,8 @@ import { Segmented } from "@/components/match/Segmented";
 import { PickList, comboOutcome } from "@/components/picks/PickList";
 import { Logo } from "@/components/Logo";
 import { leagueLogo } from "@/lib/media";
+import { DayCombos } from "@/components/bets/DayCombos";
+import { BetDialog, type BetDraft } from "@/components/bets/BetDialog";
 
 export default function TipsPage() {
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -67,6 +69,8 @@ export default function TipsPage() {
 
       {error && <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
+      <DayCombos />
+
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Nächste Spiele</h2>
         {upcoming.length === 0 ? (
@@ -99,7 +103,22 @@ export default function TipsPage() {
   );
 }
 
+/** Estimated bookmaker odds of a pick: fair odds minus a typical margin of 5 %. */
+const MARGIN = 0.05;
+
+function picksDraft(f: Fixture): BetDraft {
+  const picks = f.picks ?? [];
+  return {
+    label: `${f.home.name} – ${f.away.name}: 3 Tipps`,
+    source: "tipps",
+    odds: picks.reduce((o, p) => o * (1 / p.probability) * (1 - MARGIN), 1),
+    probability: null,  // the picks of one fixture are correlated: the product would understate the chance
+    legs: picks.map((p) => ({ fixture_id: f.id, market: p.market, selection: p.selection, line: p.line, label: p.label, probability: p.probability, odds: Math.round((1 / p.probability) * (1 - MARGIN) * 100) / 100 })),
+  };
+}
+
 function FixturePicks({ f }: { f: Fixture }) {
+  const [draft, setDraft] = useState<BetDraft | null>(null);
   return (
     <Card>
       <Link href={`/spiel/${f.id}`} className="mb-3 flex items-center justify-between gap-2 hover:opacity-80">
@@ -114,6 +133,10 @@ function FixturePicks({ f }: { f: Fixture }) {
         </div>
       </Link>
       <PickList picks={f.picks ?? []} finished={f.finished} reasons={false} />
+      {!f.finished && (f.picks?.length ?? 0) > 0 && (
+        <button type="button" onClick={() => setDraft(picksDraft(f))} className="mt-3 text-xs text-emerald-700 hover:underline">Als Kombi-Wette erfassen</button>
+      )}
+      {draft && <BetDialog draft={draft} onClose={() => setDraft(null)} />}
     </Card>
   );
 }
