@@ -202,3 +202,38 @@ def test_round_labels():
     assert round_label("Regular Season - 7") == "7. Spieltag"
     assert round_label("Final") == "Finale"
     assert round_label(None) is None
+
+
+def test_strength_league_can_be_upgraded_to_full_league(engine, monkeypatch):
+    """A results-only league becomes a full league via "Liga hinzufügen"; full leagues cannot be added twice."""
+    from types import SimpleNamespace
+
+    from fastapi import HTTPException
+    from sqlalchemy.orm import Session
+
+    from quotenfabrik.api.routers import admin
+    from quotenfabrik.models import AppLeague
+
+    monkeypatch.setattr(admin, "get_engine", lambda: engine)
+    monkeypatch.setattr(jobs, "get_engine", lambda: engine)
+    monkeypatch.setattr(admin, "get_settings", lambda: SimpleNamespace(api_football_key="x"))
+    started = []
+    monkeypatch.setattr(
+        admin, "_start", lambda kind, params: started.append((kind, params)) or {"kind": kind}
+    )
+    with engine.begin() as conn:
+        conn.execute(text("truncate app.jobs, app.leagues"))
+        conn.execute(text("insert into app.leagues (id, name, country, first_season, active, kind) "
+                          "values (39, 'Premier League', 'England', 2017, true, 'ratings')"))  # fmt: skip
+
+    body = admin.NewLeague(id=39, name="Premier League", country="England", fd_code="E0", first_season=2015)
+    admin.add_league(body)
+    with Session(engine) as session:
+        lg = session.get(AppLeague, 39)
+        assert (lg.kind, lg.fd_code, lg.first_season, lg.active) == ("full", "E0", 2015, True)
+    assert started == [
+        ("add_league", {"league_id": 39, "first_season": 2015, "last_season": jobs.current_season()})
+    ]
+    with pytest.raises(HTTPException) as exc:
+        admin.add_league(body)
+    assert exc.value.status_code == 409

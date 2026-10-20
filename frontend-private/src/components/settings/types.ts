@@ -47,6 +47,8 @@ export type LeagueSearchResult = {
   current: number | null;
   details_from: number | null;
   configured: boolean;
+  /** configured as strength league (results only): adding it upgrades it to a full league */
+  ratings?: boolean;
   suggested_fd_code: string | null;
 };
 
