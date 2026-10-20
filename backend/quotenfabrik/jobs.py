@@ -56,7 +56,7 @@ STEP_LABELS = {
     "football_data": "football-data.co.uk (Historie, kostenlos)",
     "api_football": "API-Football (Spiele, Details, Halbzeit-Stats, Ausfälle)",
     "map_teams": "Teams zuordnen",
-    "results": "API-Football: Ergebnisse (1 Request pro Saison und Liga)",
+    "results": "API-Football: Ergebnisse (1 Request pro Saison und Liga, Europapokal mit Spieldetails)",
     "oddspapi_fixtures": "OddsPapi-Spielplan (1 Request)",
     "oddspapi_history": "Betano/Pinnacle-Quotenverläufe (kostenlos)",
     "backup_data": "Backup der abgerufenen Daten",
@@ -256,10 +256,9 @@ def _handlers() -> dict[str, Handler]:
         with Session(engine) as session, ApiFootballClient(on_response=raw_response_saver(engine)) as client:
             for league_id in params["league_ids"]:
                 name = app_config.league(league_id).name
-                pipeline.api_football_seasons(
-                    session, client, league_id, _seasons(params), details=False, half_stats=False,
-                    injuries=False, log=lambda m, name=name: log(f"{name}: {m}"),
-                )  # fmt: skip
+                pipeline.results_seasons(
+                    session, client, league_id, _seasons(params), log=lambda m, name=name: log(f"{name}: {m}")
+                )
             n, used, left = len(params["league_ids"]), client.requests_made, client.quota_remaining
         return f"{n} Ligen, {used} Requests, verbleibend heute {left}"
 

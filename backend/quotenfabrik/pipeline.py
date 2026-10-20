@@ -76,6 +76,31 @@ def api_football_seasons(
     return f"{loaded} Spiele, {client.requests_made} Requests, verbleibend heute {client.quota_remaining}"
 
 
+CUP_DETAIL_SEASONS = (
+    2  # cups: match details (line-ups, goals, player stats) for the current and previous season
+)
+
+
+def results_seasons(
+    session: Session, client: ApiFootballClient, league_id: int, seasons: Iterable[int], log: Log = _noop
+) -> str:
+    """Strength leagues: results only (1 request per season). Cups: in the recent seasons also match details
+    (20 fixtures per request) for the goalscorer model and settling scorer predictions."""
+    seasons = list(seasons)
+    if not app_config.is_cup(league_id):
+        return api_football_seasons(session, client, league_id, seasons, details=False, half_stats=False,
+                                    injuries=False, log=log)  # fmt: skip
+    now = datetime.now(UTC)
+    first_detailed = (now.year if now.month >= 7 else now.year - 1) - CUP_DETAIL_SEASONS + 1
+    out = []
+    for detailed, part in ((False, [s for s in seasons if s < first_detailed]),
+                           (True, [s for s in seasons if s >= first_detailed])):  # fmt: skip
+        if part:
+            out.append(api_football_seasons(session, client, league_id, part, details=detailed,
+                                            half_stats=False, injuries=False, log=log))  # fmt: skip
+    return "; ".join(out)
+
+
 def map_teams(session: Session, league_id: int, log: Log = _noop) -> str:
     code = app_config.fd_code_for(league_id)
     if not code:

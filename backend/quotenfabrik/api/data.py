@@ -7,7 +7,8 @@ from functools import lru_cache
 import pandas as pd
 from sqlalchemy import Engine, text
 
-from quotenfabrik.analytics.data import load_goal_events, load_matches, load_player_matches
+from quotenfabrik import app_config
+from quotenfabrik.analytics.data import load_competitions, load_goal_events, load_matches, load_player_matches
 from quotenfabrik.db import get_engine
 
 CACHE_TTL_S = 600
@@ -68,11 +69,17 @@ class _ModelData:
             entry = self._loaded.get(league_id)
             if entry is None or time.time() - entry[0] > CACHE_TTL_S:
                 e = engine()
-                data = (
-                    load_matches(e, league_id),
-                    load_player_matches(e, league_id),
-                    load_goal_events(e, league_id),
-                )
+                if app_config.is_cup(league_id):  # cups: all competitions (same data as the cup forecast)
+                    _, players, goals = load_competitions(
+                        e, app_config.league_ids(), [lg.id for lg in app_config.cup_leagues()]
+                    )
+                    data = (app_config.europe_pool(e), players, goals)
+                else:
+                    data = (
+                        load_matches(e, league_id),
+                        load_player_matches(e, league_id),
+                        load_goal_events(e, league_id),
+                    )
                 self._loaded[league_id] = (time.time(), data)
             return self._loaded[league_id][1]
 

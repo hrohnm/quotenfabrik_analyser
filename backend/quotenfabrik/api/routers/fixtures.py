@@ -1,5 +1,6 @@
 """Matchday overview and fixture detail."""
 
+import dataclasses
 import math
 from datetime import date, datetime, timedelta
 
@@ -7,10 +8,10 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from quotenfabrik import app_config
-from quotenfabrik.analytics import bookmaker_odds
+from quotenfabrik.analytics import bookmaker_odds, form
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.picks import default_profile
-from quotenfabrik.api.data import chosen_runs_cte, df, model_data
+from quotenfabrik.api.data import chosen_runs_cte, df, model_data, team_names
 from quotenfabrik.api.labels import (
     GROUP_LABELS,
     MARKET_LABELS,
@@ -250,6 +251,7 @@ def fixture_detail(fixture_id: int) -> dict:
     r = next(rows.itertuples())
     fixture = _fixture_dict(r)
     fixture["first_leg"] = _first_legs([fixture]).get(fixture_id)
+    forms = _forms(r)
 
     preds = df(
         f"""with runs as ({chosen_runs_cte("and p.fixture_id = :id")})
@@ -319,7 +321,8 @@ def fixture_detail(fixture_id: int) -> dict:
         "prediction": source,
         "markets": market_list,
         "scorers": sorted(scorers.values(), key=lambda s: -s.get("anytime", 0)),
-        "patterns": _patterns(r),
+        "patterns": _patterns(r, forms),
+        "form": forms,
         "picks": _picks([fixture]).get(fixture_id, {}),
         "odds": {"betano_at": max(betano_at) if betano_at else None, "closing": fixture["finished"]},
         "stats": _stats(fixture_id, fixture),
@@ -327,9 +330,8 @@ def fixture_detail(fixture_id: int) -> dict:
     }
 
 
-def _patterns(r) -> list[dict]:
-    if app_config.is_cup(int(r.league_id)):
-        return []  # patterns are validated for leagues only (cups: results only)
+def _patterns(r, forms: dict) -> list[dict]:
+    """Patterns of the fixture (cups: over all competitions) plus the form pattern of both teams."""
     matches, players, goals = model_data.get(int(r.league_id))
     kickoff = pd.Timestamp(r.kickoff_utc)
     ctx = PatternContext.build(matches, kickoff, goals, players)
@@ -337,6 +339,38 @@ def _patterns(r) -> list[dict]:
     for p in compute_patterns(ctx, int(r.home_team_id), int(r.away_team_id)):
         out.append({"group": p.group, "key": p.key, "label": p.label, "scope": p.scope, "value": _clean(p.value),
                     "n": p.n, "baseline": _clean(p.baseline), "signal": p.signal, "details": p.details or None})  # fmt: skip
+    for scope, team_label in (("home", "Heimteam"), ("away", "Gastteam")):
+        f = forms[scope]["form"]
+        out.append({"group": "1x2", "key": f"{scope}_form_vs_expectation",
+                    "label": f"Form {team_label}: Punkte über/unter Modell-Erwartung pro Spiel "
+                             f"(letzte {form.FORM_N}, alle Wettbewerbe)",
+                    "scope": scope, "value": f["residual"], "n": f["n_expected"], "baseline": None,
+                    "signal": f["signal"], "details": {"sequence": f["sequence"], "ppg": f["ppg"],
+                                                       "expected_ppg": f["expected_ppg"]}})  # fmt: skip
+    return out
+
+
+def _forms(r) -> dict:
+    """Last matches of both teams in all competitions (before kickoff) and their form."""
+    home, away = int(r.home_team_id), int(r.away_team_id)
+    rows = form.team_rows(form.load_history(get_engine(), pd.Timestamp(r.kickoff_utc), [home, away]))
+    names = team_names()
+    out = {}
+    for scope, team in (("home", home), ("away", away)):
+        t = rows[rows["team"] == team]
+        recent = t.tail(form.LIST_N).iloc[::-1]
+        out[scope] = {
+            "form": dataclasses.asdict(form.team_form(t)),
+            "matches": [
+                {"fixture_id": int(m.fixture_id), "kickoff": m.kickoff.isoformat(),
+                 "league": {"id": int(m.league_id), "name": m.league_name, "logo": league_logo(int(m.league_id))},
+                 "round_label": round_label(m.round), "venue": m.venue,
+                 "opponent": {"id": int(m.opp), "name": names.get(int(m.opp), str(m.opp))},
+                 "gf": int(m.gf), "ga": int(m.ga), "result": m.result, "points": int(m.points),
+                 "xpts": _clean(m.xpts)}
+                for m in recent.itertuples(index=False)
+            ],
+        }  # fmt: skip
     return out
 
 

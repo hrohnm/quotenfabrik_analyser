@@ -3,8 +3,12 @@
 import pandas as pd
 from sqlalchemy import Engine, text
 
+# competitions without league rounds (European cups): all rounds
+_CUP_ROUNDS = """not exists (select 1 from core.fixtures x
+                             where x.league_id = :league and x.round like 'Regular Season%')"""
+
 _MATCHES_SQL = text(
-    """
+    f"""
     select f.id as fixture_id, f.season, f.matchday, f.round, f.kickoff_utc as kickoff, f.status,
            f.home_team_id as home_id, f.away_team_id as away_id,
            f.ft_home as hg, f.ft_away as ag, f.ht_home as hthg, f.ht_away as htag,
@@ -16,10 +20,7 @@ _MATCHES_SQL = text(
     left join core.fixture_team_stats sa
            on sa.fixture_id = f.id and sa.team_id = f.away_team_id and sa.period = 'FT'
     where f.league_id = :league
-      and (f.round like 'Regular Season%' or :all_rounds
-           -- competitions without league rounds (European cups): all rounds
-           or not exists (select 1 from core.fixtures x
-                          where x.league_id = :league and x.round like 'Regular Season%'))
+      and (f.round like 'Regular Season%' or :all_rounds or {_CUP_ROUNDS})
     order by f.kickoff_utc, f.id
     """
 )
@@ -56,7 +57,7 @@ def load_matches(engine: Engine, league_id: int, all_rounds: bool = False) -> pd
 
 
 _PLAYERS_SQL = text(
-    """
+    f"""
     select p.fixture_id, f.kickoff_utc as kickoff, f.season, p.team_id, p.player_id, pl.name,
            p.position, p.is_starter, coalesce(p.minutes, 0) as minutes, coalesce(p.goals, 0) as goals,
            coalesce(p.penalties_scored, 0) as pen_goals, coalesce(p.shots_total, 0) as shots,
@@ -64,17 +65,17 @@ _PLAYERS_SQL = text(
     from core.fixture_player_stats p
     join core.fixtures f on f.id = p.fixture_id
     join core.players pl on pl.id = p.player_id
-    where f.league_id = :league and f.round like 'Regular Season%'
+    where f.league_id = :league and (f.round like 'Regular Season%' or {_CUP_ROUNDS})
     order by f.kickoff_utc
     """
 )
 
 _GOALS_SQL = text(
-    """
+    f"""
     select e.fixture_id, e.team_id, e.player_id, e.minute, e.extra_minute, e.detail
     from core.fixture_events e
     join core.fixtures f on f.id = e.fixture_id
-    where f.league_id = :league and f.round like 'Regular Season%'
+    where f.league_id = :league and (f.round like 'Regular Season%' or {_CUP_ROUNDS})
       and e.type = 'Goal' and e.detail <> 'Missed Penalty' and e.minute <= 90
     """
 )
@@ -144,3 +145,16 @@ def load_player_matches(engine: Engine, league_id: int) -> pd.DataFrame:
 
 def load_goal_events(engine: Engine, league_id: int) -> pd.DataFrame:
     return pd.read_sql(_GOALS_SQL, engine, params={"league": league_id})
+
+
+def load_competitions(
+    engine: Engine, full: list[int], cups: list[int]
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Matches, player matches and goal events of all leagues with match details plus the cups (cup fixtures
+    of the recent seasons have details too): the goalscorer data of a cup fixture comes from every competition
+    its teams played in."""
+    ids = list(full) + list(cups)
+    matches = load_leagues(engine, ids, cups=set(cups))
+    players = pd.concat([load_player_matches(engine, lg) for lg in ids], ignore_index=True)
+    goals = pd.concat([load_goal_events(engine, lg) for lg in ids], ignore_index=True)
+    return matches, players.sort_values("kickoff", ignore_index=True), goals

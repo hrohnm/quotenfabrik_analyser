@@ -18,6 +18,7 @@ from quotenfabrik.reports import (
     BETANO_REPORT,
     COMBO_REPORT,
     CUP_REPORT,
+    FORM_REPORT,
     JOINT_REPORT,
     ODDS_REPORT,
     PICKS_REPORT,
@@ -146,7 +147,8 @@ def ingest_results(
     seasons: str = typer.Option("aktuell", help="Saison-Startjahre, z. B. aktuell oder 2017-2026"),
     league: int | None = typer.Option(None, help="API-Liga-ID (Standard: aktive Stärke-Ligen)"),
 ) -> None:
-    """Nur Ergebnisse (Spielplan) der Stärke-Ligen und Europapokale: 1 Request pro Saison und Wettbewerb."""
+    """Ergebnisse der Stärke-Ligen und Europapokale (1 Request pro Saison und Wettbewerb); Europapokale der
+    letzten zwei Saisons zusätzlich mit Spieldetails für Torschützen (20 Spiele pro Request)."""
     ids = [league] if league else [lg.id for lg in app_config.ratings_leagues() + app_config.cup_leagues()]
     if not ids:
         typer.echo("Keine Stärke-Ligen konfiguriert.")
@@ -154,10 +156,7 @@ def ingest_results(
     with Session(get_engine()) as session, _client() as client:
         try:
             for league_id in ids:
-                result = pipeline.api_football_seasons(
-                    session, client, league_id, _seasons(seasons), details=False, half_stats=False,
-                    injuries=False,
-                )  # fmt: skip
+                result = pipeline.results_seasons(session, client, league_id, _seasons(seasons))
                 typer.echo(f"Liga {league_id}: {result}")
         except QuotaExhausted as exc:
             typer.secho(f"Abgebrochen: {exc}", fg="red")
@@ -347,6 +346,19 @@ def model_joint_eval(
     )
     report.write_text(text, encoding="utf-8")
     typer.echo(f"Bericht: {report}")
+
+
+@model_app.command("form-eval")
+def model_form_eval(report: Path = typer.Option(FORM_REPORT, help="Markdown-Bericht")) -> None:
+    """Form-Pattern (Punkte über/unter Modell-Erwartung, alle Wettbewerbe) gegen das nächste Spiel prüfen."""
+    import pandas as pd
+
+    from quotenfabrik.analytics import form
+
+    history = form.load_history(get_engine(), pd.Timestamp.now(tz="UTC"), kinds=("backtest",))
+    result = form.evaluate(form.team_rows(history))
+    report.write_text(form.report(result), encoding="utf-8")
+    typer.echo(f"{result['n']} Spiele ausgewertet → {report}")
 
 
 @model_app.command("cup-eval")

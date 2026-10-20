@@ -59,7 +59,7 @@ export function RatingsLeaguesCard({ leagues, status, jobRunning, onChanged, onR
       }
     >
       <p className="mb-3 text-sm text-slate-500">
-        Nur Spielergebnisse (1 Request pro Saison) – für eine gemeinsame Stärkeskala über Ländergrenzen. Die Ligen werden über die Europapokalspiele
+        Nur Spielergebnisse (1 Request pro Saison) – für eine gemeinsame Stärkeskala über Ländergrenzen; Europapokale der letzten zwei Saisons zusätzlich mit Spieldetails (Torschützen). Die Ligen werden über die Europapokalspiele
         miteinander verbunden. Sie erscheinen nicht in Spieltagen und Tipps. Zur vollen Liga (mit Tipps): oben unter „Ligen“ → „+ Liga hinzufügen“ suchen – die geladenen Ergebnisse bleiben erhalten.
       </p>
       {leagues.length > 0 && (
@@ -75,6 +75,17 @@ export function RatingsLeaguesCard({ leagues, status, jobRunning, onChanged, onR
                 <span className="text-xs text-slate-400" title={lg.seasons ? `${seasonLabel(lg.seasons[0])} – ${seasonLabel(lg.seasons[1])}` : undefined}>
                   {lg.finished ? `${lg.finished.toLocaleString("de-DE")} Sp.` : "keine Daten"}
                 </span>
+                {lg.kind === "cup" && lg.active && (
+                  <button
+                    type="button"
+                    disabled={jobRunning}
+                    onClick={() => window.confirm(`${lg.name} nachladen?\n\nErgebnisse aller Saisons (1 Request pro Saison) und Spieldetails der letzten zwei Saisons für die Torschützen (ca. 20–40 Requests beim ersten Mal), danach Prognosen neu.`) && onReload([lg.id])}
+                    className="text-xs text-emerald-700 hover:underline disabled:text-slate-300"
+                    title="Ergebnisse und Spieldetails nachladen"
+                  >
+                    nachladen
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => toggle(lg)}
