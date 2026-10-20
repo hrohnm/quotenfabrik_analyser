@@ -103,17 +103,19 @@ export default function TipsPage() {
   );
 }
 
-/** Estimated bookmaker odds of a pick: fair odds minus a typical margin of 5 %. */
+/** Bookmaker odds of a pick: Betano if known, else fair odds minus a typical margin of 5 %. */
 const MARGIN = 0.05;
+const legOdds = (p: { betano?: number | null; probability: number }) => p.betano ?? (1 / p.probability) * (1 - MARGIN);
 
 function picksDraft(f: Fixture): BetDraft {
   const picks = f.picks ?? [];
   return {
     label: `${f.home.name} – ${f.away.name}: 3 Tipps`,
     source: "tipps",
-    odds: picks.reduce((o, p) => o * (1 / p.probability) * (1 - MARGIN), 1),
+    odds: picks.reduce((o, p) => o * legOdds(p), 1),
+    realOdds: picks.every((p) => p.betano != null),
     probability: null,  // the picks of one fixture are correlated: the product would understate the chance
-    legs: picks.map((p) => ({ fixture_id: f.id, market: p.market, selection: p.selection, line: p.line, label: p.label, probability: p.probability, odds: Math.round((1 / p.probability) * (1 - MARGIN) * 100) / 100 })),
+    legs: picks.map((p) => ({ fixture_id: f.id, market: p.market, selection: p.selection, line: p.line, label: p.label, probability: p.probability, odds: Math.round(legOdds(p) * 100) / 100 })),
   };
 }
 

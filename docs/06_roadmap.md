@@ -56,7 +56,7 @@
 - [x] Wett-Tracking (`/wetten`): Einsatz, echte Quote, automatische Abrechnung, ROI und Trefferquote gegen Modell-Erwartung
 - [x] Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance; Zielquote 5–10) mit Backtest (`16_tageskombis.md`)
 - [ ] Wett-Tracking: CLV (Schlussquote je Wette aus dem Snapshot-Archiv)
-- [ ] Betano-/Pinnacle-Quoten im Spiel-Detail (nach Markt-Mapping OddsPapi ↔ eigene Märkte, Phase 3)
+- [x] Betano-/Pinnacle-Quoten im Spiel-Detail, bei den Tipps und in den Tageskombis (`analytics/bookmaker_odds.py`, Value-Markierung ab 5 % Vorteil)
 - [ ] Datenqualitäts-Ansicht
 
 ## Phase 4 – Erweiterung

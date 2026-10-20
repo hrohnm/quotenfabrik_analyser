@@ -146,7 +146,7 @@ pytest && ruff check . && ruff format --check .
 - `quotenfabrik/analytics/` – Modelle (Dixon-Coles, Halbzeiten, Torschützen; über verbundene Ligen gemeinsam,
   `app_config.model_pool`, Nachweis `joint_eval.py`), Märkte, Pattern, Evaluation,
   Value-Rechnung (`value.py`: Margenentfernung, EV, Kelly, CLV), Quoten-Backtest (`odds_backtest.py`),
-  marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
+  Betano-/Pinnacle-Preise je Spiel und Auswahl (`bookmaker_odds.py`, für API und Tageskombis), marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
   (`betano_value.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`), Tageskombis (`combos.py`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - `quotenfabrik/bets.py` – Wett-Tracking (`app.bets`, `app.bet_legs`): Abrechnung aus Ergebnissen, Auswertung

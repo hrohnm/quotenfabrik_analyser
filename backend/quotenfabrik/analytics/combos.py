@@ -40,7 +40,8 @@ class ComboSettings:
     min_p: float = 0.55
     max_p: float = 0.85
     margin: float = 0.05  # assumed bookmaker margin per leg (estimated odds)
-    min_leg_odds: float = 1.2  # legs with lower estimated odds are skipped
+    min_leg_odds: float = 1.2  # legs with lower odds are skipped
+    min_edge: float | None = None  # only legs with Betano odds and p × odds − 1 ≥ min_edge (None = no filter)
     lift_weight: float = 1.0
     max_legs: int = 8
 
@@ -90,7 +91,13 @@ def candidates(preds: pd.DataFrame, s: ComboSettings) -> dict[str, pd.DataFrame]
     df = df[df["kind"].notna() & df["probability"].between(s.min_p, s.max_p)]
     base = df["base_rate"].astype(float).fillna(df["probability"])
     df["score"] = df["probability"] + s.lift_weight * (df["probability"] - base)
-    df["odds"] = (1.0 / df["probability"]) * (1.0 - s.margin)
+    estimate = (1.0 / df["probability"]) * (1.0 - s.margin)
+    real = df["betano"].notna() if "betano" in df else pd.Series(False, index=df.index)
+    df["odds"] = df["betano"].where(real, estimate) if "betano" in df else estimate
+    df["odds_source"] = np.where(real, "betano", "geschätzt")
+    df["edge"] = (df["probability"] * df["odds"] - 1).where(real)
+    if s.min_edge is not None:
+        df = df[df["edge"] >= s.min_edge]
     df = df[df["odds"] >= s.min_leg_odds]
     out = {}
     for kind in KINDS:
@@ -168,7 +175,8 @@ def backtest(preds: pd.DataFrame, s: ComboSettings) -> pd.DataFrame:
                 continue
             rows.append({"day": day, "season": int(part["season"].iloc[0]), "kind": c.kind, "legs": len(c.legs),
                          "odds": c.odds, "probability": c.probability, "won": bool(outcome),
-                         "leg_hits": sum(bool(leg["outcome"]) for leg in c.legs)})  # fmt: skip
+                         "leg_hits": sum(bool(leg["outcome"]) for leg in c.legs),
+                         "real": all(leg.get("odds_source") == "betano" for leg in c.legs)})  # fmt: skip
     return pd.DataFrame(rows)
 
 
@@ -224,7 +232,19 @@ def load_backtest(engine, league_ids: list[int]) -> pd.DataFrame:
 
     preds = pd.read_sql(text(_PREDICTIONS_SQL), engine, params={"leagues": league_ids})
     preds = preds[preds["outcome"].notna()]
-    return with_base_rates(engine, preds)
+    return with_betano(engine, with_base_rates(engine, preds))
+
+
+COMBO_MARKET_TYPES = ["totals", "teamtotals-team1", "teamtotals-team2", "doublechance", "1x2"]
+
+
+def with_betano(engine, preds: pd.DataFrame) -> pd.DataFrame:
+    """Adds ``betano`` (last Betano odds before kickoff, NaN without OddsPapi history) and ``fair`` (Pinnacle)."""
+    from quotenfabrik.analytics.bookmaker_odds import KEY, odds_table
+
+    table = odds_table(engine, sorted(preds["fixture_id"].unique()), COMBO_MARKET_TYPES)
+    preds = preds.drop(columns=["betano", "fair", "betano_at"], errors="ignore").astype({"line": float})
+    return preds.merge(table[[*KEY, "betano", "fair", "betano_at"]], on=KEY, how="left")
 
 
 # --------------------------------------------------------------------------- report
@@ -243,6 +263,37 @@ def _pct(x: float) -> str:
 
 def _num(x: float, digits: int = 2) -> str:
     return f"{x:.{digits}f}".replace(".", ",")
+
+
+def _real_odds_section(preds: pd.DataFrame, base: ComboSettings, std: pd.DataFrame) -> list[str]:
+    """Combos whose legs all have real Betano closing odds, plus value-only variants (Betano odds × p ≥ 1 + edge)."""
+    from dataclasses import replace
+
+    if "betano" not in preds or preds["betano"].isna().all():
+        return [
+            "",
+            "## Mit echten Betano-Quoten",
+            "",
+            "Noch keine Spiele mit Betano-Quotenverlauf (OddsPapi).",
+        ]
+    days = preds.loc[preds["betano"].notna(), "day"].nunique()
+    out = ["", "## Mit echten Betano-Quoten", "",
+           f"Spieltage mit Betano-Verlauf (OddsPapi, seit Januar 2026): {days}. Quote = letzte Betano-Quote vor "
+           "Anpfiff. „Nur Value-Tipps“ nimmt nur Tipps, bei denen Modell-Wahrscheinlichkeit × Betano-Quote über "
+           "1 + Mindestvorteil liegt.", "",
+           "| Variante | Kombi | Kombis | getroffen | Modell erwartet | Ø Quote | Ø Tipps | Rendite |",
+           "|---|---|---:|---:|---:|---:|---:|---:|"]  # fmt: skip
+    variants = {"Standard, alle Tipps mit Betano-Quote": std[std["real"]] if not std.empty else std}
+    for edge in (0.0, 0.05):
+        variants[f"nur Value-Tipps (Vorteil ≥ {edge * 100:.0f} %)"] = backtest(
+            preds, replace(base, min_edge=edge)
+        )
+    for name, res in variants.items():
+        for kind, r in summary(res).iterrows():
+            out.append(f"| {name} | {KINDS[kind]} | {int(r['n'])} | {_pct(r['hit_rate'])} | {_pct(r['expected'])} | "
+                       f"{_num(r['odds'])} | {_num(r['legs'], 1)} | {_pct(r['roi'])} |")  # fmt: skip
+    out += ["", "Wenige Kombis: die Rendite schwankt hier stark und ist noch kein Beleg für einen Vorteil."]
+    return out
 
 
 def report(preds: pd.DataFrame, base: ComboSettings, league_names: list[str]) -> str:
@@ -272,15 +323,16 @@ def report(preds: pd.DataFrame, base: ComboSettings, league_names: list[str]) ->
         "",
         "## Ergebnis je Variante",
         "",
-        "| Variante | Kombi | Kombis | getroffen | Modell erwartet | Ø Quote | Ø Tipps | Rendite (geschätzte Quote) |",
+        "| Variante | Kombi | Kombis | getroffen | Modell erwartet | Ø Quote | Ø Tipps | Rendite |",
         "|---|---|---:|---:|---:|---:|---:|---:|",
     ]
     for name, res in results.items():
         for kind, r in summary(res).iterrows():
             out.append(f"| {name} | {KINDS[kind]} | {int(r['n'])} | {_pct(r['hit_rate'])} | {_pct(r['expected'])} | "
                        f"{_num(r['odds'])} | {_num(r['legs'], 1)} | {_pct(r['roi'])} |")  # fmt: skip
-    out += ["", "Getroffen > erwartet heißt: das Modell war bei diesen Tipps eher zu vorsichtig; die Rendite ist mit "
-            "der geschätzten (nicht der echten) Quote gerechnet.", "", "## Standard je Saison", "",
+    out += ["", "Getroffen > erwartet heißt: das Modell war bei diesen Tipps eher zu vorsichtig. Die Rendite ist mit der "
+            "geschätzten Quote gerechnet, für Spiele mit OddsPapi-Verlauf (seit Januar 2026) mit der echten "
+            "Betano-Schlussquote.", "", "## Standard je Saison", "",
             "| Saison | Kombi | Kombis | getroffen | Modell erwartet | Rendite |", "|---|---|---:|---:|---:|---:|"]  # fmt: skip
     if not std.empty:
         for (season, kind), g in std.groupby(["season", "kind"]):
@@ -293,6 +345,7 @@ def report(preds: pd.DataFrame, base: ComboSettings, league_names: list[str]) ->
             miss = g["legs"] - g["leg_hits"]
             out.append(f"| {KINDS[kind]} | {_pct((miss == 0).mean())} | {_pct((miss == 1).mean())} | "
                        f"{_pct((miss >= 2).mean())} |")  # fmt: skip
+    out += _real_odds_section(preds, base, std)
     out += [
         "",
         "## Bewertung",

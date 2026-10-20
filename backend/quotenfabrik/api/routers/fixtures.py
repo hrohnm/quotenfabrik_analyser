@@ -7,6 +7,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from quotenfabrik import app_config
+from quotenfabrik.analytics import bookmaker_odds
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.picks import default_profile
 from quotenfabrik.api.data import chosen_runs_cte, df, model_data
@@ -18,6 +19,7 @@ from quotenfabrik.api.labels import (
     pick_label,
     round_label,
 )
+from quotenfabrik.db import get_engine
 
 router = APIRouter(prefix="/api", tags=["fixtures"])
 
@@ -142,6 +144,7 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
             order by k.fixture_id, k.profile, k.rank""",
         ids=list(names), profile=profile,
     )  # fmt: skip
+    prices = _bookmaker_prices(list(names)) if not rows.empty else {}
     out: dict[int, dict[str, list[dict]]] = {}
     for r in rows.itertuples():
         line = None if pd.isna(r.line) else float(r.line)
@@ -149,9 +152,24 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
             {"rank": int(r.rank), "group": r.market_group, "market": r.market, "selection": r.selection, "line": line,
              "label": pick_label(r.market, r.selection, line, *names[int(r.fixture_id)]),
              "probability": float(r.probability), "fair_odd": _clean(r.fair_odd), "base_rate": _clean(r.base_rate),
-             "outcome": None if pd.isna(r.outcome) else bool(r.outcome), "reasons": r.reasons or []}
+             "outcome": None if pd.isna(r.outcome) else bool(r.outcome), "reasons": r.reasons or [],
+             **_prices(prices, int(r.fixture_id), r.market, line, r.selection, float(r.probability))}
         )  # fmt: skip
     return out
+
+
+def _bookmaker_prices(fixture_ids: list[int]) -> dict[tuple, dict]:
+    """Betano odds and Pinnacle fair probability per selection (OddsPapi, last price before kickoff)."""
+    return bookmaker_odds.lookup(bookmaker_odds.odds_table(get_engine(), fixture_ids))
+
+
+def _prices(prices: dict, fixture_id: int, market: str, line: float | None, selection: str, p: float) -> dict:
+    """``betano`` odds, ``pinnacle`` fair probability and ``edge`` = p × Betano odds − 1 (None if unknown)."""
+    hit = prices.get((fixture_id, market, None if line is None else round(line, 2), selection))
+    if not hit:
+        return {"betano": None, "pinnacle": None, "edge": None}
+    betano = hit["betano"]
+    return {"betano": betano, "pinnacle": hit["fair"], "edge": None if betano is None else p * betano - 1}
 
 
 @router.get("/days")
@@ -279,6 +297,11 @@ def fixture_detail(fixture_id: int) -> dict:
              "probability": float(p.probability), "fair_odd": None if pd.isna(p.fair_odd) else float(p.fair_odd),
              "outcome": outcome}
         )  # fmt: skip
+    prices = _bookmaker_prices([fixture_id])
+    for (_, market, line), m in markets.items():
+        for s in m["selections"]:
+            s.update(_prices(prices, fixture_id, market, line, s["selection"], s["probability"]))
+    betano_at = [v["betano_at"] for v in prices.values() if v["betano_at"]]
     order = list(GROUP_LABELS)
     market_list = sorted(
         markets.values(), key=lambda m: (order.index(m["group"]), m["market"], m["line"] or 0)
@@ -298,6 +321,7 @@ def fixture_detail(fixture_id: int) -> dict:
         "scorers": sorted(scorers.values(), key=lambda s: -s.get("anytime", 0)),
         "patterns": _patterns(r),
         "picks": _picks([fixture]).get(fixture_id, {}),
+        "odds": {"betano_at": max(betano_at) if betano_at else None, "closing": fixture["finished"]},
         "stats": _stats(fixture_id, fixture),
         "goals": _goals(fixture_id),
     }

@@ -50,7 +50,7 @@ def day_combos(day: date = Query(..., alias="date")) -> list[dict]:
     if hit and time.time() - hit[0] < CACHE_TTL_S:
         return hit[1]
     preds["kickoff"] = pd.to_datetime(preds["kickoff"], utc=True)
-    with_rates = combos.with_base_rates(get_engine(), preds)
+    with_rates = combos.with_betano(get_engine(), combos.with_base_rates(get_engine(), preds))
     out = []
     for c in combos.build_day(
         with_rates, app_config.combo_settings(), rotation=pd.Timestamp(day).toordinal()
@@ -66,9 +66,11 @@ def day_combos(day: date = Query(..., alias="date")) -> list[dict]:
                 "market": leg["market"], "selection": leg["selection"], "line": line,
                 "label": pick_label(leg["market"], leg["selection"], line, leg["home_name"], leg["away_name"]),
                 "probability": float(leg["probability"]), "odds": round(float(leg["odds"]), 2),
+                "odds_source": leg["odds_source"], "edge": leg["edge"], "pinnacle": leg.get("fair"),
                 "outcome": None if leg["outcome"] is None else bool(leg["outcome"]),
             })  # fmt: skip
         out.append({"kind": c.kind, "label": combos.KINDS[c.kind], "odds": round(c.odds, 2),
+                    "real_odds": all(leg["odds_source"] == "betano" for leg in c.legs),
                     "probability": c.probability, "outcome": c.outcome, "legs": legs})  # fmt: skip
     _CACHE[key] = (time.time(), out)
     return out

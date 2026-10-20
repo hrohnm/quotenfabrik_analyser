@@ -150,3 +150,33 @@ def test_validate_combo_settings():
         app_config.validate({"combos.target_min": 12})
     with pytest.raises(ValueError):
         app_config.validate({"combos.min_p": 0.9})
+
+
+def test_candidates_prefer_real_betano_odds_and_edge_filter():
+    preds = day_preds()
+    preds["betano"] = float("nan")
+    preds.loc[
+        (preds["fixture_id"] == 1) & (preds["market"] == "ou_ft") & (preds["line"] == 1.5), "betano"
+    ] = 1.60
+    c = candidates(preds, ComboSettings())["tore"]
+    real = c[c["fixture_id"] == 1].iloc[0]
+    assert real["odds"] == 1.60 and real["odds_source"] == "betano"
+    assert real["edge"] == pytest.approx(real["probability"] * 1.60 - 1)
+    assert (c[c["fixture_id"] != 1]["odds_source"] == "geschätzt").all()
+    only_value = candidates(preds, ComboSettings(min_edge=0.0))["tore"]
+    assert list(only_value["fixture_id"]) == [1]  # estimated legs never count as value
+
+
+def test_pinnacle_fair_removes_margin_and_derives_double_chance():
+    from quotenfabrik.analytics.bookmaker_odds import PINNACLE, pinnacle_fair
+
+    rows = [(1, PINNACLE, "1x2", None, s, o) for s, o in (("H", 2.0), ("D", 3.6), ("A", 4.0))]
+    rows += [(1, PINNACLE, "ou_ft", 2.5, "over", 1.9), (1, PINNACLE, "ou_ft", 2.5, "under", 1.95)]
+    rows += [(1, PINNACLE, "ou_ft", 3.5, "over", 2.9)]  # incomplete pair: no fair price
+    prices = pd.DataFrame(rows, columns=["fixture_id", "bookmaker", "market", "line", "selection", "price"])
+    fair = pinnacle_fair(prices).set_index(["market", "selection"])["fair"]
+    assert fair.loc[("1x2", "H")] + fair.loc[("1x2", "D")] + fair.loc[("1x2", "A")] == pytest.approx(1)
+    assert fair.loc[("1x2", "H")] < 1 / 2.0 * 1.06 and fair.loc[("1x2", "H")] > 0.45
+    assert fair.loc[("dc", "1X")] == pytest.approx(fair.loc[("1x2", "H")] + fair.loc[("1x2", "D")])
+    assert fair.loc[("ou_ft", "over")] + fair.loc[("ou_ft", "under")] == pytest.approx(1)
+    assert len(fair.loc["ou_ft"]) == 2

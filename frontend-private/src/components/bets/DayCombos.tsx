@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { addDays, berlinToday, dayMonth, odd, pct, time, weekday } from "@/lib/format";
+import { addDays, berlinToday, dayMonth, odd, pct, signedPct, time, weekday } from "@/lib/format";
 import type { DayCombo } from "@/lib/types";
 import { Card, OutcomeBadge, TeamLogo } from "@/components/ui";
 import { Logo } from "@/components/Logo";
 import { leagueLogo } from "@/lib/media";
 import { BetDialog, type BetDraft } from "./BetDialog";
+import { BetanoOdd } from "@/components/BetanoOdd";
 
 const KIND_HINT: Record<DayCombo["kind"], string> = {
   tore: "Über x,5 Tore im Spiel",
@@ -37,6 +38,7 @@ export function DayCombos() {
     label: `Tageskombi ${c.label} ${dayMonth(day)}`,
     source: "tageskombi",
     odds: c.odds,
+    realOdds: c.real_odds,
     probability: c.probability,
     legs: c.legs.map((l) => ({ fixture_id: l.fixture_id, market: l.market, selection: l.selection, line: l.line, label: `${l.home.name} – ${l.away.name}: ${l.label}`, probability: l.probability, odds: l.odds })),
   });
@@ -49,7 +51,8 @@ export function DayCombos() {
           <p className="max-w-3xl text-sm text-slate-500">
             Pro Tag je eine Kombi aus Tore-Über-, Team-Tore-Über- und Doppelte-Chance-Tipps über alle Spiele, Zielquote 5–10.
             Die Kombis ziehen abwechselnd die jeweils besten Tipps und nutzen jedes Spiel möglichst nur einmal.
-            Tipps mit sehr niedriger Quote (Standard: unter 1,20) werden ausgelassen. Quoten sind geschätzt (faire Quote abzüglich Buchmacher-Marge).
+            Tipps mit sehr niedriger Quote (Standard: unter 1,20) werden ausgelassen. Quoten sind echte Betano-Quoten
+            (<span className="rounded bg-orange-50 px-1 text-orange-700">orange</span>, grün = Modell sieht Vorteil); fehlt sie, ist sie geschätzt (≈, faire Quote abzüglich Marge).
           </p>
         </div>
         <div className="flex items-center gap-1 text-sm">
@@ -60,6 +63,7 @@ export function DayCombos() {
         </div>
       </div>
       {error && <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+      {!combos && !error && <Card><p className="text-sm text-slate-400">Kombis werden berechnet …</p></Card>}
       {combos && combos.length === 0 && (
         <Card><p className="text-sm text-slate-500">An diesem Tag gibt es nicht genug passende Tipps für eine Kombi mit Quote 5–10.</p></Card>
       )}
@@ -85,7 +89,10 @@ export function DayCombos() {
                       <div className="font-medium">{l.label}</div>
                     </Link>
                     <span className="flex shrink-0 items-center gap-2 text-right tabular-nums">
-                      <span className="text-xs text-slate-500">{pct(l.probability, 0)}<br />{odd(l.odds)}</span>
+                      <span className="flex flex-col items-end text-xs text-slate-500">
+                        {pct(l.probability, 0)}
+                        {l.odds_source === "betano" ? <BetanoOdd prices={{ betano: l.odds, pinnacle: l.pinnacle, edge: l.edge }} /> : <span title="geschätzte Quote">≈ {odd(l.odds)}</span>}
+                      </span>
                       <OutcomeBadge outcome={l.outcome} small />
                     </span>
                   </li>
@@ -93,8 +100,11 @@ export function DayCombos() {
               </ul>
               <div className="mt-4 flex items-end justify-between gap-2 border-t border-slate-100 pt-3">
                 <div className="text-sm">
-                  <div>Quote ca. <b className="tabular-nums">{odd(c.odds)}</b></div>
+                  <div>{c.real_odds ? "Betano-Quote" : "Quote ca."} <b className="tabular-nums">{odd(c.odds)}</b></div>
                   <div className="text-xs text-slate-500">Modell-Chance {pct(c.probability)} · {c.legs.length} Tipps</div>
+                  <div className={`text-xs ${c.probability * c.odds >= 1 ? "text-emerald-700" : "text-rose-700"}`} title="Modell-Chance × Quote − 1: Gewinn oder Verlust pro Euro Einsatz auf lange Sicht, wenn das Modell stimmt">
+                    Erwartungswert laut Modell {signedPct(c.probability * c.odds - 1)}
+                  </div>
                 </div>
                 <button type="button" onClick={() => setDraft(toDraft(c))} className="rounded-md bg-slate-900 px-3 py-1.5 text-xs text-white">Als Wette erfassen</button>
               </div>
