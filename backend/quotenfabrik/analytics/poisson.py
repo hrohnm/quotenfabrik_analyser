@@ -41,7 +41,7 @@ class PoissonParams:
     fit_rho: bool = True
     xg_weight: float = 0.0  # 0 = goals only, 1 = xG only (where available)
     league_reg: float = 1.0  # weak L2 penalty on league levels (joint model only; anchors their mean at 0)
-    cup_home_adv: bool = False  # own home advantage for cup matches (European cups)
+    cup_home_adv: bool = True  # own home advantage for cup matches (validated in docs/15_europapokal.md)
 
 
 @dataclass

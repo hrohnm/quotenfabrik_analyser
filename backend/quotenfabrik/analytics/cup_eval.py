@@ -196,6 +196,20 @@ def report(
             "", "| Liga | Ebene |", "|---|---:|"]  # fmt: skip
     out += [f"| {name} | {value:+.2f} |".replace(".", ",") for name, value in league_levels]
     out += ["", "## Auswirkung auf die Bundesliga-Prognosen", "", *bundesliga, ""]
+    out += [
+        "## Bewertung",
+        "",
+        "- Ohne Verbindung zwischen den Ländern ist ein Modell aus Ligadaten bei Europapokalspielen nicht besser als "
+        "die Basisrate – die Teamstärken der Ligen sind nicht vergleichbar. Erst die Pokalspiele legen alle Teams auf "
+        "eine Skala; das senkt den Log-Loss 1X2 deutlich und in jedem Wettbewerb und jeder Runde.",
+        "- K.-o.-Runden bleiben am schwersten vorherzusagen (ausgeglichenere Paarungen); Rückspiele hängen zusätzlich "
+        "vom Hinspiel ab, das im Modell noch nicht berücksichtigt ist.",
+        "- Ein eigener Heimvorteil für Europapokalspiele ist minimal besser und ist Standard (`cup_home_adv`).",
+        "- Für die eigenen Ligen bringt der Europa-Pool keinen messbaren Vorteil, kostet aber ein Vielfaches an "
+        "Rechenzeit – sie werden weiterhin nur mit verbundenen Ligen (1./2. Bundesliga) gerechnet. Der Europa-Pool "
+        "wird für Prognosen von Europapokalspielen verwendet.",
+        "",
+    ]
     return "\n".join(out)
 
 

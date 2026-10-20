@@ -298,7 +298,7 @@ def test_cup_matches_link_leagues_without_own_level():
 
 def test_neutral_venue_and_cup_home_advantage():
     m, _, league_of, as_of = _cup_linked_leagues()
-    shared = fit_poisson(m, as_of, PoissonParams(fit_rho=False), team_league=league_of)
+    shared = fit_poisson(m, as_of, PoissonParams(fit_rho=False, cup_home_adv=False), team_league=league_of)
     assert shared.home_adv_cup is None
     lh, la = shared.lambdas(0, 1, cup=True, neutral=True)
     lh_rev, la_rev = shared.lambdas(1, 0, cup=True, neutral=True)
