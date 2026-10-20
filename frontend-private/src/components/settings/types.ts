@@ -11,7 +11,7 @@ export type Backup = { name: string; size: number; created_at: string };
 export type JobStep = { name: string; label: string; status: "pending" | "running" | "done" | "skipped" | "failed"; message: string | null; log: string[] };
 export type Job = {
   id: number;
-  kind: "add_league" | "add_ratings" | "models" | "picks" | "backup";
+  kind: "add_league" | "add_ratings" | "odds" | "models" | "picks" | "backup";
   params: Record<string, unknown>;
   status: "queued" | "running" | "done" | "failed";
   steps: JobStep[];

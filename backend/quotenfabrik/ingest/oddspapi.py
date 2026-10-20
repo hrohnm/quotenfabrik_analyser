@@ -163,6 +163,36 @@ def fixtures_needing_history(
     return list(session.scalars(stmt))
 
 
+def unlink_tournament(session: Session, league_id: int, tournament_id: int) -> int:
+    """Removes the links of a tournament's fixtures to the league (after the tournament ID was changed)."""
+    league_fixtures = select(Fixture.id).where(Fixture.league_id == league_id)
+    result = session.execute(
+        update(OddsPapiFixture)
+        .where(
+            OddsPapiFixture.tournament_id == tournament_id, OddsPapiFixture.fixture_id.in_(league_fixtures)
+        )
+        .values(fixture_id=None)
+    )
+    return result.rowcount or 0
+
+
+def reset_empty_histories(session: Session, tournament_id: int) -> int:
+    """Marks finished fixtures without any stored price as not final, so their history is fetched again."""
+    has_prices = select(OddsHistory.oddspapi_fixture_id).where(
+        OddsHistory.oddspapi_fixture_id == OddsPapiFixture.id
+    )
+    result = session.execute(
+        update(OddsPapiFixture)
+        .where(
+            OddsPapiFixture.tournament_id == tournament_id,
+            OddsPapiFixture.history_final.is_(True),
+            ~has_prices.exists(),
+        )
+        .values(history_final=False)
+    )
+    return result.rowcount or 0
+
+
 def sync_history(
     session: Session, client: OddsPapiClient, fixtures: list[OddsPapiFixture], bookmakers: list[str]
 ) -> dict[str, int]:

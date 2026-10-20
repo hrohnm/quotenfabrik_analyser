@@ -111,12 +111,25 @@ def oddspapi_fixtures(
 
 
 def oddspapi_history(
-    session: Session, client: OddsPapiClient, league_id: int, limit: int | None = None, log: Log = _noop
+    session: Session,
+    client: OddsPapiClient,
+    league_id: int,
+    limit: int | None = None,
+    log: Log = _noop,
+    retry_empty: bool = False,
 ) -> str:
-    """Betano/Pinnacle price histories of all open fixtures (free, 5 s per fixture)."""
+    """Betano/Pinnacle price histories of all open fixtures (free, 5 s per fixture).
+
+    ``retry_empty`` also fetches finished fixtures again that have no stored price yet.
+    """
     tournament = app_config.oddspapi_tournament_for(league_id)
     if not tournament:
         return "kein OddsPapi-Turnier – übersprungen"
+    if retry_empty:
+        n = oddspapi.reset_empty_histories(session, tournament)
+        session.commit()
+        if n:
+            log(f"{n} Spiele ohne gespeicherte Quoten werden erneut abgefragt")
     if not oddspapi.tracked_market_ids(session):
         log("Marktkatalog fehlt, wird geladen (1 Request)")
         oddspapi.sync_markets(session, client)

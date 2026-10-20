@@ -237,3 +237,11 @@ def test_strength_league_can_be_upgraded_to_full_league(engine, monkeypatch):
     with pytest.raises(HTTPException) as exc:
         admin.add_league(body)
     assert exc.value.status_code == 409
+
+
+def test_odds_job_steps():
+    assert jobs.steps_for("odds", {"league_id": 78}) == [
+        "oddspapi_fixtures",
+        "oddspapi_history",
+        "backup_data",
+    ]

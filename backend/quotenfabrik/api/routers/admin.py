@@ -20,6 +20,7 @@ from quotenfabrik.api.data import df, records
 from quotenfabrik.api.labels import league_logo
 from quotenfabrik.config import get_settings
 from quotenfabrik.db import get_engine
+from quotenfabrik.ingest import oddspapi
 from quotenfabrik.models import AppLeague, Job, OddsPapiResponse
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -325,8 +326,13 @@ def patch_league(league_id: int, body: LeaguePatch) -> dict:
         lg = session.get(AppLeague, league_id)
         if lg is None:
             raise HTTPException(404, "Liga nicht konfiguriert")
-        for field, value in body.model_dump(exclude_unset=True).items():
+        changes = body.model_dump(exclude_unset=True)
+        old_tournament = lg.oddspapi_tournament
+        for field, value in changes.items():
             setattr(lg, field, value)
+        if "oddspapi_tournament" in changes and old_tournament and old_tournament != lg.oddspapi_tournament:
+            # links of the old tournament's fixtures are wrong now; the odds job maps the new one
+            oddspapi.unlink_tournament(session, league_id, old_tournament)
         if (
             not lg.active
             and lg.kind == "full"
@@ -377,8 +383,15 @@ def start_job(body: JobRequest) -> dict:
                                           "last_season": jobs.current_season()})  # fmt: skip
         return _start("add_league", {"league_id": lg.id, "first_season": lg.first_season,
                                      "last_season": jobs.current_season()})  # fmt: skip
+    if body.kind == "odds":
+        lg = next((lg for lg in app_config.all_leagues() if lg.id == body.league_id), None)
+        if lg is None or lg.kind != "full":
+            raise HTTPException(404, "Liga nicht konfiguriert")
+        if not lg.oddspapi_tournament:
+            raise HTTPException(409, "Für diese Liga ist kein OddsPapi-Turnier hinterlegt")
+        return _start("odds", {"league_id": lg.id, "retry_empty": True})
     if body.kind not in {"models", "picks", "backup"}:
-        raise HTTPException(422, "Erlaubt: add_league, add_ratings, models, picks, backup")
+        raise HTTPException(422, "Erlaubt: add_league, add_ratings, odds, models, picks, backup")
     return _start(body.kind, {})
 
 
