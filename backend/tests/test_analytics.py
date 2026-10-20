@@ -248,3 +248,63 @@ def test_joint_model_puts_leagues_on_one_scale():
     # team without matches: level of its current league plus the promoted prior
     joint.team_league[99] = 2
     assert joint.team_attack(99) == pytest.approx(joint.league_attack[2] + joint.params.promoted_attack)
+
+
+def _cup_linked_leagues(seed: int = 5) -> tuple[pd.DataFrame, dict[int, float], dict[int, int], pd.Timestamp]:
+    """Two leagues (league 1 stronger) without shared teams, linked only by cup matches between them."""
+    rng = np.random.default_rng(seed)
+    strength = {t: (0.4 if t < 8 else -0.4) + rng.normal(0, 0.15) for t in range(16)}
+    league_of = {t: 1 if t < 8 else 2 for t in strength}
+    rows, start = [], pd.Timestamp("2021-07-01", tz="UTC")
+
+    def play(h, a, lg, cup, day):
+        lh = np.exp(0.55 + strength[h] - strength[a])
+        la = np.exp(0.3 + strength[a] - strength[h])
+        rows.append(
+            (len(rows), 0, start + pd.Timedelta(days=day), h, a, rng.poisson(lh), rng.poisson(la), lg, cup)
+        )
+
+    for _rnd in range(2):
+        for lg in (1, 2):
+            teams = [t for t in strength if league_of[t] == lg]
+            for h in teams:
+                for a in teams:
+                    if h != a:
+                        play(h, a, lg, False, int(rng.integers(0, 280)))
+    for _ in range(60):  # cup: league 1 vs league 2
+        h, a = int(rng.integers(0, 8)), int(rng.integers(8, 16))
+        if rng.random() < 0.5:
+            h, a = a, h
+        play(h, a, 99, True, int(rng.integers(0, 280)))
+    cols = ["fixture_id", "season", "kickoff", "home_id", "away_id", "hg", "ag", "league_id", "cup"]
+    m = pd.DataFrame(rows, columns=cols)
+    m["finished"], m["neutral"] = True, False
+    return m, strength, league_of, start + pd.Timedelta(days=300)
+
+
+def test_cup_matches_link_leagues_without_own_level():
+    m, strength, league_of, as_of = _cup_linked_leagues()
+    params = PoissonParams(fit_rho=False)
+    with_cup = fit_poisson(m, as_of, params, team_league=league_of)
+    without = fit_poisson(m[~m["cup"]], as_of, params, team_league=league_of)
+    assert set(with_cup.league_attack) == {1, 2}  # the cup (99) is not a league level
+    gap = lambda f: (f.league_attack[1] + f.league_defence[1]) - (f.league_attack[2] + f.league_defence[2])  # noqa: E731
+    assert gap(with_cup) > 0.3 > abs(gap(without))  # only the cup matches reveal that league 1 is stronger
+    # cross-league prediction: strong team of league 1 at home against league 2 team
+    lh, la = with_cup.lambdas(0, 8, cup=True)
+    lh0, la0 = without.lambdas(0, 8, cup=True)
+    assert lh / la > lh0 / la0
+
+
+def test_neutral_venue_and_cup_home_advantage():
+    m, _, league_of, as_of = _cup_linked_leagues()
+    shared = fit_poisson(m, as_of, PoissonParams(fit_rho=False, cup_home_adv=False), team_league=league_of)
+    assert shared.home_adv_cup is None
+    lh, la = shared.lambdas(0, 1, cup=True, neutral=True)
+    lh_rev, la_rev = shared.lambdas(1, 0, cup=True, neutral=True)
+    assert lh == pytest.approx(la_rev) and la == pytest.approx(lh_rev)  # no home advantage on neutral ground
+    own = fit_poisson(m, as_of, PoissonParams(fit_rho=False, cup_home_adv=True), team_league=league_of)
+    assert own.home_adv_cup is not None
+    assert own.lambdas(0, 1, cup=True)[0] / own.lambdas(0, 1)[0] == pytest.approx(
+        np.exp(own.home_adv_cup - own.home_adv)
+    )

@@ -55,6 +55,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/12_tipps.md` | Automatisch erzeugt: 3 Tipps pro Spiel, Trefferquote einzeln und als Kombi |
 | `docs/13_deployment_vps.md` | Installation auf einem VPS (Hostinger): Docker-Stack per Docker Manager oder manuell (systemd, nginx), Cron, Updates |
 | `docs/14_gemeinsames_modell.md` | Automatisch erzeugt: gemeinsames Modell über verbundene Ligen vs. getrennte Modelle (`qf model joint-eval`) |
+| `docs/15_europapokal.md` | Automatisch erzeugt: Europapokal-Backtest der gemeinsamen Stärkeskala (`qf model cup-eval`) |
 | `docs/11_betano_nebenmaerkte.md` | Automatisch erzeugt: Betano-Nebenmärkte gegen faire Preise aus Pinnacle (`mkt-v1`, Phase 3) |
 
 ## Harte Regeln
@@ -83,8 +84,10 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 - Wahrscheinlichkeiten intern immer als Dezimalwert 0–1, Quoten als Dezimalquote. Zeiten in UTC (`timestamptz`).
 - **Ligen und Einstellungen kommen aus der DB** (`app.leagues`, `app.settings`, Zugriff nur über `quotenfabrik/app_config.py`);
   `QF_LEAGUES` & Co. sind nur Fallback. Neue Schwellen/Parameter als `SettingDef` in `app_config.SETTINGS` ergänzen.
-  Ligaarten: `full` (alles, `app_config.league_ids()`) und `ratings` (nur Ergebnisse für die Stärkeskala,
-  `app_config.ratings_leagues()`) – Stärke-Ligen nie in Frontend, Quoten-Snapshots oder Prognose-Schleifen aufnehmen.
+  Ligaarten: `full` (alles, `app_config.league_ids()`), `ratings` (nur Ergebnisse für die Stärkeskala,
+  `app_config.ratings_leagues()`) und `cup` (Europapokal, verbindet die Ligen, `app_config.cup_leagues()`) –
+  Stärke-Ligen und Pokale nie in Frontend, Quoten-Snapshots oder Prognose-Schleifen aufnehmen.
+  Pokalspiele: Abrechnung nach 90 Minuten (`ft_*` = API `score.fulltime`), Endspiele neutral, keine eigene Ligaebene.
 - **Nach jedem Liga-Import entsteht automatisch ein Backup** (`backups/`, ersetzt standardmäßig den Seed), damit
   verbrauchte Requests nicht verloren gehen.
 - Teams werden intern über die **API-Football Team-ID** identifiziert; football-data-Namen werden über
@@ -116,6 +119,7 @@ qf oddspapi update                            # Betano-Verläufe über OddsPapi 
 qf model evaluate --seasons 2022-2026         # Walk-Forward-Evaluation → docs/09_modell_evaluation.md
 qf model forecast && qf model show <id>       # Prognosen für kommende Spiele
 qf model joint-eval                           # gemeinsames Modell über Ligen vs. getrennt → docs/14_gemeinsames_modell.md
+qf model cup-eval                             # Europapokal-Backtest der Stärkeskala → docs/15_europapokal.md
 qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebnisse eintragen
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
 qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md

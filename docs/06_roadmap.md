@@ -63,8 +63,10 @@
 - [x] Ligaübergreifende Teamstärke: gemeinsames Modell mit Ligaebenen (`model.joint`, `docs/14_gemeinsames_modell.md`)
 - [x] Stärke-Ligen: 27 erste Ligen Europas als „nur Ergebnisse“ (1 Request pro Saison, Einstellungsseite), tägliches
   Nachladen (`qf ingest results`); werden über Europapokalspiele mit den eigenen Ligen verbunden
-- [ ] Europapokal (Champions League 2, Europa League 3, Conference League 848): Pokalrunden laden, Abrechnung nach
-  90 Minuten, Hin-/Rückspiel, eigener Heimvorteil international; Backtest ab 2019
+- [x] Europapokal im Modell (Champions League 2, Europa League 3, Conference League 848): Pokalrunden laden,
+  Abrechnung nach 90 Minuten, neutrale Endspiele, eigener Heimvorteil; Backtest ab 2019 (`docs/15_europapokal.md`)
+- [ ] Europapokal im Frontend: Prognosen, Tipps und Spiel-Detail für Pokalspiele (Europa-Pool), Rückspiele mit
+  Hinspielstand
 - [ ] Modell-Verbesserungen (xG-Integration, Stacking, Marktmischung)
 - [x] Hosting auf eigenem VPS (`docs/13_deployment_vps.md`, `deploy/`), Backups (`qf backup`, nächtlich + nach jedem Liga-Import)
 - [ ] Monitoring/Alarme (fehlgeschlagene Cron-Läufe, Quota)

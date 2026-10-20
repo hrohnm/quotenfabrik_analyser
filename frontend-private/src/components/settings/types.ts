@@ -30,7 +30,7 @@ export type ConfiguredLeague = {
   oddspapi_tournament: number | null;
   first_season: number;
   active: boolean;
-  kind: "full" | "ratings";
+  kind: "full" | "ratings" | "cup";
   fixtures: number;
   finished: number;
   seasons: [number, number] | null;
@@ -50,7 +50,7 @@ export type LeagueSearchResult = {
   suggested_fd_code: string | null;
 };
 
-export type LeaguePreset = { id: number; name: string; country: string; logo: string; seasons_from: number; configured: "full" | "ratings" | null };
+export type LeaguePreset = { id: number; name: string; country: string; logo: string; seasons_from: number; kind: "ratings" | "cup"; configured: "full" | "ratings" | "cup" | null };
 
 export type Tournament = { id: number; name: string; category: string };
 

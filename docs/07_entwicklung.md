@@ -49,7 +49,7 @@ Details zum Seed: `seed/README.md`.
 |---|---|---|
 | `qf status` | Quota und Abo-Ende (warnt 7 Tage vorher) | 0 |
 | `qf ingest football-data --seasons 2015-2026` | CSVs laden, roh speichern, normalisieren | 0 |
-| `qf ingest results [--seasons aktuell] [--league 39]` | Nur Ergebnisse der Stärke-Ligen (Einstellungsseite → „Stärke-Ligen“), ohne Details | 1 pro Saison und Liga |
+| `qf ingest results [--seasons aktuell] [--league 39]` | Nur Ergebnisse der Stärke-Ligen und Europapokale (Einstellungsseite → „Stärke-Ligen und Europapokal“), ohne Details | 1 pro Saison und Wettbewerb |
 | `qf ingest api-football --seasons 2015-2026 [--half-stats] [--no-details] [--no-injuries]` | Spielplan, Ergebnisse, Events, Lineups, Team-/Spieler-Stats, Ausfälle; bereits geladene Details werden übersprungen | ≈20 pro Saison (+≈306 mit `--half-stats` ab 2024) |
 | `qf map-teams` | football-data-Teamnamen ↔ API-Team-IDs, Spiele verknüpfen, Report | 0 |
 | `qf odds snapshot` | aktuelle Quoten (nur Betano/Pinnacle/Bet365, nur Änderungen) | 2–4 |
@@ -57,6 +57,7 @@ Details zum Seed: `seed/README.md`.
 | `qf oddspapi status` / `markets` / `fixtures` / `history` / `players` / `update` | Betano-Quoten über OddsPapi (siehe `08_betano_quellen.md`) | OddsPapi: 0–1 je Befehl (Free-Plan 250/Monat) |
 | `qf model evaluate --seasons 2022-2026` | Walk-Forward-Evaluation aller Marktgruppen ohne Quoten → `analytics.*` + `docs/09_modell_evaluation.md` | 0 |
 | `qf model joint-eval [--validation 2018-2020 --test 2021-2026]` | Gemeinsames Modell über verbundene Ligen gegen getrennte Modelle (Walk-Forward, 1X2/Ü-U/BTTS, Auf-/Absteiger) → `docs/14_gemeinsames_modell.md` | 0 |
+| `qf model cup-eval [--validation 2019-2021 --test 2022-2026]` | Europapokal: gemeinsames Modell über alle Ligen und Pokale, Walk-Forward auf Pokalspielen (Basisrate, ohne Pokalspiele, gemeinsam, eigener Heimvorteil) + Auswirkung auf die eigenen Ligen → `docs/15_europapokal.md` | 0 |
 | `qf model forecast --days 10` | Prognosen + Pattern für kommende Spiele → `analytics.predictions` / `analytics.pattern_results` | 0 |
 | `qf model backtest --seasons 2016-2026` | rückwirkende Walk-Forward-Prognosen aller beendeten Spiele inkl. Ergebnis → Explorer/Auswertung | 0 |
 | `qf value backtest [--validation-until 2021] [--method shin]` | Prognosen gegen historische football-data-Quoten (1X2, Ü/U 2,5): Prognosegüte vs. Markt, Value-Wetten, ROI, CLV → `docs/10_quoten_backtest.md` | 0 |

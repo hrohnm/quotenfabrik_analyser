@@ -260,8 +260,9 @@ def add_league(body: NewLeague) -> dict:
 def league_presets() -> list[dict]:
     """European top divisions for the strength scale (bundled list, IDs checked against API-Football)."""
     configured = {lg.id: lg.kind for lg in app_config.all_leagues()}
-    data = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))["leagues"]
-    return [{**lg, "configured": configured.get(lg["id"])} for lg in data]
+    data = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
+    return [{**lg, "kind": kind, "configured": configured.get(lg["id"])}
+            for kind, key in (("cup", "cups"), ("ratings", "leagues")) for lg in data[key]]  # fmt: skip
 
 
 class NewRatingsLeagues(BaseModel):
@@ -274,7 +275,9 @@ def add_ratings_leagues(body: NewRatingsLeagues) -> dict:
     """Stores results-only leagues (strength scale) and imports their results: 1 request per season and league."""
     if not get_settings().api_football_key:
         raise HTTPException(409, "API_FOOTBALL_KEY fehlt – ohne Key können keine Daten geladen werden")
-    presets = {lg["id"]: lg for lg in json.loads(PRESETS_FILE.read_text(encoding="utf-8"))["leagues"]}
+    data = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
+    presets = {lg["id"]: {**lg, "kind": "ratings"} for lg in data["leagues"]}
+    presets |= {lg["id"]: {**lg, "kind": "cup"} for lg in data["cups"]}
     unknown = [i for i in body.ids if i not in presets]
     if unknown:
         raise HTTPException(422, f"Nicht in der Liste der europäischen Ligen: {unknown}")
@@ -289,7 +292,7 @@ def add_ratings_leagues(body: NewRatingsLeagues) -> dict:
         for i in new:
             p = presets[i]
             session.add(AppLeague(id=i, name=p["name"], country=p["country"], first_season=max(body.first_season, p["seasons_from"]),
-                                  active=True, kind="ratings"))  # fmt: skip
+                                  active=True, kind=p["kind"]))  # fmt: skip
     app_config.invalidate()
     return _start("add_ratings", {"league_ids": new, "first_season": body.first_season,
                                   "last_season": jobs.current_season()})  # fmt: skip
@@ -344,7 +347,7 @@ class JobRequest(BaseModel):
 @router.post("/jobs")
 def start_job(body: JobRequest) -> dict:
     if body.kind == "add_ratings":
-        known = {lg.id: lg for lg in app_config.all_leagues() if lg.kind == "ratings"}
+        known = {lg.id: lg for lg in app_config.all_leagues() if lg.kind in ("ratings", "cup")}
         ids = [i for i in (body.league_ids or []) if i in known]
         if not ids:
             raise HTTPException(404, "Keine konfigurierten Stärke-Ligen angegeben")
@@ -354,7 +357,7 @@ def start_job(body: JobRequest) -> dict:
         lg = next((lg for lg in app_config.all_leagues() if lg.id == body.league_id), None)
         if lg is None:
             raise HTTPException(404, "Liga nicht konfiguriert")
-        if lg.kind == "ratings":
+        if lg.kind in ("ratings", "cup"):
             return _start("add_ratings", {"league_ids": [lg.id], "first_season": lg.first_season,
                                           "last_season": jobs.current_season()})  # fmt: skip
         return _start("add_league", {"league_id": lg.id, "first_season": lg.first_season,

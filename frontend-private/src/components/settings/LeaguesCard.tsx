@@ -48,7 +48,7 @@ export function LeaguesCard({ leagues, status, jobRunning, onChanged, onReload, 
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {leagues.filter((lg) => lg.kind !== "ratings").map((lg) => (
+            {leagues.filter((lg) => lg.kind === "full").map((lg) => (
               <tr key={lg.id} className={lg.active ? "" : "text-slate-400"}>
                 <td className="py-2">
                   <span className="flex items-center gap-2">

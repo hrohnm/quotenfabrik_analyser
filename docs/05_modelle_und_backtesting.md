@@ -69,6 +69,14 @@ Bekannte Schwäche: Absteiger werden zu Saisonbeginn in der unteren Liga übersc
 werden weiterhin allein gerechnet; mit einer Liga ist das Modell identisch zum bisherigen. Grundlage für weitere
 Ligen und den Europapokal (`docs/06_roadmap.md`).
 
+**Europapokal** (Nachweis: `docs/15_europapokal.md`, `qf model cup-eval`): Stärke-Ligen (27 erste Ligen Europas,
+nur Ergebnisse) und die drei Europapokale bilden einen Pool. Pokalspiele gehen in die Teamstärken ein, bilden aber
+keine eigene Ligaebene; Endspiele zählen als neutraler Platz, Europapokalspiele haben einen eigenen Heimvorteil
+(`cup_home_adv`), abgerechnet wird nach 90 Minuten (API `score.fulltime`). Teams aus nicht geladenen Ligen
+(Qualifikation kleiner Länder) starten mit dem Aufsteiger-Prior. Ergebnis (Test 2022/23–2026/27, 4.044 Pokalspiele,
+Log-Loss 1X2): 0,948 gegenüber 1,042 ohne Pokalspiele (Ligen gleich stark) und 1,044 Basisrate. Die eigenen Ligen
+gewinnen durch den Europa-Pool nichts messbar und werden weiter nur mit verbundenen Ligen gerechnet.
+
 Halbzeit-Varianten (getrennte Modelle vs. fester Ligaanteil vs. teamspezifischer Anteil) wurden verglichen; getrennte
 Modelle mit stärkerer Regularisierung waren minimal besser. Unterschiede sind klein – Halbzeit-Tore sind schwer vorherzusagen.
 

@@ -14,7 +14,14 @@ from quotenfabrik.db import get_engine
 from quotenfabrik.ingest import odds, oddspapi, quality, rebuild
 from quotenfabrik.ingest.db_utils import raw_response_saver
 from quotenfabrik.models import OddsPapiFixture
-from quotenfabrik.reports import BETANO_REPORT, JOINT_REPORT, ODDS_REPORT, PICKS_REPORT, report_path
+from quotenfabrik.reports import (
+    BETANO_REPORT,
+    CUP_REPORT,
+    JOINT_REPORT,
+    ODDS_REPORT,
+    PICKS_REPORT,
+    report_path,
+)
 from quotenfabrik.reports import EVALUATION_REPORT as DEFAULT_REPORT
 from quotenfabrik.sources.api_football import ApiFootballClient, QuotaExhausted
 from quotenfabrik.sources.oddspapi import OddsPapiClient, OddsPapiQuotaExhausted
@@ -131,8 +138,8 @@ def ingest_results(
     seasons: str = typer.Option("aktuell", help="Saison-Startjahre, z. B. aktuell oder 2017-2026"),
     league: int | None = typer.Option(None, help="API-Liga-ID (Standard: aktive Stärke-Ligen)"),
 ) -> None:
-    """Nur Ergebnisse (Spielplan) der Stärke-Ligen: 1 Request pro Saison und Liga, ohne Details."""
-    ids = [league] if league else [lg.id for lg in app_config.ratings_leagues()]
+    """Nur Ergebnisse (Spielplan) der Stärke-Ligen und Europapokale: 1 Request pro Saison und Wettbewerb."""
+    ids = [league] if league else [lg.id for lg in app_config.ratings_leagues() + app_config.cup_leagues()]
     if not ids:
         typer.echo("Keine Stärke-Ligen konfiguriert.")
         return
@@ -330,6 +337,55 @@ def model_joint_eval(
     text = joint_eval.report(
         load_leagues(engine, leagues), leagues, names, _seasons(validation), _seasons(test), model_params()
     )
+    report.write_text(text, encoding="utf-8")
+    typer.echo(f"Bericht: {report}")
+
+
+@model_app.command("cup-eval")
+def model_cup_eval(
+    validation: str = typer.Option("2019-2021", help="Validierungssaisons (Pokalsaison = Startjahr)"),
+    test: str = typer.Option("2022-2026", help="Testsaisons"),
+    league_test: str = typer.Option(
+        "2021-2026", help="Testsaisons der eigenen Ligen (Auswirkung auf deren Prognosen)"
+    ),
+    workers: int = typer.Option(4, help="Parallele Prozesse"),
+    report: Path = typer.Option(CUP_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Europapokal: gemeinsames Modell über alle Ligen und Pokale, Walk-Forward auf Pokalspielen → Bericht."""
+    import pandas as pd
+
+    from quotenfabrik.analytics import cup_eval
+    from quotenfabrik.analytics.data import league_name, season_leagues
+    from quotenfabrik.analytics.poisson import fit_poisson
+    from quotenfabrik.app_config import model_params
+
+    full = [lg.id for lg in app_config.all_leagues() if lg.kind == "full"]
+    ratings = [lg.id for lg in app_config.ratings_leagues()]
+    cups = [lg.id for lg in app_config.cup_leagues()]
+    if not cups:
+        typer.secho(
+            "Keine Europapokale konfiguriert (Einstellungen → Stärke-Ligen und Europapokal).", fg="red"
+        )
+        raise typer.Exit(1)
+    params = model_params()
+    seasons = (_seasons(validation), _seasons(test), _seasons(league_test))
+    results = cup_eval.run(full, ratings, cups, *seasons, params, workers=workers)
+    engine = get_engine()
+    names = {lg: league_name(engine, lg) for lg in full + ratings}
+    for lg in app_config.all_leagues():
+        if lg.kind == "ratings" and lg.country:
+            names[lg.id] = f"{names[lg.id]} ({lg.country})"
+    pool = cup_eval.load_pool(engine, full, ratings, cups)
+    now = pd.Timestamp.now(tz="UTC")
+    latest = season_leagues(pool)
+    fitted = fit_poisson(pool, now, params, "hg", "ag", None, "hxg", "axg", team_league=latest[max(latest)])
+    levels = sorted(((names.get(lg, str(lg)), fitted.league_attack[lg] + fitted.league_defence[lg])
+                     for lg in fitted.league_attack), key=lambda x: -x[1])  # fmt: skip
+    text = cup_eval.report(
+        {v: results["cup"][("validation", v)] for v in cup_eval.VARIANTS},
+        {v: results["cup"][("test", v)] for v in cup_eval.VARIANTS},
+        _seasons(validation), _seasons(test), levels, cup_eval.league_section(results, names),
+    )  # fmt: skip
     report.write_text(text, encoding="utf-8")
     typer.echo(f"Bericht: {report}")
 
