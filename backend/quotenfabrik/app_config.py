@@ -64,6 +64,8 @@ SETTINGS: list[SettingDef] = [
                "bringen kaum Quote, aber zahlen trotzdem die Marge).", "float", 0.85, 0.35, 0.99, percent=True),
     SettingDef("combos.margin", "Tageskombis", "Buchmacher-Marge je Tipp", "Für die geschätzte Quote: faire Quote "
                "× (1 − Marge).", "float", 0.05, 0, 0.2, percent=True),
+    SettingDef("combos.min_leg_odds", "Tageskombis", "Mindestquote je Tipp", "Tipps mit niedrigerer geschätzter "
+               "Quote kommen in keine Kombi (1,2 ≈ höchstens 79 % bei 5 % Marge).", "float", 1.2, 1.0, 3.0),
     SettingDef("combos.max_legs", "Tageskombis", "Höchstens Tipps je Kombi", "Mehr Tipps = mehr Marge.", "int", 8, 2, 15),
     SettingDef("model.xi", "Modell (wirkt nach „Modelle neu berechnen“)", "Zeitgewichtung ξ pro Tag",
                "Höher = jüngere Spiele zählen mehr (0,0015 ≈ Halbwertszeit 15 Monate).", "float", 0.0015, 0, 0.01),
@@ -216,6 +218,7 @@ def combo_settings():
         min_p=get("combos.min_p"),
         max_p=get("combos.max_p"),
         margin=get("combos.margin"),
+        min_leg_odds=get("combos.min_leg_odds"),
         max_legs=get("combos.max_legs"),
     )
 

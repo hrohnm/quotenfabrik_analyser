@@ -40,6 +40,7 @@ class ComboSettings:
     min_p: float = 0.55
     max_p: float = 0.85
     margin: float = 0.05  # assumed bookmaker margin per leg (estimated odds)
+    min_leg_odds: float = 1.2  # legs with lower estimated odds are skipped
     lift_weight: float = 1.0
     max_legs: int = 8
 
@@ -90,6 +91,7 @@ def candidates(preds: pd.DataFrame, s: ComboSettings) -> dict[str, pd.DataFrame]
     base = df["base_rate"].astype(float).fillna(df["probability"])
     df["score"] = df["probability"] + s.lift_weight * (df["probability"] - base)
     df["odds"] = (1.0 / df["probability"]) * (1.0 - s.margin)
+    df = df[df["odds"] >= s.min_leg_odds]
     out = {}
     for kind in KINDS:
         part = df[df["kind"] == kind].sort_values(["score", "probability"], ascending=False)
@@ -230,6 +232,7 @@ def load_backtest(engine, league_ids: list[int]) -> pd.DataFrame:
 VARIANTS = {
     "sicherere Tipps (65–90 %)": {"min_p": 0.65, "max_p": 0.90},
     "Standard (55–85 %)": {},
+    "Standard ohne Mindestquote je Tipp": {"min_leg_odds": 1.0},
     "riskantere Tipps (45–75 %)": {"min_p": 0.45, "max_p": 0.75},
 }
 
@@ -260,7 +263,7 @@ def report(preds: pd.DataFrame, base: ComboSettings, league_names: list[str]) ->
         "alle Spiele des Tages. Je Spiel und Art zählt der stärkste Tipp (Wahrscheinlichkeit plus Abweichung vom "
         "Ligaschnitt); die Kombis wählen abwechselnd, Spiele ohne Kombi werden bevorzugt. Aufgefüllt wird bis zur "
         f"Zielquote {_num(base.target_min, 0)}–{_num(base.target_max, 0)}. Die Quote je Tipp ist geschätzt: "
-        f"faire Quote × (1 − {_pct(base.margin)} Marge). Gewonnen ist eine Kombi nur, wenn alle Tipps sitzen "
+        f"faire Quote × (1 − {_pct(base.margin)} Marge); Tipps unter {_num(base.min_leg_odds, 2)} werden ausgelassen. Gewonnen ist eine Kombi nur, wenn alle Tipps sitzen "
         "(nach 90 Minuten).",
         "",
         "**Wichtig:** Auch bei perfekten Wahrscheinlichkeiten zahlt jeder Tipp die Buchmacher-Marge. Erwartete Rendite "
