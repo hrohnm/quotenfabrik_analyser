@@ -43,8 +43,8 @@ export function Nav() {
           })}
         </nav>
         <span className="ml-auto hidden items-center gap-2 text-xs text-slate-400 sm:flex">
-          {leagues.map((l) => <Logo key={l.id} src={leagueLogo(l.id)} alt={l.name} size={18} />)}
-          {leagues.map((l) => l.name).join(" · ")}{leagues.length ? " · " : ""}Modell dc-v1
+          {leagues.map((l) => <span key={l.id} title={l.name}><Logo src={leagueLogo(l.id)} alt={l.name} size={18} /></span>)}
+          <span className="whitespace-nowrap">Modell dc-v1</span>
         </span>
       </div>
     </header>

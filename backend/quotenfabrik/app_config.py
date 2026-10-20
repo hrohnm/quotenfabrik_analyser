@@ -268,6 +268,25 @@ def cup_leagues() -> list[LeagueConfig]:
     return [lg for lg in all_leagues() if lg.active and lg.kind == "cup"]
 
 
+def shown_league_ids() -> list[int]:
+    """Competitions shown in the frontend and forecast: active full leagues and active European cups."""
+    return league_ids() + [lg.id for lg in cup_leagues()]
+
+
+def is_cup(league_id: int) -> bool:
+    return league(league_id).kind == "cup"
+
+
+def europe_pool(engine):
+    """All leagues and cups in one pool (strength scale across countries): used for cup forecasts."""
+    from quotenfabrik.analytics.data import load_leagues
+
+    full = [lg.id for lg in all_leagues() if lg.kind == "full"]
+    ratings = [lg.id for lg in ratings_leagues()]
+    cups = [lg.id for lg in cup_leagues()]
+    return load_leagues(engine, full + ratings + cups, all_rounds=set(ratings), cups=set(cups))
+
+
 def league_ids() -> list[int]:
     return [lg.id for lg in leagues()]
 

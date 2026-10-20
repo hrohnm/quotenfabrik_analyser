@@ -18,7 +18,7 @@ export function Hero({ data }: { data: FixtureDetail }) {
         <div className="flex items-center gap-2">
           <Logo src={league.logo ?? leagueLogo(league.id)} alt={league.name} size={20} />
           <span className="font-medium text-slate-700">{league.name}</span>
-          <span>· Saison {seasonLabel(f.season)}{f.matchday ? ` · ${f.matchday}. Spieltag` : ""}</span>
+          <span>· Saison {seasonLabel(f.season)}{f.round_label ? ` · ${f.round_label}` : f.matchday ? ` · ${f.matchday}. Spieltag` : ""}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="capitalize">{dateLong(f.kickoff)}</span>
@@ -32,12 +32,14 @@ export function Hero({ data }: { data: FixtureDetail }) {
           {f.finished ? (
             <>
               <div className="text-4xl font-bold tabular-nums sm:text-5xl">{f.score.ft[0]}<span className="mx-1 text-slate-300">:</span>{f.score.ft[1]}</div>
-              <div className="mt-1 text-xs text-slate-500">HZ {f.score.ht[0]}:{f.score.ht[1]}</div>
+              <div className="mt-1 text-xs text-slate-500">HZ {f.score.ht[0]}:{f.score.ht[1]}{f.cup ? " · nach 90 Min." : ""}</div>
+              {f.first_leg?.finished && f.first_leg.score && <div className="mt-1 text-xs text-slate-500">Hinspiel {f.first_leg.score[0]}:{f.first_leg.score[1]}</div>}
             </>
           ) : (
             <>
               <div className="text-3xl font-bold tabular-nums sm:text-4xl">{time(f.kickoff)}</div>
               <div className="mt-1 text-xs text-slate-500">Anstoß</div>
+              {f.first_leg?.finished && f.first_leg.score && <div className="mt-1 text-xs text-slate-500">Hinspiel {f.first_leg.score[0]}:{f.first_leg.score[1]}</div>}
             </>
           )}
         </div>

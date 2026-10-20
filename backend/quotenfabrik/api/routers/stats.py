@@ -222,7 +222,7 @@ def pick_stats(league: int | None = None, season: int | None = None, profile: st
 
     Without ``league`` all configured leagues are combined.
     """
-    leagues = [league] if league else app_config.league_ids()
+    leagues = [league] if league else app_config.shown_league_ids()
     data = pd.concat([_settled_picks(lg) for lg in leagues], ignore_index=True)
     if season:
         data = data[data["season"] == season]

@@ -35,10 +35,12 @@ class MatchModel:
     first_half: FittedPoisson
     second_half: FittedPoisson
 
-    def predict(self, fixture_id: int, home: int, away: int) -> MatchPrediction:
-        lh, la = self.ft.lambdas(home, away)
-        h1 = self.first_half.lambdas(home, away)
-        h2 = self.second_half.lambdas(home, away)
+    def predict(
+        self, fixture_id: int, home: int, away: int, cup: bool = False, neutral: bool = False
+    ) -> MatchPrediction:
+        lh, la = self.ft.lambdas(home, away, cup, neutral)
+        h1 = self.first_half.lambdas(home, away, cup, neutral)
+        h2 = self.second_half.lambdas(home, away, cup, neutral)
         return MatchPrediction(fixture_id, home, away, lh, la, self.ft.rho, *h1, *h2)
 
 

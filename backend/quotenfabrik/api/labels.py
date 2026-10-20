@@ -8,6 +8,32 @@ def league_logo(league_id: int) -> str:
     return f"{MEDIA_BASE}/leagues/{league_id}.png"
 
 
+_ROUNDS = {
+    "Final": "Finale", "Semi-finals": "Halbfinale", "Quarter-finals": "Viertelfinale",
+    "Round of 16": "Achtelfinale", "8th Finals": "Achtelfinale", "Round of 32": "Sechzehntelfinale",
+    "16th Finals": "Sechzehntelfinale", "Knockout Round Play-offs": "K.-o.-Play-offs",
+    "Play-offs": "Play-offs", "Playoff round": "Play-offs", "1st Qualifying Round": "1. Qualifikationsrunde",
+    "2nd Qualifying Round": "2. Qualifikationsrunde", "3rd Qualifying Round": "3. Qualifikationsrunde",
+}  # fmt: skip
+
+
+def round_label(round_name: str | None) -> str | None:
+    """German label of an API-Football round ("League Stage - 3" -> "Ligaphase, 3. Spieltag")."""
+    if not round_name:
+        return None
+    base, _, number = round_name.partition(" - ")
+    if base in _ROUNDS and not number:
+        return _ROUNDS[base]
+    if base.startswith("Preliminary"):
+        return "Vorrunde"
+    stage = {"Regular Season": None, "League Stage": "Ligaphase", "Group Stage": "Gruppenphase"}.get(
+        base, f"Gruppe {base[6:]}" if base.startswith("Group ") else base
+    )
+    if number.isdigit():
+        return f"{stage}, {number}. Spieltag" if stage else f"{number}. Spieltag"
+    return stage or round_name
+
+
 def _line(line: float | None) -> str:
     return "" if line is None else f"{line:g}".replace(".", ",")
 

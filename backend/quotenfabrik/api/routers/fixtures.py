@@ -10,7 +10,14 @@ from quotenfabrik import app_config
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.picks import default_profile
 from quotenfabrik.api.data import chosen_runs_cte, df, model_data
-from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS, league_logo, pick_label
+from quotenfabrik.api.labels import (
+    GROUP_LABELS,
+    MARKET_LABELS,
+    SELECTION_LABELS,
+    league_logo,
+    pick_label,
+    round_label,
+)
 
 router = APIRouter(prefix="/api", tags=["fixtures"])
 
@@ -56,6 +63,8 @@ def _fixture_dict(r) -> dict:
         "league": {"id": int(r.league_id), "name": r.league_name, "logo": league_logo(int(r.league_id))},
         "season": int(r.season),
         "round": r.round,
+        "round_label": round_label(r.round),
+        "cup": app_config.is_cup(int(r.league_id)),
         "matchday": _clean(r.matchday),
         "kickoff": _clean(r.kickoff_utc),
         "status": r.status,
@@ -66,6 +75,29 @@ def _fixture_dict(r) -> dict:
         "away": {"id": int(r.away_team_id), "name": r.away_name, "logo": r.away_logo},
         "score": {"ft": [_clean(r.ft_home), _clean(r.ft_away)], "ht": [_clean(r.ht_home), _clean(r.ht_away)]},
     }
+
+
+def _first_legs(fixtures: list[dict]) -> dict[int, dict]:
+    """Second legs of cup ties: the first leg (same competition, season and round, teams swapped, earlier)."""
+    ids = [f["id"] for f in fixtures if f["cup"]]
+    if not ids:
+        return {}
+    rows = df(
+        """select f.id, g.id as first_id, g.ft_home, g.ft_away, g.status, g.kickoff_utc
+           from core.fixtures f
+           join core.fixtures g on g.league_id = f.league_id and g.season = f.season and g.round = f.round
+                and g.home_team_id = f.away_team_id and g.away_team_id = f.home_team_id
+                and g.kickoff_utc < f.kickoff_utc
+           where f.id = any(:ids)""",
+        ids=ids,
+    )
+    out = {}
+    for r in rows.itertuples():
+        played = r.status in FINISHED
+        # from the perspective of the second leg: goals of its home team first
+        out[int(r.id)] = {"fixture_id": int(r.first_id), "kickoff": _clean(r.kickoff_utc), "finished": played,
+                          "score": [_clean(r.ft_away), _clean(r.ft_home)] if played else None}  # fmt: skip
+    return out
 
 
 def _summaries(fixture_ids: list[int]) -> dict[int, dict]:
@@ -138,7 +170,7 @@ def days(
            from core.fixtures f where f.league_id = any(:leagues)
              and (f.kickoff_utc at time zone 'Europe/Berlin')::date between :f and :t
            group by 1 order by 1""",
-        leagues=[league] if league else app_config.league_ids(), f=date_from, t=date_to,
+        leagues=[league] if league else app_config.shown_league_ids(), f=date_from, t=date_to,
     )  # fmt: skip
     return [
         {"date": r.day.isoformat(), "fixtures": int(r.fixtures), "finished": int(r.finished)}
@@ -159,7 +191,7 @@ def fixtures(
 ) -> list[dict]:
     where, params = (
         ["f.league_id = any(:leagues)"],
-        {"leagues": [league] if league else app_config.league_ids()},
+        {"leagues": [league] if league else app_config.shown_league_ids()},
     )
     local_day = "(f.kickoff_utc at time zone 'Europe/Berlin')::date"
     if day:
@@ -184,9 +216,11 @@ def fixtures(
     summaries = _summaries([i["id"] for i in items])
     profile = profile or default_profile()
     picks = _picks(items, profile)
+    first_legs = _first_legs(items)
     for item in items:
         item["prediction"] = summaries.get(item["id"])
         item["picks"] = picks.get(item["id"], {}).get(profile, [])
+        item["first_leg"] = first_legs.get(item["id"])
     return items
 
 
@@ -197,6 +231,7 @@ def fixture_detail(fixture_id: int) -> dict:
         raise HTTPException(404, "Spiel nicht gefunden")
     r = next(rows.itertuples())
     fixture = _fixture_dict(r)
+    fixture["first_leg"] = _first_legs([fixture]).get(fixture_id)
 
     preds = df(
         f"""with runs as ({chosen_runs_cte("and p.fixture_id = :id")})
@@ -269,6 +304,8 @@ def fixture_detail(fixture_id: int) -> dict:
 
 
 def _patterns(r) -> list[dict]:
+    if app_config.is_cup(int(r.league_id)):
+        return []  # patterns are validated for leagues only (cups: results only)
     matches, players, goals = model_data.get(int(r.league_id))
     kickoff = pd.Timestamp(r.kickoff_utc)
     ctx = PatternContext.build(matches, kickoff, goals, players)

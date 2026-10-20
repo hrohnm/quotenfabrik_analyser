@@ -25,6 +25,8 @@ export function MatchTabs({ data }: { data: FixtureDetail }) {
     setTab(key);
     window.history.replaceState(null, "", `#${key}`);
   };
+  // European cups: results only – no goalscorers, patterns or match statistics
+  const tabs = data.fixture.cup ? TABS.filter((t) => t.key === "maerkte") : TABS;
   const counts: Record<string, number | undefined> = {
     torschuetzen: data.scorers.length || undefined,
     pattern: data.patterns.filter((p) => p.signal !== null && p.group !== "scorers").length || undefined,
@@ -33,7 +35,7 @@ export function MatchTabs({ data }: { data: FixtureDetail }) {
     <div className="space-y-4">
       <div className="sticky top-[57px] z-10 -mx-4 border-b border-slate-200 bg-background/95 px-4 backdrop-blur">
         <nav className="flex gap-1 overflow-x-auto">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button
               key={t.key}
               type="button"
@@ -48,10 +50,16 @@ export function MatchTabs({ data }: { data: FixtureDetail }) {
           ))}
         </nav>
       </div>
-      {tab === "maerkte" && <MarketsPanel markets={data.markets} fixture={data.fixture} />}
-      {tab === "torschuetzen" && <ScorersPanel data={data} />}
-      {tab === "pattern" && <PatternsPanel patterns={data.patterns} fixture={data.fixture} />}
-      {tab === "statistik" && <StatsPanel data={data} />}
+      {data.fixture.cup && (
+        <p className="text-xs text-slate-500">
+          Europapokal: Prognose aus der gemeinsamen Stärkeskala aller Ligen (Nachweis: docs/15_europapokal.md). Abgerechnet wird nach 90 Minuten;
+          Torschützen, Pattern und Spielstatistik gibt es für Pokalspiele nicht.
+        </p>
+      )}
+      {(tab === "maerkte" || data.fixture.cup) && <MarketsPanel markets={data.markets} fixture={data.fixture} />}
+      {!data.fixture.cup && tab === "torschuetzen" && <ScorersPanel data={data} />}
+      {!data.fixture.cup && tab === "pattern" && <PatternsPanel patterns={data.patterns} fixture={data.fixture} />}
+      {!data.fixture.cup && tab === "statistik" && <StatsPanel data={data} />}
     </div>
   );
 }

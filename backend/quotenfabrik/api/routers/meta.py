@@ -12,17 +12,17 @@ router = APIRouter(prefix="/api", tags=["meta"])
 def meta() -> dict:
     leagues = df(
         "select id, name, country from core.leagues where id = any(:ids) order by id",
-        ids=app_config.league_ids(),
+        ids=app_config.shown_league_ids(),
     )
     seasons = df(
         "select distinct season from core.fixtures where league_id = any(:ids) order by season desc",
-        ids=app_config.league_ids(),
+        ids=app_config.shown_league_ids(),
     )
     teams = df(
         """select distinct t.id, t.name, t.logo_url from core.teams t
            join core.fixtures f on t.id in (f.home_team_id, f.away_team_id)
            where f.league_id = any(:ids) order by t.name""",
-        ids=app_config.league_ids(),
+        ids=app_config.shown_league_ids(),
     )
     markets = df(
         """select p.market_group, p.market, p.line, array_agg(distinct p.selection) as selections
@@ -66,12 +66,14 @@ def meta() -> dict:
 
 def _league_list(rows: list[dict]) -> list[dict]:
     """Configured order; leagues with the same name get their country (e.g. two "Bundesliga")."""
-    order = {lid: i for i, lid in enumerate(app_config.league_ids())}
+    order = {lid: i for i, lid in enumerate(app_config.shown_league_ids())}
     names = [r["name"] for r in rows]
     out = []
     for r in sorted(rows, key=lambda r: order.get(r["id"], 99)):
         name = (
             f"{r['name']} ({r['country']})" if names.count(r["name"]) > 1 and r.get("country") else r["name"]
         )
-        out.append({**r, "name": name, "logo": league_logo(r["id"])})
+        cup = app_config.is_cup(r["id"])
+        name = name.removeprefix("UEFA ") if cup else name
+        out.append({**r, "name": name, "logo": league_logo(r["id"]), "cup": cup})
     return out

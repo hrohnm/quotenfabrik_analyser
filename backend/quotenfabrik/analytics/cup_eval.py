@@ -30,7 +30,7 @@ def stage(round_name: str | None) -> str:
     r = (round_name or "").lower()
     if "qualifying" in r or "preliminary" in r:
         return "Qualifikation"
-    if "play-off" in r and "knockout" not in r:
+    if ("play-off" in r or "playoff" in r) and "knockout" not in r:
         return "Play-offs"
     if "group" in r or "league stage" in r:
         return "Gruppen-/Ligaphase"

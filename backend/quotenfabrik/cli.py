@@ -63,6 +63,11 @@ def _leagues(league: int | None) -> list[int]:
     return [league] if league else app_config.league_ids()
 
 
+def _model_leagues(league: int | None) -> list[int]:
+    """Leagues and European cups that get forecasts and picks."""
+    return [league] if league else app_config.shown_league_ids()
+
+
 def _report(path: Path | None, league_id: int) -> Path | None:
     return report_path(path, league_id)
 
@@ -399,7 +404,7 @@ def model_forecast(
     from quotenfabrik.analytics.picks import build_picks
     from quotenfabrik.analytics.service import run_forecast
 
-    for league_id in _leagues(league):
+    for league_id in _model_leagues(league):
         result = run_forecast(get_engine(), league_id, days)
         if "model_run_id" in result:
             result["picks"] = build_picks(get_engine(), league_id, result["model_run_id"])["picks"]
@@ -415,7 +420,7 @@ def model_backtest(
     from quotenfabrik.analytics.picks import build_picks
     from quotenfabrik.analytics.service import run_backtest
 
-    for league_id in _leagues(league):
+    for league_id in _model_leagues(league):
         result = run_backtest(get_engine(), league_id, _seasons(seasons))
         result["picks"] = build_picks(get_engine(), league_id, result["model_run_id"])["picks"]
         typer.echo(f"Liga {league_id}: {result}")
@@ -426,7 +431,7 @@ def model_settle(league: int | None = typer.Option(None)) -> None:
     """Ergebnis (zugetroffen ja/nein) für Prognosen beendeter Spiele eintragen."""
     from quotenfabrik.analytics.service import settle_predictions
 
-    for league_id in _leagues(league):
+    for league_id in _model_leagues(league):
         typer.echo(f"Liga {league_id}: {settle_predictions(get_engine(), league_id)} Prognosen abgerechnet")
 
 
@@ -485,7 +490,7 @@ def picks_build(
     if if_empty and not picks_missing(get_engine()):
         typer.echo("Tipps vorhanden – nichts zu tun.")
         return
-    for league_id in _leagues(league):
+    for league_id in _model_leagues(league):
         typer.echo(f"Liga {league_id}: {build_picks(get_engine(), league_id)}")
 
 

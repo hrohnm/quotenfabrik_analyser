@@ -15,7 +15,11 @@ _MATCHES_SQL = text(
            on sh.fixture_id = f.id and sh.team_id = f.home_team_id and sh.period = 'FT'
     left join core.fixture_team_stats sa
            on sa.fixture_id = f.id and sa.team_id = f.away_team_id and sa.period = 'FT'
-    where f.league_id = :league and (f.round like 'Regular Season%' or :all_rounds)
+    where f.league_id = :league
+      and (f.round like 'Regular Season%' or :all_rounds
+           -- competitions without league rounds (European cups): all rounds
+           or not exists (select 1 from core.fixtures x
+                          where x.league_id = :league and x.round like 'Regular Season%'))
     order by f.kickoff_utc, f.id
     """
 )

@@ -130,6 +130,21 @@ export default async function MatchdaysPage({ searchParams }: { searchParams: Pr
   );
 }
 
+/** Round and, for second legs, the first-leg score (goals of today's home team first). */
+function CupInfo({ f }: { f: Fixture }) {
+  const leg = f.first_leg;
+  return (
+    <div className="flex flex-wrap gap-x-2 text-xs text-slate-500">
+      {f.round_label && <span>{f.round_label}</span>}
+      {leg && (
+        <span title="Ergebnis des Hinspiels aus Sicht der heutigen Paarung (Heim:Gast); abgerechnet wird nur dieses Spiel nach 90 Minuten">
+          · Hinspiel {leg.finished && leg.score ? `${leg.score[0]}:${leg.score[1]}` : "noch offen"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function FixtureRow({ f }: { f: Fixture }) {
   const p = f.prediction?.probabilities ?? {};
   const o = f.prediction?.outcomes ?? {};
@@ -141,6 +156,7 @@ function FixtureRow({ f }: { f: Fixture }) {
       <div className="space-y-1">
         <div className="flex items-center gap-2 font-medium"><TeamLogo team={f.home} size={20} />{f.home.name}</div>
         <div className="flex items-center gap-2 font-medium"><TeamLogo team={f.away} size={20} />{f.away.name}</div>
+        {f.cup && <CupInfo f={f} />}
       </div>
       <div className="text-center text-lg font-semibold tabular-nums">
         {f.finished ? `${f.score.ft[0]}:${f.score.ft[1]}` : <span className="text-slate-300">–:–</span>}
