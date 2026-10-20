@@ -158,7 +158,8 @@ def search_leagues(q: str) -> list[dict]:
         )
     with ApiFootballClient(on_response=raw_response_saver(get_engine())) as client:
         payload = client.get("leagues", {"search": q.strip()}).payload
-    configured = {lg.id for lg in app_config.all_leagues()}
+    kinds = {lg.id: lg.kind for lg in app_config.all_leagues()}
+    configured = {i for i, kind in kinds.items() if kind != "ratings"}  # strength leagues can be upgraded
     out = []
     for item in payload.get("response", []):
         lg, country, seasons = item["league"], item.get("country") or {}, item.get("seasons") or []
@@ -170,6 +171,7 @@ def search_leagues(q: str) -> list[dict]:
             "id": lg["id"], "name": lg["name"], "type": lg.get("type"), "logo": lg.get("logo"),
             "country": country.get("name"), "flag": country.get("flag"), "seasons": years, "current": current,
             "details_from": events_from, "configured": lg["id"] in configured,
+            "ratings": kinds.get(lg["id"]) == "ratings",
             "suggested_fd_code": _suggest_fd_code(country.get("name"), lg["name"]),
         })  # fmt: skip
     return sorted(out, key=lambda r: (r["type"] != "League", r["country"] or "", r["name"]))
@@ -245,11 +247,24 @@ def add_league(body: NewLeague) -> dict:
             jobs.ensure_idle(session)  # before storing the league: no league without its import job
         except jobs.JobConflict as exc:
             raise HTTPException(409, str(exc)) from None
-        if session.get(AppLeague, body.id):
+        existing = session.get(AppLeague, body.id)
+        if existing is not None and existing.kind != "ratings":
             raise HTTPException(409, "Liga ist bereits konfiguriert")
-        session.add(AppLeague(id=body.id, name=body.name, country=body.country, fd_code=body.fd_code or None,
-                              oddspapi_tournament=body.oddspapi_tournament, first_season=body.first_season,
-                              active=True))  # fmt: skip
+        if existing is not None:  # strength league (results only) -> full league; its results are kept
+            for field, value in (
+                ("name", body.name),
+                ("country", body.country),
+                ("fd_code", body.fd_code or None),
+                ("oddspapi_tournament", body.oddspapi_tournament),
+                ("first_season", body.first_season),
+                ("active", True),
+                ("kind", "full"),
+            ):
+                setattr(existing, field, value)  # fmt: skip
+        else:
+            session.add(AppLeague(id=body.id, name=body.name, country=body.country, fd_code=body.fd_code or None,
+                                  oddspapi_tournament=body.oddspapi_tournament, first_season=body.first_season,
+                                  active=True))  # fmt: skip
     app_config.invalidate()
     params = {"league_id": body.id, "first_season": body.first_season,
               "last_season": body.last_season or jobs.current_season()}  # fmt: skip

@@ -60,7 +60,7 @@ export function RatingsLeaguesCard({ leagues, status, jobRunning, onChanged, onR
     >
       <p className="mb-3 text-sm text-slate-500">
         Nur Spielergebnisse (1 Request pro Saison) – für eine gemeinsame Stärkeskala über Ländergrenzen. Die Ligen werden über die Europapokalspiele
-        miteinander verbunden. Sie erscheinen nicht in Spieltagen und Tipps.
+        miteinander verbunden. Sie erscheinen nicht in Spieltagen und Tipps. Zur vollen Liga (mit Tipps): oben unter „Ligen“ → „+ Liga hinzufügen“ suchen – die geladenen Ergebnisse bleiben erhalten.
       </p>
       {leagues.length > 0 && (
         <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">

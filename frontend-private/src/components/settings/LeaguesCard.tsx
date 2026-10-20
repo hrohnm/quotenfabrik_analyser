@@ -205,6 +205,7 @@ function AddLeague({ status, jobRunning, onCancel, onStarted, onError }: { statu
                   <span className="font-medium">{r.name}</span>
                   <span className="text-xs text-slate-500">{r.country} · {r.type === "Cup" ? "Pokal" : "Liga"} · {r.seasons[0]}–{r.seasons.at(-1)}</span>
                   {r.configured && <span className="ml-auto text-xs">bereits konfiguriert</span>}
+                  {r.ratings && <span className="ml-auto text-xs text-emerald-700">Stärke-Liga → wird zur vollen Liga</span>}
                 </button>
               </li>
             ))}
@@ -218,6 +219,7 @@ function AddLeague({ status, jobRunning, onCancel, onStarted, onError }: { statu
             <Logo src={picked.logo} alt={picked.name} size={24} />
             <span className="font-medium">{picked.name}</span>
             <span className="text-xs text-slate-500">{picked.country} · ID {picked.id}{picked.details_from ? ` · Details ab ${seasonLabel(picked.details_from)}` : ""}</span>
+            {picked.ratings && <span className="text-xs text-emerald-700">· bisher Stärke-Liga: Ergebnisse bleiben, Details, Quoten und Tipps kommen dazu</span>}
             <button type="button" onClick={() => setPicked(null)} className="ml-auto text-xs text-slate-500 hover:text-slate-900">andere Liga</button>
           </div>
 
