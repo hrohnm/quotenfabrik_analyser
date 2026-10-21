@@ -211,3 +211,42 @@ def test_fixtures_due_for_live_results(session):
         session.commit()
         assert (fixtures_due(session, [league], NOW) == [1575189]) is expected, (minutes, status)
     assert fixtures_due(session, [league + 1000], NOW) == []
+
+
+def test_fixtures_lineup_due(session):
+    from datetime import timedelta
+
+    from sqlalchemy import delete, func, select
+
+    from quotenfabrik.ingest.api_football import fixtures_lineup_due
+    from quotenfabrik.models import Fixture, FixtureLineupPlayer
+
+    api_football.process_fixtures_payload(session, load_json("fixture_detail.json"), NOW)
+    session.commit()
+    count = (
+        select(func.count()).select_from(FixtureLineupPlayer).where(FixtureLineupPlayer.fixture_id == 1575189)
+    )
+    assert session.scalar(count) > 22  # starting XI and bench of both teams
+    f = session.get(Fixture, 1575189)
+    f.kickoff_utc, f.status = NOW + timedelta(minutes=30), "NS"
+    session.commit()
+    assert fixtures_lineup_due(session, [f.league_id], NOW) == []  # line-up already known
+    session.execute(delete(FixtureLineupPlayer).where(FixtureLineupPlayer.fixture_id == 1575189))
+    session.commit()
+    cases = {  # (minutes until kickoff, status) -> due?
+        (30, "NS"): True,
+        (90, "NS"): False,  # too early, the line-ups are not out yet
+        (-20, "1H"): True,  # running without a line-up
+        (30, "PST"): False,
+    }
+    for (minutes, status), expected in cases.items():
+        f.kickoff_utc, f.status = NOW + timedelta(minutes=minutes), status
+        session.commit()
+        assert (fixtures_lineup_due(session, [f.league_id], NOW) == [1575189]) is expected, (minutes, status)
+    # a payload without line-ups (before they are announced) keeps the stored ones
+    payload = load_json("fixture_detail.json")
+    api_football.process_fixtures_payload(session, payload, NOW)
+    payload["response"][0]["lineups"] = []
+    api_football.process_fixtures_payload(session, payload, NOW)
+    session.commit()
+    assert session.scalar(count) > 22

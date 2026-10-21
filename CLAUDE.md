@@ -58,6 +58,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/15_europapokal.md` | Automatisch erzeugt: Europapokal-Backtest der gemeinsamen Stärkeskala (`qf model cup-eval`) |
 | `docs/18_spielstil.md` | Automatisch erzeugt: Spielstil (Schüsse, Ballbesitz, Verwertung, …) gegen die Tor-Erwartung des Modells (`qf model style-eval`) |
 | `docs/19_schuesse_im_modell.md` | Automatisch erzeugt: Schüsse im Tor-Modell (Mischung aus Toren und Schuss-Erwartung) gegen das reine Tor-Modell (`qf model shots-eval`) |
+| `docs/21_aufstellung.md` | Automatisch erzeugt: voraussichtliche Startelf gegen die bestätigte (`qf model lineup-eval`, nur Anzeige) |
 | `docs/20_kalibrierung.md` | Automatisch erzeugt: Nachkalibrierung je Markt gegen die rohen Prognosen (`qf model calibration-eval`, nicht aktiv: kein belastbarer Gewinn) |
 | `docs/17_form.md` | Automatisch erzeugt: Form-Pattern (Punkte über/unter Modell-Erwartung) gegen das nächste Spiel (`qf model form-eval`) |
 | `docs/16_tageskombis.md` | Automatisch erzeugt: Backtest der Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance, Quote 5–10, `qf combos report`) |
@@ -122,7 +123,7 @@ alembic upgrade head                          # Schema anlegen
 qf ingest football-data --seasons 2015-2026   # Historie (kostet keine API-Quota)
 qf ingest api-football --seasons 2015-2026 --half-stats   # Backfill (~1.000 Requests)
 qf map-teams && qf quality                    # Verknüpfen + Datenqualität prüfen
-qf ingest live                                # Ergebnisse fälliger Spiele + Abrechnung (Cron alle 15 Min.)
+qf ingest live                                # Ergebnisse fälliger Spiele + Abrechnung, Aufstellungen (Cron alle 15 Min.)
 qf odds snapshot                              # Quoten-Snapshot API-Football (Cron alle 3 h)
 qf oddspapi update                            # Betano-Verläufe über OddsPapi (Cron alle 3 h, kostenlos)
 qf model evaluate --seasons 2022-2026         # Walk-Forward-Evaluation → docs/09_modell_evaluation.md
@@ -132,6 +133,7 @@ qf model cup-eval                             # Europapokal-Backtest der Stärke
 qf model form-eval                            # Form-Pattern gegen das nächste Spiel → docs/17_form.md
 qf model style-eval                           # Spielstil gegen die Tor-Erwartung → docs/18_spielstil.md
 qf model shots-eval                           # Schüsse im Tor-Modell vs. nur Tore → docs/19_schuesse_im_modell.md
+qf model lineup-eval                          # voraussichtliche Startelf vs. bestätigte → docs/21_aufstellung.md
 qf model calibration-eval                     # Nachkalibrierung je Markt vs. roh → docs/20_kalibrierung.md
 qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebnisse eintragen
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
@@ -159,7 +161,8 @@ pytest && ruff check . && ruff format --check .
   Betano-/Pinnacle-Preise je Spiel und Auswahl (`bookmaker_odds.py`, für API und Tageskombis), marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
   (`betano_value.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`), Tageskombis (`combos.py`),
   Form und letzte Spiele aller Wettbewerbe (`form.py`), Spielstil-Profile (`style.py`, Nachweis `style_eval.py`),
-  Einschätzung in Textform je Spiel (`preview.py`, regelbasiert aus den Detaildaten)
+  Einschätzung in Textform je Spiel (`preview.py`, regelbasiert aus den Detaildaten),
+  voraussichtliche Startelf bis zur bestätigten Aufstellung (`lineups.py`, Nachweis `docs/21_aufstellung.md`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - `quotenfabrik/bets.py` – Wett-Tracking (`app.bets`, `app.bet_legs`): Abrechnung aus Ergebnissen, Auswertung
 - `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)

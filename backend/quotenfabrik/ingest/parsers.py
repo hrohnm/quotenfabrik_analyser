@@ -185,6 +185,7 @@ def parse_lineups(fixture_id: int, lineups: list[dict]) -> tuple[list[dict], dic
                 "formation": lineup.get("formation"),
                 "coach_id": coach.get("id"),
                 "coach_name": coach.get("name"),
+                "colors": colors if isinstance(colors := lineup["team"].get("colors"), dict) else None,
             }
         )
         for entry in lineup.get("startXI") or []:
@@ -192,6 +193,30 @@ def parse_lineups(fixture_id: int, lineups: list[dict]) -> tuple[list[dict], dic
             if player.get("id"):
                 grids[player["id"]] = player.get("grid")
     return rows, grids
+
+
+def parse_lineup_players(fixture_id: int, lineups: list[dict]) -> list[dict]:
+    """Starting XI (``sort`` 1–11, with grid) and bench (``sort`` from 101) of both teams."""
+    rows = {}
+    for lineup in lineups or []:
+        team_id = lineup["team"]["id"]
+        for starter, key, offset in ((True, "startXI", 0), (False, "substitutes", 100)):
+            for i, entry in enumerate(lineup.get(key) or [], start=1):
+                player = entry.get("player") or {}
+                if not player.get("id") or player["id"] in rows:
+                    continue
+                rows[player["id"]] = {
+                    "fixture_id": fixture_id,
+                    "player_id": player["id"],
+                    "team_id": team_id,
+                    "player_name": player.get("name"),
+                    "number": player.get("number"),
+                    "pos": player.get("pos"),
+                    "grid": player.get("grid") if starter else None,
+                    "is_starter": starter,
+                    "sort": offset + i,
+                }
+    return list(rows.values())
 
 
 def parse_player_stats(

@@ -167,6 +167,24 @@ class FixtureLineup(Base):
     formation: Mapped[str | None] = mapped_column(Text)
     coach_id: Mapped[int | None] = mapped_column(Integer)
     coach_name: Mapped[str | None] = mapped_column(Text)
+    colors: Mapped[dict | None] = mapped_column(JSONB)  # shirt colours (player / goalkeeper), often missing
+
+
+class FixtureLineupPlayer(Base):
+    """Starting XI and bench of a fixture (confirmed line-up, available 20–40 minutes before kickoff)."""
+
+    __tablename__ = "fixture_lineup_players"
+    __table_args__ = (Index(None, "team_id"), CORE)
+
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("core.fixtures.id"), primary_key=True)
+    player_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("core.teams.id"))
+    player_name: Mapped[str | None] = mapped_column(Text)
+    number: Mapped[int | None] = mapped_column(Integer)
+    pos: Mapped[str | None] = mapped_column(Text)  # G / D / M / F
+    grid: Mapped[str | None] = mapped_column(Text)  # "row:col", starting XI only
+    is_starter: Mapped[bool] = mapped_column(Boolean)
+    sort: Mapped[int] = mapped_column(Integer)  # order within the API list (bench from 101)
 
 
 class FixturePlayerStats(Base):

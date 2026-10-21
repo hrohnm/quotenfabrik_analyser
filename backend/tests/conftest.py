@@ -43,7 +43,7 @@ def session(engine):
         conn.execute(
             text(
                 "truncate core.odds_snapshots, core.historical_matches, core.team_aliases, core.injuries,"
-                " core.fixture_player_stats, core.fixture_lineups, core.fixture_events,"
+                " core.fixture_player_stats, core.fixture_lineup_players, core.fixture_lineups, core.fixture_events,"
                 " core.fixture_team_stats, core.fixtures, core.players, core.venues, core.teams,"
                 " core.leagues, core.bet_types, core.bookmakers, raw.api_responses,"
                 " core.odds_history, core.oddspapi_fixtures, core.oddspapi_markets,"

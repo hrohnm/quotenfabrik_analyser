@@ -10,7 +10,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from quotenfabrik import app_config
-from quotenfabrik.analytics import bookmaker_odds, form, preview, style
+from quotenfabrik.analytics import bookmaker_odds, form, lineups, preview, style
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.picks import default_profile
 from quotenfabrik.api.data import chosen_runs_cte, df, model_data, style_data, team_names
@@ -363,6 +363,7 @@ def fixture_detail(fixture_id: int) -> dict:
         "stats": _stats(fixture_id, fixture),
         "goals": _goals(fixture_id),
         "events": _events(fixture_id, fixture),
+        "lineups": _lineups(fixture_id, r, fixture),
     }
     detail["preview"] = preview.build(detail, default_profile())
     return detail
@@ -436,6 +437,64 @@ def _stats(fixture_id: int, fixture: dict) -> dict:
         side = "home" if r["team_id"] == fixture["home"]["id"] else "away"
         out[side][r["period"]] = {k: _clean(float(v) if v is not None and k in ("xg", "possession") else v)
                                   for k, v in r.items() if k not in ("fixture_id", "team_id", "period")}  # fmt: skip
+    return out
+
+
+def _lineups(fixture_id: int, r, fixture: dict) -> dict | None:
+    """Confirmed line-ups (starting XI, bench) or, before they are out, the expected starting XI of both teams,
+    each with the reported absences."""
+    teams = {"home": int(r.home_team_id), "away": int(r.away_team_id)}
+    engine = get_engine()
+    confirmed = df(
+        """select p.team_id, p.player_id, p.player_name, p.number, p.pos, p.grid, p.is_starter
+           from core.fixture_lineup_players p where p.fixture_id = :id order by p.sort""",
+        id=fixture_id,
+    )
+    if confirmed.empty and fixture["finished"]:
+        return None
+    absent = lineups.load_absences(engine, [fixture_id])
+    meta = df(
+        """select t.team_id, l.formation, l.coach_name,
+                  (select c.colors from core.fixture_lineups c join core.fixtures f on f.id = c.fixture_id
+                   where c.team_id = t.team_id and c.colors is not null and f.kickoff_utc <= :kickoff
+                   order by f.kickoff_utc desc limit 1) as colors
+           from unnest(cast(:teams as int[])) as t(team_id)
+           left join core.fixture_lineups l on l.fixture_id = :id and l.team_id = t.team_id""",
+        teams=list(teams.values()),
+        id=fixture_id,
+        kickoff=r.kickoff_utc,
+    ).set_index("team_id")  # shirt colours: latest line-up that has them (often missing)
+    history = pd.DataFrame()
+    if confirmed.empty:
+        history = lineups.load_history(engine, list(teams.values()), r.kickoff_utc)
+    names = team_names()
+    out: dict = {"status": "predicted" if confirmed.empty else "confirmed"}
+    for scope, team in teams.items():
+        m = meta.loc[team]
+        rows = absent[absent["team_id"] == team]
+        missing = [{"player_id": int(a.player_id), "name": a.player_name, "type": a.type, "reason": a.reason}
+                   for a in rows.itertuples()]  # fmt: skip
+        side: dict = {"colors": _clean(m["colors"]), "missing": missing}
+        if confirmed.empty:
+            pred = lineups.predict(history[history["team_id"] == team], lineups.Absences.of(rows))
+            if pred:
+                basis = df("select home_team_id, away_team_id, league_id from core.fixtures where id = :id",
+                           id=pred["basis"]["fixture_id"]).iloc[0]  # fmt: skip
+                opponent = int(basis.away_team_id if basis.home_team_id == team else basis.home_team_id)
+                pred["basis"].update(opponent=names.get(opponent), home=bool(basis.home_team_id == team))
+            side.update(pred or {"start": [], "formation": None, "basis": None})
+        else:
+            own = confirmed[confirmed["team_id"] == team]
+            players = [{"player_id": int(p.player_id), "name": p.player_name, "number": _clean(p.number),
+                        "pos": p.pos, "grid": p.grid} for p in own.itertuples()]  # fmt: skip
+            starters = own["is_starter"].tolist()
+            side.update(
+                formation=_clean(m["formation"]),
+                coach=_clean(m["coach_name"]),
+                start=[p for p, s in zip(players, starters, strict=True) if s],
+                bench=[p for p, s in zip(players, starters, strict=True) if not s],
+            )
+        out[scope] = side
     return out
 
 
