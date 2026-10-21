@@ -126,6 +126,15 @@ def _summaries(fixture_ids: list[int]) -> dict[int, dict]:
             pick = max(("home", "draw", "away"), key=lambda k: p[k])
             entry["pick_1x2"] = pick
             entry["pick_1x2_hit"] = entry["outcomes"].get(pick)
+    # Betano 1X2 odds (OddsPapi, last price before kickoff) with the model's edge
+    prices = bookmaker_odds.lookup(bookmaker_odds.odds_table(get_engine(), list(out), ["1x2"])) if out else {}
+    for fixture_id, entry in out.items():
+        p = entry["probabilities"]
+        entry["betano"] = {
+            key: _prices(prices, fixture_id, "1x2", None, sel, p[key])
+            for sel, key in (("H", "home"), ("D", "draw"), ("A", "away"))
+            if key in p
+        }
     return out
 
 

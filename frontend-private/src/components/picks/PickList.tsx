@@ -71,6 +71,7 @@ export function PickChips({ picks, finished }: { picks: Pick[]; finished: boolea
         return (
           <span key={p.rank} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${tone}`}>
             {p.label} <span className="font-semibold tabular-nums">{pct(p.probability, 0)}</span>
+            <BetanoOdd prices={p} />
           </span>
         );
       })}
