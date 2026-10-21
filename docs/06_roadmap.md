@@ -73,6 +73,9 @@
 - [x] Detailseite: letzte 10 Spiele beider Teams (alle Wettbewerbe) und Form-Pattern mit Nachweis (`17_form.md`, kein Zusatznutzen → nur Hinweis)
 - [x] Spielstil-Profile je Team (Tab „Spielstil“) mit Nachweis (`18_spielstil.md`: Schüsse/Schussanteil verbessern die Tor-Erwartung leicht, +0,66 % im Test)
 - [x] Schüsse ins Modell: Zielgröße = 75 % Tore + 25 % Schuss-Erwartung (Schüsse aufs Tor × Torquote), im Test signifikant besser (`19_schuesse_im_modell.md`, Einstellung „Gewicht der Schüsse“)
+- [x] Kalibrierung geprüft (`20_kalibrierung.md`): mit Schüssen im Modell ist der Kalibrierungsfehler < 1 Prozentpunkt; Nachkorrektur
+      bringt keinen belastbaren Gewinn (BL: Tore pro Team sogar schlechter, 2. BL: nur Tore gesamt minimal besser) → nicht aktiv,
+      Modul `analytics/calibration.py` bleibt für spätere Prüfungen
 - [ ] Rückspiele: Hinspielstand als Merkmal im Modell (Spielweise bei Vorsprung/Rückstand)
 - [ ] Modell-Verbesserungen (xG-Integration, Stacking, Marktmischung)
 - [x] Hosting auf eigenem VPS (`docs/13_deployment_vps.md`, `deploy/`), Backups (`qf backup`, nächtlich + nach jedem Liga-Import)

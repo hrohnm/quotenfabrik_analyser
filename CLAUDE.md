@@ -58,6 +58,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/15_europapokal.md` | Automatisch erzeugt: Europapokal-Backtest der gemeinsamen Stärkeskala (`qf model cup-eval`) |
 | `docs/18_spielstil.md` | Automatisch erzeugt: Spielstil (Schüsse, Ballbesitz, Verwertung, …) gegen die Tor-Erwartung des Modells (`qf model style-eval`) |
 | `docs/19_schuesse_im_modell.md` | Automatisch erzeugt: Schüsse im Tor-Modell (Mischung aus Toren und Schuss-Erwartung) gegen das reine Tor-Modell (`qf model shots-eval`) |
+| `docs/20_kalibrierung.md` | Automatisch erzeugt: Nachkalibrierung je Markt gegen die rohen Prognosen (`qf model calibration-eval`, nicht aktiv: kein belastbarer Gewinn) |
 | `docs/17_form.md` | Automatisch erzeugt: Form-Pattern (Punkte über/unter Modell-Erwartung) gegen das nächste Spiel (`qf model form-eval`) |
 | `docs/16_tageskombis.md` | Automatisch erzeugt: Backtest der Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance, Quote 5–10, `qf combos report`) |
 | `docs/11_betano_nebenmaerkte.md` | Automatisch erzeugt: Betano-Nebenmärkte gegen faire Preise aus Pinnacle (`mkt-v1`, Phase 3) |
@@ -130,6 +131,7 @@ qf model cup-eval                             # Europapokal-Backtest der Stärke
 qf model form-eval                            # Form-Pattern gegen das nächste Spiel → docs/17_form.md
 qf model style-eval                           # Spielstil gegen die Tor-Erwartung → docs/18_spielstil.md
 qf model shots-eval                           # Schüsse im Tor-Modell vs. nur Tore → docs/19_schuesse_im_modell.md
+qf model calibration-eval                     # Nachkalibrierung je Markt vs. roh → docs/20_kalibrierung.md
 qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebnisse eintragen
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
 qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md
