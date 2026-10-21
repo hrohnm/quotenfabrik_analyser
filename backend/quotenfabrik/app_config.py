@@ -81,6 +81,11 @@ SETTINGS: list[SettingDef] = [
                "1 = Ligen, die durch Auf-/Absteiger verbunden sind, werden gemeinsam gerechnet (eine Stärkeskala, "
                "Aufsteiger behalten ihre Stärke aus der unteren Liga). Nachweis: docs/14_gemeinsames_modell.md.",
                "int", 1, 0, 1),
+    SettingDef("model.shots_weight", "Modell (wirkt nach „Modelle neu berechnen“)", "Gewicht der Schüsse",
+               "Teamstärke aus einer Mischung von Toren und Schüssen: 0 = nur Tore. Nachweis: "
+               "docs/19_schuesse_im_modell.md.", "float", 0.0, 0, 1),
+    SettingDef("model.shots_mode", "Modell (wirkt nach „Modelle neu berechnen“)", "Welche Schüsse",
+               "on_target = Schüsse aufs Tor, all = alle Schüsse.", "choice", "on_target", choices=("on_target", "all")),
     SettingDef("api.quota_reserve", "API-Quota", "API-Football: Tagesreserve",
                "So viele Requests pro Tag bleiben für Quoten-Snapshots frei; Importe brechen vorher ab.", "int",
                500, 0, 7000),
@@ -233,6 +238,8 @@ def model_params():
         window_days=get("model.window_days"),
         promoted_attack=get("model.promoted_attack"),
         promoted_defence=get("model.promoted_defence"),
+        shots_weight=get("model.shots_weight"),
+        shots_mode=get("model.shots_mode"),
     )
 
 

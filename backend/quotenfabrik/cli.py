@@ -22,6 +22,7 @@ from quotenfabrik.reports import (
     JOINT_REPORT,
     ODDS_REPORT,
     PICKS_REPORT,
+    SHOTS_REPORT,
     STYLE_REPORT,
     report_path,
 )
@@ -374,6 +375,31 @@ def model_style_eval(report: Path = typer.Option(STYLE_REPORT, help="Markdown-Be
         style_eval.report(result, [league_name(get_engine(), i) for i in ids]), encoding="utf-8"
     )
     typer.echo(f"{result['n']} Team-Spiele ausgewertet → {report}")
+
+
+@model_app.command("shots-eval")
+def model_shots_eval(
+    validation: str = typer.Option("2018-2020", help="Validierungssaisons (Auswahl der Variante)"),
+    test: str = typer.Option("2021-2026", help="Testsaisons"),
+    report: Path = typer.Option(SHOTS_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Schüsse im Tor-Modell (Mischung aus Toren und Schuss-Erwartung) gegen das reine Tor-Modell prüfen."""
+    from quotenfabrik.analytics import shots_eval
+    from quotenfabrik.analytics.data import league_name
+
+    engine = get_engine()
+    start = app_config.league_ids()[0]
+    pool = app_config.model_pool(engine, start)
+    leagues = sorted(int(lg) for lg in pool["league_id"].unique()) if "league_id" in pool.columns else [start]
+    if "league_id" not in pool.columns:
+        pool = pool.assign(league_id=start)
+    result = shots_eval.evaluate(
+        pool, leagues, _seasons(validation), _seasons(test), app_config.model_params()
+    )
+    report.write_text(
+        shots_eval.report(result, {lg: league_name(engine, lg) for lg in leagues}), encoding="utf-8"
+    )
+    typer.echo(f"gewählt: {result['best']}, Δ Log-Loss 1X2 {result['delta']} → {report}")
 
 
 @model_app.command("cup-eval")
