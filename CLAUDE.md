@@ -57,6 +57,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/14_gemeinsames_modell.md` | Automatisch erzeugt: gemeinsames Modell über verbundene Ligen vs. getrennte Modelle (`qf model joint-eval`) |
 | `docs/15_europapokal.md` | Automatisch erzeugt: Europapokal-Backtest der gemeinsamen Stärkeskala (`qf model cup-eval`) |
 | `docs/18_spielstil.md` | Automatisch erzeugt: Spielstil (Schüsse, Ballbesitz, Verwertung, …) gegen die Tor-Erwartung des Modells (`qf model style-eval`) |
+| `docs/19_schuesse_im_modell.md` | Automatisch erzeugt: Schüsse im Tor-Modell (Mischung aus Toren und Schuss-Erwartung) gegen das reine Tor-Modell (`qf model shots-eval`) |
 | `docs/17_form.md` | Automatisch erzeugt: Form-Pattern (Punkte über/unter Modell-Erwartung) gegen das nächste Spiel (`qf model form-eval`) |
 | `docs/16_tageskombis.md` | Automatisch erzeugt: Backtest der Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance, Quote 5–10, `qf combos report`) |
 | `docs/11_betano_nebenmaerkte.md` | Automatisch erzeugt: Betano-Nebenmärkte gegen faire Preise aus Pinnacle (`mkt-v1`, Phase 3) |
@@ -128,6 +129,7 @@ qf model joint-eval                           # gemeinsames Modell über Ligen v
 qf model cup-eval                             # Europapokal-Backtest der Stärkeskala → docs/15_europapokal.md
 qf model form-eval                            # Form-Pattern gegen das nächste Spiel → docs/17_form.md
 qf model style-eval                           # Spielstil gegen die Tor-Erwartung → docs/18_spielstil.md
+qf model shots-eval                           # Schüsse im Tor-Modell vs. nur Tore → docs/19_schuesse_im_modell.md
 qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebnisse eintragen
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
 qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md
@@ -148,7 +150,7 @@ pytest && ruff check . && ruff format --check .
 - `quotenfabrik/sources/oddspapi.py`, `ingest/oddspapi*.py` – Betano-Quotenverläufe (OddsPapi), Spiel-/Team-Mapping
 - `quotenfabrik/markets.py` – welche Wettarten zu welcher Marktgruppe gehören, für API-Football und OddsPapi
   (asiatische Märkte ausgeschlossen)
-- `quotenfabrik/analytics/` – Modelle (Dixon-Coles, Halbzeiten, Torschützen; über verbundene Ligen gemeinsam,
+- `quotenfabrik/analytics/` – Modelle (Dixon-Coles mit Toren + Schüssen aufs Tor als Zielgröße, Halbzeiten, Torschützen; über verbundene Ligen gemeinsam,
   `app_config.model_pool`, Nachweis `joint_eval.py`), Märkte, Pattern, Evaluation,
   Value-Rechnung (`value.py`: Margenentfernung, EV, Kelly, CLV), Quoten-Backtest (`odds_backtest.py`),
   Betano-/Pinnacle-Preise je Spiel und Auswahl (`bookmaker_odds.py`, für API und Tageskombis), marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich

@@ -83,7 +83,7 @@ SETTINGS: list[SettingDef] = [
                "int", 1, 0, 1),
     SettingDef("model.shots_weight", "Modell (wirkt nach „Modelle neu berechnen“)", "Gewicht der Schüsse",
                "Teamstärke aus einer Mischung von Toren und Schüssen: 0 = nur Tore. Nachweis: "
-               "docs/19_schuesse_im_modell.md.", "float", 0.0, 0, 1),
+               "docs/19_schuesse_im_modell.md (0,25 = signifikant besser als nur Tore).", "float", 0.25, 0, 1),
     SettingDef("model.shots_mode", "Modell (wirkt nach „Modelle neu berechnen“)", "Welche Schüsse",
                "on_target = Schüsse aufs Tor, all = alle Schüsse.", "choice", "on_target", choices=("on_target", "all")),
     SettingDef("api.quota_reserve", "API-Quota", "API-Football: Tagesreserve",

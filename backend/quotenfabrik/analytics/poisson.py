@@ -45,7 +45,7 @@ class PoissonParams:
     half_reg: float = 25.0  # stronger penalty for the noisier half-time models
     fit_rho: bool = True
     xg_weight: float = 0.0  # 0 = goals only, 1 = xG only (where available)
-    shots_weight: float = 0.0  # 0 = goals only; share of the shot-based expectation in the target
+    shots_weight: float = 0.25  # share of the shot-based expectation in the target (0 = goals only; docs/19)
     shots_mode: str = "on_target"  # 'on_target' (shots on target) or 'all' (all shots)
     league_reg: float = 1.0  # weak L2 penalty on league levels (joint model only; anchors their mean at 0)
     cup_home_adv: bool = True  # own home advantage for cup matches (validated in docs/15_europapokal.md)

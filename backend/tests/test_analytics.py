@@ -331,8 +331,8 @@ def test_shots_weight_zero_leaves_model_unchanged():
     as_of = m["kickoff"].max() + pd.Timedelta(days=1)
     rng = np.random.default_rng(3)
     m = m.assign(hst=rng.integers(1, 9, len(m)).astype(float), ast=rng.integers(1, 9, len(m)).astype(float))
-    a = fit_poisson(m, as_of, PoissonParams())
+    a = fit_poisson(m, as_of, PoissonParams(shots_weight=0.0))
     b = fit_poisson(m, as_of, PoissonParams(shots_weight=0.0, shots_mode="all"))
     assert a.attack == b.attack
-    c = fit_poisson(m, as_of, PoissonParams(shots_weight=0.5))
+    c = fit_poisson(m, as_of, PoissonParams())  # default: shots on target, weight 0.25
     assert c.attack != a.attack

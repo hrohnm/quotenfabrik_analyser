@@ -59,6 +59,7 @@ Details zum Seed: `seed/README.md`.
 | `qf model joint-eval [--validation 2018-2020 --test 2021-2026]` | Gemeinsames Modell über verbundene Ligen gegen getrennte Modelle (Walk-Forward, 1X2/Ü-U/BTTS, Auf-/Absteiger) → `docs/14_gemeinsames_modell.md` | 0 |
 | `qf model form-eval` | Form-Pattern (Punkte minus Modell-Erwartung der letzten 6 Spiele aller Wettbewerbe) gegen das nächste Spiel → `docs/17_form.md` | 0 |
 | `qf model style-eval` | Spielstil (Schüsse, Ballbesitz, Verwertung, Defensive, Intensität aus den letzten 12 Ligaspielen) gegen die Tor-Erwartung des Modells: Korrelationen, Test auf späteren Saisons, Ballbesitz-Duelle → `docs/18_spielstil.md` | 0 |
+| `qf model shots-eval [--validation 2018-2020 --test 2021-2026]` | Schüsse im Tor-Modell: Varianten (Schüsse aufs Tor / alle, Gewicht 0,25–0,75) auf den Validierungssaisons, beste gegen nur Tore auf den Testsaisons → `docs/19_schuesse_im_modell.md` | 0 |
 | `qf model cup-eval [--validation 2019-2021 --test 2022-2026]` | Europapokal: gemeinsames Modell über alle Ligen und Pokale, Walk-Forward auf Pokalspielen (Basisrate, ohne Pokalspiele, gemeinsam, eigener Heimvorteil) + Auswirkung auf die eigenen Ligen → `docs/15_europapokal.md` | 0 |
 | `qf model forecast --days 10` (auch Europapokale, `--league 2`) | Prognosen + Pattern für kommende Spiele → `analytics.predictions` / `analytics.pattern_results` | 0 |
 | `qf model backtest --seasons 2016-2026` | rückwirkende Walk-Forward-Prognosen aller beendeten Spiele inkl. Ergebnis → Explorer/Auswertung | 0 |

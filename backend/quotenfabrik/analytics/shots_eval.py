@@ -19,7 +19,7 @@ MODES = {"on_target": "Schüsse aufs Tor", "all": "alle Schüsse"}
 
 
 def variants(base: PoissonParams) -> dict[str, PoissonParams]:
-    out = {"nur Tore (aktuell)": replace(base, shots_weight=0.0)}
+    out = {"nur Tore (bisher)": replace(base, shots_weight=0.0)}
     for mode, label in MODES.items():
         for weight in WEIGHTS:
             out[f"{label}, Gewicht {weight:.2f}".replace(".", ",")] = replace(
@@ -40,7 +40,7 @@ def evaluate(
 ) -> dict:
     vs = variants(base)
     val = {name: joint_eval.scores(_predict(matches, league_ids, validation, p)) for name, p in vs.items()}
-    baseline = "nur Tore (aktuell)"
+    baseline = "nur Tore (bisher)"
     best = min((n for n in val if n != baseline), key=lambda n: val[n]["logloss_1x2"])
     preds = {name: _predict(matches, league_ids, test, vs[name]) for name in (baseline, best)}
     test_scores = {name: joint_eval.scores(d) for name, d in preds.items()}
@@ -97,7 +97,7 @@ def report(result: dict, league_names: dict[int, str]) -> str:
     for name, s in result["test"].items():
         out.append(f"| {name} | {s['n']} | {_f(s['logloss_1x2'])} | {_f(s['rps_1x2'])} | "
                    f"{_f(s['logloss_ou25'])} | {_f(s['logloss_btts'])} |")  # fmt: skip
-    out += ["", f"Differenz Log-Loss 1X2 (gewählt − aktuell): {_s(d)} (95 %: {_s(lo)} … {_s(hi)}).", "",
+    out += ["", f"Differenz Log-Loss 1X2 (gewählt − bisher): {_s(d)} (95 %: {_s(lo)} … {_s(hi)}).", "",
             "| Liga | Modell | Log-Loss 1X2 | Log-Loss Ü/U 2,5 | Log-Loss Beide treffen |", "|---|---|---:|---:|---:|"]  # fmt: skip
     for lg, by_model in result["per_league"].items():
         for name, s in by_model.items():
@@ -105,7 +105,7 @@ def report(result: dict, league_names: dict[int, str]) -> str:
                        f"{_f(s['logloss_btts'])} |")  # fmt: skip
     better = hi < 0
     t = result["test"]
-    base, best = t["nur Tore (aktuell)"], t[result["best"]]
+    base, best = t["nur Tore (bisher)"], t[result["best"]]
     goals_better = (
         best["logloss_ou25"] < base["logloss_ou25"] and best["logloss_btts"] <= base["logloss_btts"] + 1e-4
     )
