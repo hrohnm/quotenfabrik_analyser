@@ -1,3 +1,6 @@
+import threading
+
+import pandas as pd
 from fastapi import APIRouter
 
 from quotenfabrik import app_config
@@ -6,6 +9,9 @@ from quotenfabrik.api.data import df, records
 from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS, league_logo
 
 router = APIRouter(prefix="/api", tags=["meta"])
+
+_lock = threading.Lock()
+_markets_cache: tuple | None = None  # (latest backtest run id, markets)
 
 
 @router.get("/meta")
@@ -24,12 +30,7 @@ def meta() -> dict:
            where f.league_id = any(:ids) order by t.name""",
         ids=app_config.shown_league_ids(),
     )
-    markets = df(
-        """select p.market_group, p.market, p.line, array_agg(distinct p.selection) as selections
-           from analytics.predictions p join analytics.model_runs r on r.id = p.model_run_id
-           where r.kind = 'backtest' and p.market not like 'scorer%'
-           group by 1, 2, 3 order by 1, 2, 3"""
-    )
+    markets = _backtest_markets()
     runs = df(
         """select id, kind, model_version, as_of, created_at, summary from analytics.model_runs
            where kind in ('forecast', 'backtest') order by id desc limit 5"""
@@ -62,6 +63,22 @@ def meta() -> dict:
         ],  # fmt: skip
         "runs": records(runs),
     }
+
+
+def _backtest_markets() -> pd.DataFrame:
+    """Markets of the backtest runs; the scan over all predictions takes seconds, so it is cached until a new run."""
+    global _markets_cache
+    latest = df("select max(id) as id from analytics.model_runs where kind = 'backtest'")["id"].iloc[0]
+    with _lock:
+        if _markets_cache is None or _markets_cache[0] != latest:
+            markets = df(
+                """select p.market_group, p.market, p.line, array_agg(distinct p.selection) as selections
+                   from analytics.predictions p join analytics.model_runs r on r.id = p.model_run_id
+                   where r.kind = 'backtest' and p.market not like 'scorer%'
+                   group by 1, 2, 3 order by 1, 2, 3"""
+            )
+            _markets_cache = (latest, markets)
+        return _markets_cache[1]
 
 
 def _league_list(rows: list[dict]) -> list[dict]:
