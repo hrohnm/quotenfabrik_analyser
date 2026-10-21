@@ -101,7 +101,7 @@ Installation: `docs/13_deployment_vps.md`):
 | `GET /api/meta` | Ligen, Saisons, Teams, Märkte, Labels |
 | `GET /api/days?from&to` | Tage mit Spielen (Kalender Europe/Berlin) |
 | `GET /api/fixtures?date=YYYY-MM-DD` (oder `from`/`to`, `season`, `team`) | Spiele mit Kurzprognose (1X2, Ü2,5, BTTS) |
-| `GET /api/fixtures/{id}` | Detail: letzte 10 Spiele beider Teams in allen Wettbewerben mit Form (`form`), Spielstil beider Teams mit Rang im Wettbewerb und Stil-Etiketten (`style`), alle Märkte (je Auswahl `betano`, `pinnacle` ohne Marge, `edge` = p × Betano − 1; letzte Quote vor Anpfiff aus OddsPapi), Torschützen, Pattern (vor Anpfiff berechnet), Statistik, Tore |
+| `GET /api/fixtures/{id}` | Detail: Einschätzung in Textform (`preview`: Überschrift, Kurzfazit, Abschnitte; regelbasiert, nur Daten vor Anpfiff), letzte 10 Spiele beider Teams in allen Wettbewerben mit Form (`form`), Spielstil beider Teams mit Rang im Wettbewerb und Stil-Etiketten (`style`), alle Märkte (je Auswahl `betano`, `pinnacle` ohne Marge, `edge` = p × Betano − 1; letzte Quote vor Anpfiff aus OddsPapi), Torschützen, Pattern (vor Anpfiff berechnet), Statistik, Tore |
 | `GET /api/explorer?market&selection&line&…` | Prognosen eines Marktes über viele Spiele + Zusammenfassung |
 | `GET /api/stats/overview|markets|confidence|calibration|seasons|scorers` | Trefferquoten und Kalibrierung |
 | `GET /api/stats/picks?profile&season` | Trefferquote der 3 Tipps pro Spiel (einzeln, Kombi, je Saison/Rang/Markt) |

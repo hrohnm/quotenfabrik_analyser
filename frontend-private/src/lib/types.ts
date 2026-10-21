@@ -140,6 +140,8 @@ export type FixtureDetail = {
   form?: Record<"home" | "away", TeamForm>;
   /** playing style before kickoff, ranked against the teams of the competition (null: too few matches with statistics) */
   style?: Record<"home" | "away", TeamStyle | null>;
+  /** generated match preview in German (rules over the data above, only information from before kickoff) */
+  preview?: { headline: string; summary: string; sections: { title: string; text: string }[] } | null;
   /** last Betano price change; closing = prices are the last ones before kickoff */
   odds?: { betano_at: string | null; closing: boolean };
 };

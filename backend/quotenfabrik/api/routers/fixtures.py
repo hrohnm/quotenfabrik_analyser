@@ -10,7 +10,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from quotenfabrik import app_config
-from quotenfabrik.analytics import bookmaker_odds, form, style
+from quotenfabrik.analytics import bookmaker_odds, form, preview, style
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.picks import default_profile
 from quotenfabrik.api.data import chosen_runs_cte, df, model_data, style_data, team_names
@@ -350,7 +350,7 @@ def fixture_detail(fixture_id: int) -> dict:
         if preds.empty
         else {"kind": preds["kind"].iloc[0], "predicted_at": _clean(preds["predicted_at"].iloc[0])}
     )
-    return {
+    detail = {
         "fixture": fixture,
         "prediction": source,
         "markets": market_list,
@@ -363,6 +363,8 @@ def fixture_detail(fixture_id: int) -> dict:
         "stats": _stats(fixture_id, fixture),
         "goals": _goals(fixture_id),
     }
+    detail["preview"] = preview.build(detail, default_profile())
+    return detail
 
 
 def _patterns(r, forms: dict) -> list[dict]:
