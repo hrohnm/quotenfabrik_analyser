@@ -9,6 +9,10 @@
 - L2-Regularisierung der Team-Parameter → Aufsteiger mit wenig Bundesliga-Daten werden zum Mittelwert gezogen
   (Option später: Zweitliga-Daten D2 von football-data.co.uk als Vorwissen für Aufsteiger)
 - Optional: xG statt Toren als Zielgröße (bzw. Mischung) in Saisons mit xG
+- **Schüsse in der Zielgröße (Standard):** Zielgröße = 75 % Tore + 25 % Schuss-Erwartung (Schüsse aufs Tor des Spiels ×
+  Tore pro Schuss aufs Tor im Trainingsfenster). Schüsse zeigen die Stärke stabiler als Tore; im Walk-Forward-Test
+  2021–2026 signifikant besser in 1X2, Ü/U 2,5 und Beide treffen (`docs/19_schuesse_im_modell.md`). Halbzeit-Modelle
+  und Dixon-Coles-ρ bleiben bei echten Toren.
 - Ergebnis: Ergebnismatrix P(i:j) für i, j = 0…10 → alle Märkte der Gruppen 1–3
 
 ## 2. Halbzeitmodelle

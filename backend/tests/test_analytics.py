@@ -308,3 +308,31 @@ def test_neutral_venue_and_cup_home_advantage():
     assert own.lambdas(0, 1, cup=True)[0] / own.lambdas(0, 1)[0] == pytest.approx(
         np.exp(own.home_adv_cup - own.home_adv)
     )
+
+
+def test_shots_blend_targets():
+    from quotenfabrik.analytics.poisson import _with_shots
+
+    train = pd.DataFrame({"hg": [2.0, 0.0, 1.0], "ag": [0.0, 1.0, 1.0], "hst": [6.0, 2.0, np.nan],
+                          "ast": [2.0, 4.0, np.nan]})  # fmt: skip
+    w = np.ones(3)
+    params = PoissonParams(shots_weight=0.5, shots_mode="on_target")
+    yh, ya = _with_shots(train, train["hg"].to_numpy(), train["ag"].to_numpy(), w, params, "hg", "ag")
+    rate = (2 + 0 + 0 + 1) / (6 + 2 + 2 + 4)  # goals per shot on target of the matches with shot data
+    assert yh[0] == pytest.approx(0.5 * 2 + 0.5 * rate * 6)
+    assert ya[1] == pytest.approx(0.5 * 1 + 0.5 * rate * 4)
+    assert yh[2] == 1.0 and ya[2] == 1.0  # no shot data: goals unchanged
+    # total of the blended targets stays at the level of the goals (rate from the same matches)
+    assert yh[:2].sum() + ya[:2].sum() == pytest.approx(3.0)
+
+
+def test_shots_weight_zero_leaves_model_unchanged():
+    m = synthetic_matches()
+    as_of = m["kickoff"].max() + pd.Timedelta(days=1)
+    rng = np.random.default_rng(3)
+    m = m.assign(hst=rng.integers(1, 9, len(m)).astype(float), ast=rng.integers(1, 9, len(m)).astype(float))
+    a = fit_poisson(m, as_of, PoissonParams(shots_weight=0.0))
+    b = fit_poisson(m, as_of, PoissonParams(shots_weight=0.0, shots_mode="all"))
+    assert a.attack == b.attack
+    c = fit_poisson(m, as_of, PoissonParams())  # default: shots on target, weight 0.25
+    assert c.attack != a.attack

@@ -8,6 +8,11 @@ parameters towards a prior centre (0 for established teams, a promoted-team prio
 recent matches). The Dixon-Coles rho (low-score correction) is fitted afterwards for fixed lambdas.
 Targets may be non-integer (e.g. a blend of goals and xG); the Poisson likelihood is then a quasi-likelihood.
 
+Shots (``shots_weight``): the target becomes a blend of goals and a shot-based expectation (shots on target or
+all shots of the match × the goals-per-shot rate of the training window). Shots are a steadier signal of a
+team's strength than goals (validated in docs/18_spielstil.md and docs/19_schuesse_im_modell.md). The rate
+comes from matches before ``as_of`` only; the Dixon-Coles rho is still fitted on the real scores.
+
 Several leagues (joint model): with a ``league_id`` column covering more than one league, every league gets
 an attack and a defence level and a team's prior centre is the time-weighted mix of the levels of the leagues
 it played in (teams without matches: their current league from ``team_league``). Team parameters then live on
@@ -40,6 +45,8 @@ class PoissonParams:
     half_reg: float = 25.0  # stronger penalty for the noisier half-time models
     fit_rho: bool = True
     xg_weight: float = 0.0  # 0 = goals only, 1 = xG only (where available)
+    shots_weight: float = 0.25  # share of the shot-based expectation in the target (0 = goals only; docs/19)
+    shots_mode: str = "on_target"  # 'on_target' (shots on target) or 'all' (all shots)
     league_reg: float = 1.0  # weak L2 penalty on league levels (joint model only; anchors their mean at 0)
     cup_home_adv: bool = True  # own home advantage for cup matches (validated in docs/15_europapokal.md)
 
@@ -109,6 +116,8 @@ def fit_poisson(
         ya = np.where(has, (1 - params.xg_weight) * ya + params.xg_weight * ax, ya)
     days = (as_of - train["kickoff"]).dt.total_seconds().to_numpy() / 86400.0
     w = np.exp(-params.xi * days)
+    if params.shots_weight > 0:
+        yh, ya = _with_shots(train, yh, ya, w, params, home_col, away_col)
 
     teams = sorted(set(train["home_id"]) | set(train["away_id"]) | set(current_teams or ()))
     idx = {t: i for i, t in enumerate(teams)}
@@ -184,6 +193,35 @@ def fit_poisson(
     if params.fit_rho and len(train):
         fitted.rho = _fit_rho(fitted, train, w, home_col, away_col)
     return fitted
+
+
+SHOT_COLUMNS = {"on_target": ("hst", "ast"), "all": ("hs", "as_")}
+
+
+def _with_shots(
+    train: pd.DataFrame,
+    yh: np.ndarray,
+    ya: np.ndarray,
+    w: np.ndarray,
+    params: PoissonParams,
+    hc: str,
+    ac: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Blend of the targets with shots × goals-per-shot rate of the window (matches without shot data keep
+    their targets)."""
+    sh_col, sa_col = SHOT_COLUMNS[params.shots_mode]
+    if sh_col not in train.columns or sa_col not in train.columns:
+        return yh, ya
+    sh, sa = train[sh_col].to_numpy(float), train[sa_col].to_numpy(float)
+    has = ~np.isnan(sh) & ~np.isnan(sa)
+    if not has.any():
+        return yh, ya
+    goals = train[hc].to_numpy(float) + train[ac].to_numpy(float)
+    rate = float(w[has] @ goals[has]) / max(float(w[has] @ (sh[has] + sa[has])), 1e-9)
+    s = params.shots_weight
+    yh = np.where(has, (1 - s) * yh + s * rate * np.nan_to_num(sh), yh)
+    ya = np.where(has, (1 - s) * ya + s * rate * np.nan_to_num(sa), ya)
+    return yh, ya
 
 
 def _league_mix(

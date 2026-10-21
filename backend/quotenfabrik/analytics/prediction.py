@@ -54,7 +54,7 @@ def fit_match_model(
     """``matches`` with a ``league_id`` column of several leagues -> joint model (``team_league``: current
     league per team)."""
     half_params = PoissonParams(
-        **{**params.__dict__, "reg": params.half_reg, "fit_rho": False, "xg_weight": 0.0}
+        **{**params.__dict__, "reg": params.half_reg, "fit_rho": False, "xg_weight": 0.0, "shots_weight": 0.0}
     )
     tl = team_league
     return MatchModel(
