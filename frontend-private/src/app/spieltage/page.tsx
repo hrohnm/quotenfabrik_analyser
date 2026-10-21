@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getDays, getFixtures, getMeta } from "@/lib/api";
 import { addDays, berlinToday, dateLong, dayMonth, pct, time, weekday } from "@/lib/format";
-import { Card, OutcomeBadge, SourceBadge, TeamLogo, ThreeWayBar } from "@/components/ui";
+import { Card, TeamLogo, ThreeWayBar } from "@/components/ui";
+import { BetanoOdd } from "@/components/BetanoOdd";
 import type { Day, Fixture } from "@/lib/types";
 import { ScrollToActive } from "@/components/ScrollToActive";
 import { Logo } from "@/components/Logo";
@@ -105,8 +106,8 @@ export default async function MatchdaysPage({ searchParams }: { searchParams: Pr
             <p className="text-sm text-slate-500">Keine Spiele an diesem Tag.</p>
           ) : (
             <div className="divide-y divide-slate-100">
-              <div className="hidden grid-cols-[60px_1fr_70px_200px_90px_90px_40px] gap-4 pb-2 text-xs font-medium uppercase tracking-wide text-slate-400 md:grid">
-                <span>Anstoß</span><span>Begegnung</span><span className="text-center">Ergebnis</span><span>1 · X · 2</span><span className="text-right">Über 2,5</span><span className="text-right">Beide tr.</span><span />
+              <div className="hidden grid-cols-[60px_1fr_70px_240px] gap-4 pb-2 text-xs font-medium uppercase tracking-wide text-slate-400 md:grid">
+                <span>Anstoß</span><span>Begegnung</span><span className="text-center">Ergebnis</span><span>1 · X · 2 <span className="normal-case tracking-normal">(Betano-Quote)</span></span>
               </div>
               {leagues.map((l) => (
                 <div key={l.id}>
@@ -148,10 +149,11 @@ function CupInfo({ f }: { f: Fixture }) {
 function FixtureRow({ f }: { f: Fixture }) {
   const p = f.prediction?.probabilities ?? {};
   const o = f.prediction?.outcomes ?? {};
+  const betano = f.prediction?.betano ?? {};
   const pick = f.prediction?.pick_1x2;
   const labels = { home: "1", draw: "X", away: "2" } as const;
   return (
-    <Link href={`/spiel/${f.id}`} className="grid grid-cols-1 items-center gap-2 py-3 hover:bg-slate-50 md:grid-cols-[60px_1fr_70px_200px_90px_90px_40px] md:gap-4">
+    <Link href={`/spiel/${f.id}`} className="grid grid-cols-1 items-center gap-2 py-3 hover:bg-slate-50 md:grid-cols-[60px_1fr_70px_240px] md:gap-4">
       <span className="text-sm font-medium text-slate-600">{time(f.kickoff)}</span>
       <div className="space-y-1">
         <div className="flex items-center gap-2 font-medium"><TeamLogo team={f.home} size={20} />{f.home.name}</div>
@@ -166,19 +168,19 @@ function FixtureRow({ f }: { f: Fixture }) {
         <ThreeWayBar home={p.home} draw={p.draw} away={p.away} />
         <div className="flex justify-between text-xs tabular-nums text-slate-600">
           {(["home", "draw", "away"] as const).map((k) => (
-            <span key={k} className={pick === k ? "font-semibold text-slate-900" : ""}>
-              {labels[k]} {pct(p[k], 0)}
+            <span
+              key={k}
+              className={`flex flex-col items-center gap-0.5 ${pick === k ? "font-semibold text-slate-900" : ""} ${f.finished && o[k] ? "rounded bg-emerald-50 px-1" : ""}`}
+              title={f.finished && o[k] ? "eingetreten" : undefined}
+            >
+              <span>{labels[k]} {pct(p[k], 0)}</span>
+              {betano[k] && <BetanoOdd prices={betano[k]} />}
             </span>
           ))}
         </div>
       </div>
-      <div className="flex items-center justify-end gap-2 text-sm tabular-nums">{pct(p.over25, 0)} <OutcomeBadge outcome={o.over25} small /></div>
-      <div className="flex items-center justify-end gap-2 text-sm tabular-nums">{pct(p.btts, 0)} <OutcomeBadge outcome={o.btts} small /></div>
-      <div className="flex justify-end" title="Hat der 1X2-Favorit des Modells getroffen?">
-        {f.prediction ? <OutcomeBadge outcome={f.prediction.pick_1x2_hit} /> : <SourceBadge kind={null} />}
-      </div>
       {f.picks && f.picks.length > 0 && (
-        <div className="flex items-center gap-2 md:col-start-2 md:col-end-8">
+        <div className="flex items-center gap-2 md:col-start-2 md:col-end-5">
           <span className="text-xs font-medium text-slate-400">Tipps</span>
           <PickChips picks={f.picks} finished={f.finished} />
         </div>

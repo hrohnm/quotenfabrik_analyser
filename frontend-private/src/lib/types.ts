@@ -5,6 +5,8 @@ export type FixtureSummary = {
   probabilities: Partial<Record<"home" | "draw" | "away" | "over25" | "btts", number>>;
   outcomes: Partial<Record<"home" | "draw" | "away" | "over25" | "btts", boolean | null>>;
   pick_1x2?: "home" | "draw" | "away";
+  /** Betano 1X2 odds with Pinnacle and model edge (OddsPapi, last price before kickoff) */
+  betano?: Partial<Record<"home" | "draw" | "away", BookPrices>>;
   pick_1x2_hit?: boolean | null;
 };
 
