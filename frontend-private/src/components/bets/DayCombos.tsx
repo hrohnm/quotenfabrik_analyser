@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { addDays, berlinToday, dayMonth, odd, pct, signedPct, time, weekday } from "@/lib/format";
+import { dayMonth, odd, pct, signedPct, time } from "@/lib/format";
 import type { DayCombo } from "@/lib/types";
 import { Card, OutcomeBadge, TeamLogo } from "@/components/ui";
 import { Logo } from "@/components/Logo";
@@ -17,9 +17,8 @@ const KIND_HINT: Record<DayCombo["kind"], string> = {
   doppelte_chance: "1X, X2 oder 12",
 };
 
-/** Daily combos: one Tore-Über, one Team-Tore-Über and one Doppelte-Chance combo per day, target odds 5–10. */
-export function DayCombos() {
-  const [day, setDay] = useState(berlinToday());
+/** Daily combos of ``day``: one Tore-Über, one Team-Tore-Über and one Doppelte-Chance combo, target odds 5–10. */
+export function DayCombos({ day }: { day: string }) {
   const [combos, setCombos] = useState<DayCombo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<BetDraft | null>(null);
@@ -54,12 +53,6 @@ export function DayCombos() {
             Tipps mit sehr niedriger Quote (Standard: unter 1,20) werden ausgelassen. Quoten sind echte Betano-Quoten
             (<span className="rounded bg-orange-50 px-1 text-orange-700">orange</span>, grün = Modell sieht Vorteil); fehlt sie, ist sie geschätzt (≈, faire Quote abzüglich Marge).
           </p>
-        </div>
-        <div className="flex items-center gap-1 text-sm">
-          <button type="button" onClick={() => setDay(addDays(day, -1))} className="rounded-md border border-slate-300 px-2 py-1" aria-label="Vortag">‹</button>
-          <span className="w-28 text-center font-medium">{weekday(day)} {dayMonth(day)}</span>
-          <button type="button" onClick={() => setDay(addDays(day, 1))} className="rounded-md border border-slate-300 px-2 py-1" aria-label="Folgetag">›</button>
-          {day !== berlinToday() && <button type="button" onClick={() => setDay(berlinToday())} className="ml-1 text-xs text-emerald-700 hover:underline">heute</button>}
         </div>
       </div>
       {error && <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
