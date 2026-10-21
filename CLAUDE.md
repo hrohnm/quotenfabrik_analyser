@@ -155,7 +155,8 @@ pytest && ruff check . && ruff format --check .
   Value-Rechnung (`value.py`: Margenentfernung, EV, Kelly, CLV), Quoten-Backtest (`odds_backtest.py`),
   Betano-/Pinnacle-Preise je Spiel und Auswahl (`bookmaker_odds.py`, für API und Tageskombis), marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
   (`betano_value.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`), Tageskombis (`combos.py`),
-  Form und letzte Spiele aller Wettbewerbe (`form.py`), Spielstil-Profile (`style.py`, Nachweis `style_eval.py`)
+  Form und letzte Spiele aller Wettbewerbe (`form.py`), Spielstil-Profile (`style.py`, Nachweis `style_eval.py`),
+  Einschätzung in Textform je Spiel (`preview.py`, regelbasiert aus den Detaildaten)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - `quotenfabrik/bets.py` – Wett-Tracking (`app.bets`, `app.bet_legs`): Abrechnung aus Ergebnissen, Auswertung
 - `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)
