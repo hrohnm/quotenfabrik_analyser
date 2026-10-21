@@ -89,7 +89,16 @@ create index on core.fixture_events (player_id) where type = 'Goal';
 
 core.fixture_lineups (
   fixture_id bigint, team_id int, formation text, coach_id int, coach_name text,
+  colors jsonb,                                   -- Trikotfarben (Feldspieler / Torwart), oft leer
   primary key (fixture_id, team_id)
+);
+
+-- Startelf (sort 1–11, mit grid "Reihe:Spalte", Spalte 1 = linke Seite des Teams) und Bank (sort ab 101)
+core.fixture_lineup_players (
+  fixture_id bigint, player_id int, team_id int, player_name text, number int,
+  pos text,                                       -- G / D / M / F
+  grid text, is_starter boolean, sort int,
+  primary key (fixture_id, player_id)
 );
 
 core.fixture_player_stats (

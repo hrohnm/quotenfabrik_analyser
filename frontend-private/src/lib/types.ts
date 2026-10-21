@@ -138,6 +138,7 @@ export type FixtureDetail = {
   goals: { minute: number; extra_minute: number | null; team_id: number; player_id: number | null; player_name: string; detail: string; comments: string | null }[];
   /** match events for the timeline (goals with the score after them, cards, substitutions, VAR) */
   events?: MatchEvent[];
+  lineups?: Lineups | null;
   /** last matches in all competitions before kickoff and the form (points above/below the model's expectation) */
   form?: Record<"home" | "away", TeamForm>;
   /** playing style before kickoff, ranked against the teams of the competition (null: too few matches with statistics) */
@@ -323,3 +324,26 @@ export type MatchEvent = {
   /** score after a goal (home, away) */
   score?: [number, number];
 };
+
+export type LineupPlayer = {
+  player_id: number;
+  name: string | null;
+  number: number | null;
+  pos: "G" | "D" | "M" | "F" | null;
+  grid: string | null;
+  replaces?: string | null; // expected XI: absent player whose slot he takes
+  questionable?: boolean;
+  absent?: boolean;
+};
+export type Absence = { player_id: number; name: string | null; type: string | null; reason: string | null };
+type ShirtColors = { primary?: string; number?: string; border?: string };
+export type TeamLineup = {
+  colors: { player?: ShirtColors; goalkeeper?: ShirtColors } | null;
+  missing: Absence[];
+  formation: string | null;
+  start: LineupPlayer[];
+  bench?: LineupPlayer[];
+  coach?: string | null;
+  basis?: { fixture_id: number; kickoff: string; opponent: string | null; home: boolean } | null;
+};
+export type Lineups = { status: "confirmed" | "predicted"; home: TeamLineup; away: TeamLineup };

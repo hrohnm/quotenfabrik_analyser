@@ -81,7 +81,7 @@ backend/
 | `odds_pre_kickoff` | T-60 und T-10 min je Spiel | Schlussquoten-Näherung für CLV-Messung |
 | `fixtures_sync` | 1×/Tag + stündlich an Spieltagen | Spielplan, Ergebnisse, Verschiebungen |
 | `fixture_details` | 2 h nach Abpfiff | Events, Stats, Spieler via `ids` |
-| `lineups` | T-40 und T-20 min | Aufstellungen → Torschützen-Modell neu rechnen |
+| `lineups` | alle 15 min (`qf ingest live`), Spiele der nächsten Stunde ohne Aufstellung | bestätigte Aufstellung (Startelf, Bank) für die Detailseite; vorher eigene Schätzung (`analytics/lineups.py`) |
 | `injuries` | 2×/Tag | Ausfälle |
 | `football_data_sync` | 1×/Tag (Mo/Di) | aktuelle Saison-CSV inkl. Schlussquoten |
 | `analyses_refresh` | nach jedem Daten-Update | Modelle fitten, Pattern + Value für kommende Spiele |

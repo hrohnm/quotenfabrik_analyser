@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterable
 from datetime import UTC, datetime, timedelta
 
 import httpx
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from quotenfabrik import app_config
@@ -79,17 +80,27 @@ def api_football_seasons(
 def live_results(
     engine, session: Session, client: ApiFootballClient, league_ids: Iterable[int], log: Log = _noop
 ) -> str:
-    """Results of fixtures whose regular end has passed (``/fixtures?ids=``, 20 per request, incl. goals and
-    line-ups), then settles the predictions / picks of the affected leagues and the open bets."""
+    """Results of fixtures whose regular end has passed and confirmed line-ups of fixtures kicking off within
+    the next hour (``/fixtures?ids=``, 20 per request, both in the same requests), then settles the
+    predictions / picks of the affected leagues and the open bets."""
     from quotenfabrik import bets
     from quotenfabrik.analytics.service import settle_predictions
     from quotenfabrik.ingest.parsers import FINISHED_STATUSES
-    from quotenfabrik.models import Fixture
+    from quotenfabrik.models import Fixture, FixtureLineupPlayer
 
-    due = api_football.fixtures_due(session, list(league_ids))
-    if not due:
+    league_ids = list(league_ids)
+    due = api_football.fixtures_due(session, league_ids)
+    lineup_due = [f for f in api_football.fixtures_lineup_due(session, league_ids) if f not in due]
+    if not due and not lineup_due:
         return "keine fälligen Spiele"
-    api_football.sync_details(session, client, due)
+    api_football.sync_details(session, client, due + lineup_due)
+    lineups = 0
+    if lineup_due:
+        lineups = len(set(session.scalars(
+            select(FixtureLineupPlayer.fixture_id).where(FixtureLineupPlayer.fixture_id.in_(lineup_due))
+        )))  # fmt: skip
+    if not due:
+        return f"Aufstellungen: {lineups} von {len(lineup_due)} bestätigt, {client.requests_made} Requests"
     rows = session.query(Fixture.id, Fixture.league_id, Fixture.status).filter(Fixture.id.in_(due)).all()
     finished = [r for r in rows if r.status in FINISHED_STATUSES]
     settled = sum(settle_predictions(engine, lg) for lg in sorted({r.league_id for r in finished}))
@@ -97,8 +108,9 @@ def live_results(
     still_open = [f"{r.id} ({r.status})" for r in rows if r.status not in FINISHED_STATUSES]
     if still_open:
         log(f"noch ohne Endergebnis: {', '.join(still_open)}")
+    lineup_msg = f", Aufstellungen {lineups} von {len(lineup_due)}" if lineup_due else ""
     return (f"{len(due)} fällig, {len(finished)} beendet, {settled} Prognosen und {bets_settled} Wetten "
-            f"abgerechnet, {client.requests_made} Requests")  # fmt: skip
+            f"abgerechnet{lineup_msg}, {client.requests_made} Requests")  # fmt: skip
 
 
 CUP_DETAIL_SEASONS = (

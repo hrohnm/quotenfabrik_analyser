@@ -45,6 +45,11 @@ def test_team_stats_and_players():
 
     lineups, grids = parsers.parse_lineups(item["fixture"]["id"], item["lineups"])
     assert len(lineups) == 2 and len(grids) == 22
+    lineup_players = parsers.parse_lineup_players(item["fixture"]["id"], item["lineups"])
+    starters = [p for p in lineup_players if p["is_starter"]]
+    assert len(starters) == 22 and all(p["grid"] and p["sort"] <= 11 for p in starters)
+    assert all(p["grid"] is None and p["sort"] > 100 for p in lineup_players if not p["is_starter"])
+    assert {p["pos"] for p in starters} <= {"G", "D", "M", "F"}
     players, player_stats = parsers.parse_player_stats(item["fixture"]["id"], item["players"], grids)
     assert len(players) == len(player_stats) >= 22
     scorers = sum(p["goals"] or 0 for p in player_stats)

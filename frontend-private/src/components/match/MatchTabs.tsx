@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { FixtureDetail } from "@/lib/types";
 import { FormPanel } from "./FormPanel";
+import { LineupPanel } from "./LineupPanel";
 import { MarketsPanel } from "./MarketsPanel";
 import { PatternsPanel } from "./PatternsPanel";
 import { ScorersPanel } from "./ScorersPanel";
@@ -11,6 +12,7 @@ import { StylePanel } from "./StylePanel";
 
 const TABS = [
   { key: "maerkte", label: "Märkte" },
+  { key: "aufstellung", label: "Aufstellung" },
   { key: "form", label: "Letzte Spiele" },
   { key: "spielstil", label: "Spielstil" },
   { key: "torschuetzen", label: "Torschützen" },
@@ -61,6 +63,7 @@ export function MatchTabs({ data }: { data: FixtureDetail }) {
         </p>
       )}
       {tab === "maerkte" && <MarketsPanel markets={data.markets} fixture={data.fixture} odds={data.odds} />}
+      {tab === "aufstellung" && <LineupPanel data={data} />}
       {tab === "form" && <FormPanel data={data} />}
       {tab === "spielstil" && <StylePanel data={data} />}
       {tab === "torschuetzen" && <ScorersPanel data={data} />}

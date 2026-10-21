@@ -21,6 +21,7 @@ from quotenfabrik.reports import (
     CUP_REPORT,
     FORM_REPORT,
     JOINT_REPORT,
+    LINEUP_REPORT,
     ODDS_REPORT,
     PICKS_REPORT,
     SHOTS_REPORT,
@@ -148,12 +149,15 @@ def ingest_api_football(
 @ingest_app.command("live")
 def ingest_live() -> None:
     """Ergebnisse von Spielen, deren reguläres Ende erreicht ist (Cron alle 15 Minuten), danach
-    Prognosen, Tipps und Wetten abrechnen. Ohne fällige Spiele kein Request."""
+    Prognosen, Tipps und Wetten abrechnen; dazu bestätigte Aufstellungen der Spiele der nächsten Stunde.
+    Ohne fällige Spiele kein Request."""
     from quotenfabrik.ingest import api_football
 
     leagues = app_config.shown_league_ids()
     with Session(get_engine()) as session:
-        if not api_football.fixtures_due(session, leagues):
+        if not (
+            api_football.fixtures_due(session, leagues) or api_football.fixtures_lineup_due(session, leagues)
+        ):
             typer.echo("keine fälligen Spiele")
             return
         with _client() as client:
@@ -419,6 +423,27 @@ def model_shots_eval(
         shots_eval.report(result, {lg: league_name(engine, lg) for lg in leagues}), encoding="utf-8"
     )
     typer.echo(f"gewählt: {result['best']}, Δ Log-Loss 1X2 {result['delta']} → {report}")
+
+
+@model_app.command("lineup-eval")
+def model_lineup_eval(
+    seasons: str = typer.Option("2021-2026", help="Saisons (Ausfälle gibt es ab 2021)"),
+    report: Path = typer.Option(LINEUP_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Voraussichtliche Startelf (letzte Startelf, Ausfälle ersetzt) gegen die bestätigte prüfen."""
+    from quotenfabrik.analytics import lineups
+    from quotenfabrik.analytics.data import league_name
+
+    engine = get_engine()
+    leagues, season_list = app_config.league_ids(), _seasons(seasons)
+    fixtures = lineups.load_eval_fixtures(engine, leagues, season_list)
+    absences = lineups.load_absences(engine, fixtures["fixture_id"].unique().tolist())
+    result = lineups.evaluate(lineups.load_history(engine), absences, fixtures)
+    report.write_text(
+        lineups.report(result, {lg: league_name(engine, lg) for lg in leagues}, season_list), encoding="utf-8"
+    )
+    means = ", ".join(f"{v}: {result[v].mean():.2f}" for v in lineups.VARIANTS)
+    typer.echo(f"{len(result)} Startelfen, richtig im Schnitt {means} → {report}")
 
 
 @model_app.command("calibration-eval")

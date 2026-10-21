@@ -18,6 +18,7 @@ from quotenfabrik.models import (
     Fixture,
     FixtureEvent,
     FixtureLineup,
+    FixtureLineupPlayer,
     FixturePlayerStats,
     FixtureTeamStats,
     Injury,
@@ -77,6 +78,10 @@ def _process_details(session: Session, item: dict, fixture: dict, fetched_at: da
 
     lineups, grids = parsers.parse_lineups(fixture_id, item.get("lineups"))
     upsert(session, FixtureLineup, lineups)
+    lineup_players = parsers.parse_lineup_players(fixture_id, item.get("lineups"))
+    if lineup_players:  # before the line-ups are announced the API sends none: keep what we have
+        session.execute(delete(FixtureLineupPlayer).where(FixtureLineupPlayer.fixture_id == fixture_id))
+        session.execute(FixtureLineupPlayer.__table__.insert(), lineup_players)
 
     upsert(session, FixtureTeamStats, parsers.parse_statistics_block(fixture_id, item.get("statistics")))
 
@@ -147,6 +152,7 @@ def sync_details(session: Session, client: ApiFootballClient, fixture_ids: Seque
 DUE_AFTER = timedelta(minutes=110)  # 90 minutes + half-time + stoppage time
 POLL_FOR = timedelta(days=2)  # stop polling fixtures that never got a result (the daily import catches them)
 NOT_PLAYED = {"PST", "CANC", "ABD"}  # postponed, cancelled, abandoned: no result to wait for
+LINEUPS_BEFORE = timedelta(minutes=60)  # confirmed line-ups are published 20–40 minutes before kickoff
 
 
 def fixtures_due(session: Session, league_ids: Sequence[int], now: datetime | None = None) -> list[int]:
@@ -160,6 +166,27 @@ def fixtures_due(session: Session, league_ids: Sequence[int], now: datetime | No
                 Fixture.kickoff_utc <= now - DUE_AFTER,
                 Fixture.kickoff_utc >= now - POLL_FOR,
                 Fixture.status.not_in(parsers.FINISHED_STATUSES | NOT_PLAYED),
+            )
+            .order_by(Fixture.kickoff_utc)
+        )
+    )
+
+
+def fixtures_lineup_due(
+    session: Session, league_ids: Sequence[int], now: datetime | None = None
+) -> list[int]:
+    """Fixtures kicking off within the next hour (or running) that have no confirmed line-up yet."""
+    now = now or _now()
+    has_lineup = select(FixtureLineupPlayer.fixture_id).where(FixtureLineupPlayer.fixture_id == Fixture.id)
+    return list(
+        session.scalars(
+            select(Fixture.id)
+            .where(
+                Fixture.league_id.in_(list(league_ids)),
+                Fixture.kickoff_utc <= now + LINEUPS_BEFORE,
+                Fixture.kickoff_utc > now - DUE_AFTER,
+                Fixture.status.not_in(parsers.FINISHED_STATUSES | NOT_PLAYED),
+                ~has_lineup.exists(),
             )
             .order_by(Fixture.kickoff_utc)
         )

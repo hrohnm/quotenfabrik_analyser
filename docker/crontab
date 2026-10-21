@@ -9,7 +9,7 @@
 30 4 * * *      qf ingest api-football --seasons aktuell --half-stats
 45 4 * * 2      qf ingest football-data --seasons aktuell && qf map-teams
 # Ergebnisse beendeter Spiele alle 15 Minuten (nur fällige Spiele, 20 pro Request, ohne fällige Spiele kein Request),
-# danach Prognosen, Tipps und Wetten abrechnen
+# danach Prognosen, Tipps und Wetten abrechnen; dazu bestätigte Aufstellungen der Spiele der nächsten Stunde
 */15 * * * *    qf ingest live
 # Stärke-Ligen (nur Ergebnisse, 1 Request pro Liga)
 15 5 * * *      qf ingest results
