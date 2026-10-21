@@ -76,6 +76,22 @@ class Bet(Base):
     payout: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     notes: Mapped[str | None] = mapped_column(Text)
+    payout_manual: Mapped[bool] = mapped_column(
+        Boolean, server_default="false"
+    )  # entered by hand, not stake × odds
+
+
+class BankrollTransaction(Base):
+    """Bankroll bookings: starting capital, deposits, withdrawals and resets of the evaluation period."""
+
+    __tablename__ = "bankroll_transactions"
+    __table_args__ = APP
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    kind: Mapped[str] = mapped_column(Text)  # start | deposit | withdrawal | reset
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), server_default="0")
+    note: Mapped[str | None] = mapped_column(Text)
 
 
 class BetLeg(Base):

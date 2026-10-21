@@ -212,9 +212,13 @@ export type BetItem = {
   probability: number | null;
   status: BetStatus;
   payout: number | null;
+  /** payout entered by hand (cash-out, boost, …), not stake × odds */
+  payout_manual: boolean;
   settled_at: string | null;
   notes: string | null;
   legs: BetLegItem[];
+  /** placed in the current evaluation period (after the last reset) */
+  in_period: boolean;
 };
 
 export type BetBlock = {
@@ -277,3 +281,27 @@ export type StyleMetric = {
 };
 
 export type TeamStyle = { matches: number; xg_matches: number; peers: number; labels: string[]; metrics: StyleMetric[] };
+
+export type Bankroll = {
+  start: number;
+  deposits: number;
+  withdrawals: number;
+  profit: number;
+  open_stakes: number;
+  balance: number;
+  available: number;
+  roi: number | null;
+  configured: boolean;
+};
+
+export type BankrollTransaction = { id: number; at: string; kind: "start" | "deposit" | "withdrawal"; amount: number; note: string | null };
+
+export type BetsResponse = {
+  bets: BetItem[];
+  stats: BetStats;
+  bankroll: Bankroll;
+  transactions: BankrollTransaction[];
+  /** start of the current evaluation period (last reset), null = all time */
+  period_start: string | null;
+  earlier_bets: number;
+};
