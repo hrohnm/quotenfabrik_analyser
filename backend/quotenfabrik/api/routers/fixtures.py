@@ -2,6 +2,8 @@
 
 import dataclasses
 import math
+import threading
+import time
 from datetime import date, datetime, timedelta
 
 import pandas as pd
@@ -127,7 +129,7 @@ def _summaries(fixture_ids: list[int]) -> dict[int, dict]:
             entry["pick_1x2"] = pick
             entry["pick_1x2_hit"] = entry["outcomes"].get(pick)
     # Betano 1X2 odds (OddsPapi, last price before kickoff) with the model's edge
-    prices = bookmaker_odds.lookup(bookmaker_odds.odds_table(get_engine(), list(out), ["1x2"])) if out else {}
+    prices = _bookmaker_prices(list(out)) if out else {}
     for fixture_id, entry in out.items():
         p = entry["probabilities"]
         entry["betano"] = {
@@ -168,9 +170,32 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
     return out
 
 
+PRICE_TTL_S = 300  # OddsPapi prices are fetched every 3 h; summaries, picks and detail share one lookup
+_price_cache: dict[int, tuple[float, dict[tuple, dict]]] = {}
+_price_lock = threading.Lock()
+
+
 def _bookmaker_prices(fixture_ids: list[int]) -> dict[tuple, dict]:
-    """Betano odds and Pinnacle fair probability per selection (OddsPapi, last price before kickoff)."""
-    return bookmaker_odds.lookup(bookmaker_odds.odds_table(get_engine(), fixture_ids))
+    """Betano odds and Pinnacle fair probability per selection (OddsPapi, last price before kickoff),
+    cached per fixture for a few minutes."""
+    now = time.time()
+    with _price_lock:
+        missing = [f for f in fixture_ids if f not in _price_cache or now - _price_cache[f][0] > PRICE_TTL_S]
+    if missing:
+        fresh = bookmaker_odds.lookup(bookmaker_odds.odds_table(get_engine(), missing))
+        per_fixture: dict[int, dict[tuple, dict]] = {f: {} for f in missing}
+        for key, value in fresh.items():
+            per_fixture.setdefault(key[0], {})[key] = value
+        with _price_lock:
+            if len(_price_cache) > 5000:  # keep the cache small
+                _price_cache.clear()
+            for f, entries in per_fixture.items():
+                _price_cache[f] = (now, entries)
+    out: dict[tuple, dict] = {}
+    with _price_lock:
+        for f in fixture_ids:
+            out.update(_price_cache.get(f, (0, {}))[1])
+    return out
 
 
 def _prices(prices: dict, fixture_id: int, market: str, line: float | None, selection: str, p: float) -> dict:
