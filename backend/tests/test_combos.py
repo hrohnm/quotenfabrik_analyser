@@ -180,3 +180,42 @@ def test_pinnacle_fair_removes_margin_and_derives_double_chance():
     assert fair.loc[("dc", "1X")] == pytest.approx(fair.loc[("1x2", "H")] + fair.loc[("1x2", "D")])
     assert fair.loc[("ou_ft", "over")] + fair.loc[("ou_ft", "under")] == pytest.approx(1)
     assert len(fair.loc["ou_ft"]) == 2
+
+
+def test_set_payout_and_recompute():
+    bet = Bet(label="x", stake=Decimal("10"), odds=Decimal("5"), status="open")
+    with pytest.raises(ValueError):
+        bets.set_payout(bet, Decimal("30"))  # open bets cannot get a payout
+    bets.set_status(bet, "won")
+    bets.set_payout(bet, Decimal("32.5"))  # cash-out / boost
+    assert bet.payout == Decimal("32.50") and bet.payout_manual
+    bet.odds = Decimal("6")
+    bets.recompute_payout(bet)
+    assert bet.payout == Decimal("32.50")  # manual payout is kept
+    bet.payout_manual = False
+    bets.recompute_payout(bet)
+    assert bet.payout == Decimal("60.00")
+
+
+def test_bankroll_and_period():
+    t = datetime(2026, 10, 1, tzinfo=UTC)
+    tx = pd.DataFrame(
+        [(1, t, "start", 100.0), (2, t.replace(day=5), "reset", 0.0), (3, t.replace(day=5), "start", 200.0),
+         (4, t.replace(day=6), "deposit", 50.0), (5, t.replace(day=7), "withdrawal", 30.0)],
+        columns=["id", "at", "kind", "amount"],
+    )  # fmt: skip
+    start = bets.period_start(tx)
+    assert start == pd.Timestamp(t.replace(day=5))
+    period_tx = tx[tx["at"] >= start]
+    frame = pd.DataFrame(
+        [("won", 10.0, 60.0), ("lost", 10.0, 0.0), ("void", 5.0, 5.0), ("open", 20.0, None)],
+        columns=["status", "stake", "payout"],
+    )
+    b = bets.bankroll(period_tx, frame)
+    assert b["start"] == 200 and b["deposits"] == 50 and b["withdrawals"] == 30
+    assert b["profit"] == pytest.approx(40.0)
+    assert b["balance"] == pytest.approx(200 + 50 - 30 + 40)
+    assert b["available"] == pytest.approx(b["balance"] - 20)
+    assert b["roi"] == pytest.approx(40 / 250)
+    assert bets.period_start(tx.iloc[0:0]) is None
+    assert bets.bankroll(tx.iloc[0:0], frame.iloc[0:0])["configured"] is False

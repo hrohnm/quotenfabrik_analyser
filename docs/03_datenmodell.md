@@ -247,6 +247,13 @@ app.bet_legs (
   market text, selection text, line numeric(5,2), label text not null,
   probability float, odds numeric(8,3), outcome boolean
 );
+-- Migration 0010: Bankroll und Auswertungszeitraum
+app.bets.payout_manual boolean default false   -- Auszahlung von Hand korrigiert (Cashout, Boost), nicht Einsatz × Quote
+app.bankroll_transactions (
+  id bigint pk, at timestamptz default now(),
+  kind text check (kind in ('start','deposit','withdrawal','reset')),  -- reset = neuer Auswertungszeitraum ab hier
+  amount numeric(10,2) check (amount >= 0), note text
+);
 ```
 
 ## OddsPapi (Betano-Quoten, Migration `0002`)

@@ -106,7 +106,8 @@ Installation: `docs/13_deployment_vps.md`):
 | `GET /api/stats/overview|markets|confidence|calibration|seasons|scorers` | Trefferquoten und Kalibrierung |
 | `GET /api/stats/picks?profile&season` | Trefferquote der 3 Tipps pro Spiel (einzeln, Kombi, je Saison/Rang/Markt) |
 | `GET /api/combos?date=YYYY-MM-DD` | Tageskombis eines Tages mit echten Betano-Quoten, sonst geschätzt (Einstellungen „Tageskombis“: Zielquote, Wahrscheinlichkeitsfenster, Marge, max. Tipps) |
-| `GET /api/bets`, `POST /api/bets`, `PATCH` / `DELETE /api/bets/{id}` | Wetten (rechnet offene Wetten vorher ab) mit Auswertung / erfassen / Status, Einsatz, Quote ändern / löschen |
+| `GET /api/bets[?all=true]`, `POST /api/bets`, `PATCH` / `DELETE /api/bets/{id}` | Wetten des aktuellen Auswertungszeitraums (`all`: auch frühere; rechnet offene Wetten vorher ab) mit Auswertung und Bankroll / erfassen / Status, Einsatz, Quote, Auszahlung (`payout`, `payout_auto`) korrigieren / löschen |
+| `POST /api/bankroll`, `DELETE /api/bankroll/{id}`, `POST /api/bets/reset` | Bankroll-Buchung (Startkapital, Einzahlung, Auszahlung) / löschen / Auswertung zurücksetzen (neuer Zeitraum, optional Startkapital und alte Wetten löschen) |
 
 Einstellungsseite (`/api/admin/*`):
 

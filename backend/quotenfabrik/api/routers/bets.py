@@ -1,12 +1,13 @@
 """Daily combos and bet tracking."""
 
 import time
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from quotenfabrik import app_config, bets
@@ -14,7 +15,7 @@ from quotenfabrik.analytics import combos
 from quotenfabrik.api.data import chosen_runs_cte, df, records
 from quotenfabrik.api.labels import league_logo, pick_label
 from quotenfabrik.db import get_engine
-from quotenfabrik.models import Bet, BetLeg
+from quotenfabrik.models import BankrollTransaction, Bet, BetLeg
 
 router = APIRouter(prefix="/api", tags=["bets"])
 
@@ -105,21 +106,38 @@ class BetPatch(BaseModel):
     odds: float | None = Field(None, gt=1)
     status: str | None = None
     notes: str | None = None
+    payout: float | None = Field(None, ge=0)  # corrected payout (cash-out, boost, …) of a settled bet
+    payout_auto: bool = False  # true: payout again from stake × odds
 
 
 def _bets_frame() -> pd.DataFrame:
-    return df(
+    frame = df(
         """select b.id, b.placed_at, b.source, b.label, b.bookmaker, b.stake::float as stake, b.odds::float as odds,
-                  b.probability, b.status, b.payout::float as payout, b.settled_at, b.notes
+                  b.probability, b.status, b.payout::float as payout, b.payout_manual, b.settled_at, b.notes
            from app.bets b order by b.placed_at desc, b.id desc"""
     )
+    frame["placed_at"] = pd.to_datetime(frame["placed_at"], utc=True)
+    return frame
+
+
+def _transactions() -> pd.DataFrame:
+    frame = df(
+        "select id, at, kind, amount::float as amount, note from app.bankroll_transactions order by at, id"
+    )
+    frame["at"] = pd.to_datetime(frame["at"], utc=True)
+    return frame
 
 
 @router.get("/bets")
-def list_bets(limit: int = Query(200, le=2000)) -> dict:
-    """Settles open bets from the results, returns bets (with legs) and the evaluation."""
+def list_bets(limit: int = Query(200, le=2000), all_periods: bool = Query(False, alias="all")) -> dict:
+    """Settles open bets from the results, returns the bets (with legs) of the current evaluation period
+    (``all``: also earlier periods), the evaluation and the bankroll of the period."""
     bets.settle(get_engine())
+    tx = _transactions()
+    start = bets.period_start(tx)
     frame = _bets_frame()
+    period = frame if start is None else frame[frame["placed_at"] >= start]
+    period_tx = tx if start is None else tx[tx["at"] >= start]
     legs = df(
         """select l.bet_id, l.fixture_id, l.market, l.selection, l.line::float as line, l.label, l.probability,
                   l.odds::float as odds, l.outcome, f.kickoff_utc as kickoff, f.status as fixture_status,
@@ -129,12 +147,18 @@ def list_bets(limit: int = Query(200, le=2000)) -> dict:
     by_bet: dict[int, list] = {}
     for leg in records(legs):
         by_bet.setdefault(int(leg.pop("bet_id")), []).append(leg)
-    items = records(frame.head(limit))
+    shown = frame if all_periods else period
+    items = records(shown.head(limit))
     for item in items:
         item["legs"] = by_bet.get(item["id"], [])
-    if not frame.empty:
-        frame["settled_at"] = pd.to_datetime(frame["settled_at"], utc=True)
-    return {"bets": items, "stats": bets.stats(frame)}
+        item["in_period"] = start is None or pd.Timestamp(item["placed_at"]) >= start
+    period = period.assign(settled_at=pd.to_datetime(period["settled_at"], utc=True))
+    return {
+        "bets": items, "stats": bets.stats(period), "bankroll": bets.bankroll(period_tx, period),
+        "transactions": records(period_tx[period_tx["kind"] != "reset"]),
+        "period_start": None if start is None else start.isoformat(),
+        "earlier_bets": int(len(frame) - len(period)),
+    }  # fmt: skip
 
 
 @router.post("/bets")
@@ -166,13 +190,76 @@ def patch_bet(bet_id: int, body: BetPatch) -> dict:
             bet.odds = Decimal(str(body.odds))
         if body.notes is not None:
             bet.notes = body.notes
-        if body.status is not None:
+        if body.status is not None and body.status != bet.status:
             if body.status not in ("open", "won", "lost", "void"):
                 raise HTTPException(422, "Status: open, won, lost oder void")
             bets.set_status(bet, body.status)
-        elif bet.status in ("won", "lost") and (body.stake is not None or body.odds is not None):
-            bets.set_status(bet, bet.status)  # recompute the payout
+        elif body.payout_auto:
+            bet.payout_manual = False
+            bets.recompute_payout(bet)
+        elif body.stake is not None or body.odds is not None:
+            bets.recompute_payout(bet)
+        if body.payout is not None:
+            try:
+                bets.set_payout(bet, Decimal(str(body.payout)))
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
     return {"ok": True}
+
+
+# --------------------------------------------------------------------------- bankroll
+
+
+class NewTransaction(BaseModel):
+    kind: str
+    amount: float = Field(gt=0)
+    note: str | None = None
+    at: datetime | None = None
+
+
+class ResetRequest(BaseModel):
+    delete_bets: bool = False  # delete the bets of earlier periods for good
+    start_capital: float | None = Field(None, gt=0)  # starting capital of the new period
+
+
+@router.post("/bankroll")
+def add_transaction(body: NewTransaction) -> dict:
+    if body.kind not in ("start", "deposit", "withdrawal"):
+        raise HTTPException(422, "Art: start, deposit oder withdrawal")
+    with Session(get_engine()) as session, session.begin():
+        tx = BankrollTransaction(kind=body.kind, amount=Decimal(str(body.amount)), note=body.note)
+        if body.at is not None:
+            tx.at = body.at
+        session.add(tx)
+        session.flush()
+        return {"id": tx.id}
+
+
+@router.delete("/bankroll/{tx_id}")
+def delete_transaction(tx_id: int) -> dict:
+    with Session(get_engine()) as session, session.begin():
+        tx = session.get(BankrollTransaction, tx_id)
+        if tx is None or tx.kind == "reset":
+            raise HTTPException(404, "Buchung nicht gefunden")
+        session.delete(tx)
+    return {"ok": True}
+
+
+@router.post("/bets/reset")
+def reset_period(body: ResetRequest) -> dict:
+    """New evaluation period from now on: statistics and bankroll only count bets and bookings after it."""
+    now = datetime.now(UTC)
+    with Session(get_engine()) as session, session.begin():
+        deleted = 0
+        if body.delete_bets:
+            deleted = session.execute(delete(Bet).where(Bet.placed_at < now)).rowcount or 0
+        session.add(
+            BankrollTransaction(kind="reset", amount=Decimal("0"), at=now, note="Auswertung zurückgesetzt")
+        )
+        if body.start_capital:
+            session.add(BankrollTransaction(kind="start", amount=Decimal(str(body.start_capital)),
+                                            at=now + timedelta(microseconds=1)))  # fmt: skip
+    return {"ok": True, "deleted_bets": deleted}
 
 
 @router.delete("/bets/{bet_id}")

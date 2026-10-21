@@ -68,8 +68,9 @@ def settle(engine: Engine) -> int:
 
 
 def set_status(bet: Bet, status: str) -> None:
-    """Manual settlement (free-text bets, void)."""
+    """Manual settlement (free-text bets, void); the payout follows from stake × odds again."""
     bet.status = status
+    bet.payout_manual = False
     if status == "won":
         bet.payout = (bet.stake * bet.odds).quantize(Decimal("0.01"))
     elif status == "lost":
@@ -79,6 +80,57 @@ def set_status(bet: Bet, status: str) -> None:
     else:
         bet.payout = None
     bet.settled_at = None if status == "open" else datetime.now(UTC)
+
+
+def set_payout(bet: Bet, payout: Decimal) -> None:
+    """Corrected payout (cash-out, boost, different settlement) of a settled bet; kept on later edits."""
+    if bet.status == "open":
+        raise ValueError(
+            "Erst den Status setzen (gewonnen, verloren oder storniert), dann die Auszahlung korrigieren"
+        )
+    bet.payout = payout.quantize(Decimal("0.01"))
+    bet.payout_manual = True
+
+
+def recompute_payout(bet: Bet) -> None:
+    """After stake or odds changed: payout of a settled bet from stake × odds (not for manual payouts)."""
+    if bet.status in ("won", "lost", "void") and not bet.payout_manual:
+        status, settled = bet.status, bet.settled_at
+        set_status(bet, status)
+        bet.settled_at = settled
+
+
+# --------------------------------------------------------------------------- bankroll and period
+
+
+def period_start(transactions: pd.DataFrame) -> pd.Timestamp | None:
+    """Start of the current evaluation period: the latest reset (None = everything counts)."""
+    resets = transactions[transactions["kind"] == "reset"] if not transactions.empty else transactions
+    return None if resets.empty else pd.Timestamp(resets["at"].max())
+
+
+def bankroll(transactions: pd.DataFrame, bets: pd.DataFrame) -> dict:
+    """Balance of the current period: starting capital + deposits − withdrawals + profit of settled bets.
+
+    ``transactions`` and ``bets`` must already be restricted to the period. Open stakes are reserved
+    (``available``)."""
+
+    def total(kind: str) -> float:
+        return (
+            float(transactions.loc[transactions["kind"] == kind, "amount"].sum())
+            if not transactions.empty
+            else 0.0
+        )
+
+    start, deposits, withdrawals = total("start"), total("deposit"), total("withdrawal")
+    settled = bets[bets["status"] != "open"] if not bets.empty else bets
+    profit = float((settled["payout"] - settled["stake"]).sum()) if not settled.empty else 0.0
+    open_stakes = float(bets.loc[bets["status"] == "open", "stake"].sum()) if not bets.empty else 0.0
+    invested = start + deposits
+    balance = invested - withdrawals + profit
+    return {"start": start, "deposits": deposits, "withdrawals": withdrawals, "profit": profit,
+            "open_stakes": open_stakes, "balance": balance, "available": balance - open_stakes,
+            "roi": profit / invested if invested > 0 else None, "configured": invested > 0}  # fmt: skip
 
 
 def stats(bets: pd.DataFrame) -> dict:
