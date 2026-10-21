@@ -145,6 +145,24 @@ def ingest_api_football(
             typer.secho(f"Abgebrochen: {exc}", fg="red")
 
 
+@ingest_app.command("live")
+def ingest_live() -> None:
+    """Ergebnisse von Spielen, deren reguläres Ende erreicht ist (Cron alle 15 Minuten), danach
+    Prognosen, Tipps und Wetten abrechnen. Ohne fällige Spiele kein Request."""
+    from quotenfabrik.ingest import api_football
+
+    leagues = app_config.shown_league_ids()
+    with Session(get_engine()) as session:
+        if not api_football.fixtures_due(session, leagues):
+            typer.echo("keine fälligen Spiele")
+            return
+        with _client() as client:
+            try:
+                typer.echo(pipeline.live_results(get_engine(), session, client, leagues, typer.echo))
+            except QuotaExhausted as exc:
+                typer.secho(f"Abgebrochen: {exc}", fg="red")
+
+
 @ingest_app.command("results")
 def ingest_results(
     seasons: str = typer.Option("aktuell", help="Saison-Startjahre, z. B. aktuell oder 2017-2026"),

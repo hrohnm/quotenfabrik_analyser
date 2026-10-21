@@ -13,6 +13,7 @@ LOG=/home/qf/logs
 30 4 * * *      flock -n /tmp/qf-ingest.lock $QF ingest api-football --seasons aktuell --half-stats >> $LOG/ingest.log 2>&1
 45 4 * * 2      flock -n /tmp/qf-ingest.lock bash -c "$QF ingest football-data --seasons aktuell && $QF map-teams" >> $LOG/ingest.log 2>&1
 # Stärke-Ligen (nur Ergebnisse, 1 Request pro Liga)
+*/15 * * * *    flock -n /tmp/qf-live.lock $QF ingest live >> $LOG/live.log 2>&1
 15 5 * * *      flock -n /tmp/qf-ingest.lock $QF ingest results >> $LOG/ingest.log 2>&1
 # Ergebnisse abrechnen, Prognosen + Tipps für die nächsten 10 Tage
 0 6,12,18 * * * flock -n /tmp/qf-model.lock bash -c "$QF model settle && $QF model forecast" >> $LOG/model.log 2>&1

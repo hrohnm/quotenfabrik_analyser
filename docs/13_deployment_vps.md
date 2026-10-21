@@ -24,7 +24,7 @@ Browser ──HTTPS + Passwort──▶ caddy :443 ──▶ frontend (Next.js) 
 |---|---|
 | `db` | PostgreSQL 16; beim **ersten** Start wird der Seed aus dem Repository eingespielt (1–2 Minuten) |
 | `api` | REST-API; führt beim Start die Migrationen aus; Hintergrund-Jobs der Einstellungsseite laufen hier |
-| `cron` | Zeitplan aus `docker/crontab`: Quoten-Snapshots, Betano-Verläufe, Saison nachladen, Prognosen, nächtliches Backup |
+| `cron` | Zeitplan aus `docker/crontab`: Ergebnisse alle 15 Minuten (`qf ingest live`), Quoten-Snapshots, Betano-Verläufe, Saison nachladen, Prognosen, nächtliches Backup |
 | `frontend` | privates Frontend (Next.js) |
 | `caddy` | einziger öffentlicher Zugang (Port 80/443): HTTPS-Zertifikat von Let's Encrypt, Passwortschutz |
 

@@ -76,6 +76,31 @@ def api_football_seasons(
     return f"{loaded} Spiele, {client.requests_made} Requests, verbleibend heute {client.quota_remaining}"
 
 
+def live_results(
+    engine, session: Session, client: ApiFootballClient, league_ids: Iterable[int], log: Log = _noop
+) -> str:
+    """Results of fixtures whose regular end has passed (``/fixtures?ids=``, 20 per request, incl. goals and
+    line-ups), then settles the predictions / picks of the affected leagues and the open bets."""
+    from quotenfabrik import bets
+    from quotenfabrik.analytics.service import settle_predictions
+    from quotenfabrik.ingest.parsers import FINISHED_STATUSES
+    from quotenfabrik.models import Fixture
+
+    due = api_football.fixtures_due(session, list(league_ids))
+    if not due:
+        return "keine fälligen Spiele"
+    api_football.sync_details(session, client, due)
+    rows = session.query(Fixture.id, Fixture.league_id, Fixture.status).filter(Fixture.id.in_(due)).all()
+    finished = [r for r in rows if r.status in FINISHED_STATUSES]
+    settled = sum(settle_predictions(engine, lg) for lg in sorted({r.league_id for r in finished}))
+    bets_settled = bets.settle(engine) if finished else 0
+    still_open = [f"{r.id} ({r.status})" for r in rows if r.status not in FINISHED_STATUSES]
+    if still_open:
+        log(f"noch ohne Endergebnis: {', '.join(still_open)}")
+    return (f"{len(due)} fällig, {len(finished)} beendet, {settled} Prognosen und {bets_settled} Wetten "
+            f"abgerechnet, {client.requests_made} Requests")  # fmt: skip
+
+
 CUP_DETAIL_SEASONS = (
     2  # cups: match details (line-ups, goals, player stats) for the current and previous season
 )
