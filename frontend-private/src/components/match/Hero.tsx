@@ -3,6 +3,7 @@ import { SourceBadge, TeamLogo } from "@/components/ui";
 import { dateLong, seasonLabel, time } from "@/lib/format";
 import { leagueLogo } from "@/lib/media";
 import type { FixtureDetail, Team } from "@/lib/types";
+import { Timeline } from "./Timeline";
 
 type Goal = FixtureDetail["goals"][number];
 
@@ -45,6 +46,8 @@ export function Hero({ data }: { data: FixtureDetail }) {
         </div>
         <TeamSide team={f.away} goals={goals.filter((g) => g.team_id === f.away.id)} align="start" />
       </div>
+
+      {data.events && data.events.length > 0 && <Timeline events={data.events} home={f.home} away={f.away} />}
 
       {(f.venue || f.referee) && (
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 border-t border-slate-100 px-5 py-2 text-xs text-slate-400">
