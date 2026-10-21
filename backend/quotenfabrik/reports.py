@@ -14,6 +14,7 @@ JOINT_REPORT = DOCS / "14_gemeinsames_modell.md"
 CUP_REPORT = DOCS / "15_europapokal.md"
 COMBO_REPORT = DOCS / "16_tageskombis.md"
 FORM_REPORT = DOCS / "17_form.md"
+STYLE_REPORT = DOCS / "18_spielstil.md"
 
 
 def report_path(path: Path | None, league_id: int) -> Path | None:

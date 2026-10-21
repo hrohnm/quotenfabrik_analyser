@@ -56,6 +56,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/13_deployment_vps.md` | Installation auf einem VPS (Hostinger): Docker-Stack per Docker Manager oder manuell (systemd, nginx), Cron, Updates |
 | `docs/14_gemeinsames_modell.md` | Automatisch erzeugt: gemeinsames Modell über verbundene Ligen vs. getrennte Modelle (`qf model joint-eval`) |
 | `docs/15_europapokal.md` | Automatisch erzeugt: Europapokal-Backtest der gemeinsamen Stärkeskala (`qf model cup-eval`) |
+| `docs/18_spielstil.md` | Automatisch erzeugt: Spielstil (Schüsse, Ballbesitz, Verwertung, …) gegen die Tor-Erwartung des Modells (`qf model style-eval`) |
 | `docs/17_form.md` | Automatisch erzeugt: Form-Pattern (Punkte über/unter Modell-Erwartung) gegen das nächste Spiel (`qf model form-eval`) |
 | `docs/16_tageskombis.md` | Automatisch erzeugt: Backtest der Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance, Quote 5–10, `qf combos report`) |
 | `docs/11_betano_nebenmaerkte.md` | Automatisch erzeugt: Betano-Nebenmärkte gegen faire Preise aus Pinnacle (`mkt-v1`, Phase 3) |
@@ -126,6 +127,7 @@ qf model forecast && qf model show <id>       # Prognosen für kommende Spiele
 qf model joint-eval                           # gemeinsames Modell über Ligen vs. getrennt → docs/14_gemeinsames_modell.md
 qf model cup-eval                             # Europapokal-Backtest der Stärkeskala → docs/15_europapokal.md
 qf model form-eval                            # Form-Pattern gegen das nächste Spiel → docs/17_form.md
+qf model style-eval                           # Spielstil gegen die Tor-Erwartung → docs/18_spielstil.md
 qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebnisse eintragen
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
 qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md
@@ -151,7 +153,7 @@ pytest && ruff check . && ruff format --check .
   Value-Rechnung (`value.py`: Margenentfernung, EV, Kelly, CLV), Quoten-Backtest (`odds_backtest.py`),
   Betano-/Pinnacle-Preise je Spiel und Auswahl (`bookmaker_odds.py`, für API und Tageskombis), marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
   (`betano_value.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`), Tageskombis (`combos.py`),
-  Form und letzte Spiele aller Wettbewerbe (`form.py`)
+  Form und letzte Spiele aller Wettbewerbe (`form.py`), Spielstil-Profile (`style.py`, Nachweis `style_eval.py`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - `quotenfabrik/bets.py` – Wett-Tracking (`app.bets`, `app.bet_legs`): Abrechnung aus Ergebnissen, Auswertung
 - `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)

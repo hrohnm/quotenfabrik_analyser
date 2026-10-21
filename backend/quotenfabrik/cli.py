@@ -22,6 +22,7 @@ from quotenfabrik.reports import (
     JOINT_REPORT,
     ODDS_REPORT,
     PICKS_REPORT,
+    STYLE_REPORT,
     report_path,
 )
 from quotenfabrik.reports import EVALUATION_REPORT as DEFAULT_REPORT
@@ -359,6 +360,20 @@ def model_form_eval(report: Path = typer.Option(FORM_REPORT, help="Markdown-Beri
     result = form.evaluate(form.team_rows(history))
     report.write_text(form.report(result), encoding="utf-8")
     typer.echo(f"{result['n']} Spiele ausgewertet → {report}")
+
+
+@model_app.command("style-eval")
+def model_style_eval(report: Path = typer.Option(STYLE_REPORT, help="Markdown-Bericht")) -> None:
+    """Spielstil (Schüsse, Ballbesitz, Verwertung, …) gegen die Tor-Erwartung des Modells prüfen."""
+    from quotenfabrik.analytics import style_eval
+    from quotenfabrik.analytics.data import league_name
+
+    ids = app_config.league_ids()
+    result = style_eval.evaluate(get_engine(), ids)
+    report.write_text(
+        style_eval.report(result, [league_name(get_engine(), i) for i in ids]), encoding="utf-8"
+    )
+    typer.echo(f"{result['n']} Team-Spiele ausgewertet → {report}")
 
 
 @model_app.command("cup-eval")

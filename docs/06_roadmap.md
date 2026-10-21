@@ -71,6 +71,8 @@
   Rückspiele mit Hinspielstand; rückwirkende Prognosen für die laufende und die vorige Pokalsaison
 - [x] Europapokal: Torschützen aus allen Wettbewerben mit Spielerdaten, Pattern über alle Wettbewerbe
 - [x] Detailseite: letzte 10 Spiele beider Teams (alle Wettbewerbe) und Form-Pattern mit Nachweis (`17_form.md`, kein Zusatznutzen → nur Hinweis)
+- [x] Spielstil-Profile je Team (Tab „Spielstil“) mit Nachweis (`18_spielstil.md`: Schüsse/Schussanteil verbessern die Tor-Erwartung leicht, +0,66 % im Test)
+- [ ] Spielstil ins Modell: Tor-Erwartung um Schüsse/Schussanteil, Verwertung und gegnerische Paradenquote korrigieren und erneut prüfen
 - [ ] Rückspiele: Hinspielstand als Merkmal im Modell (Spielweise bei Vorsprung/Rückstand)
 - [ ] Modell-Verbesserungen (xG-Integration, Stacking, Marktmischung)
 - [x] Hosting auf eigenem VPS (`docs/13_deployment_vps.md`, `deploy/`), Backups (`qf backup`, nächtlich + nach jedem Liga-Import)

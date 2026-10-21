@@ -7,10 +7,12 @@ import { MarketsPanel } from "./MarketsPanel";
 import { PatternsPanel } from "./PatternsPanel";
 import { ScorersPanel } from "./ScorersPanel";
 import { StatsPanel } from "./StatsPanel";
+import { StylePanel } from "./StylePanel";
 
 const TABS = [
   { key: "maerkte", label: "Märkte" },
   { key: "form", label: "Letzte Spiele" },
+  { key: "spielstil", label: "Spielstil" },
   { key: "torschuetzen", label: "Torschützen" },
   { key: "pattern", label: "Pattern" },
   { key: "statistik", label: "Statistik" },
@@ -60,6 +62,7 @@ export function MatchTabs({ data }: { data: FixtureDetail }) {
       )}
       {tab === "maerkte" && <MarketsPanel markets={data.markets} fixture={data.fixture} odds={data.odds} />}
       {tab === "form" && <FormPanel data={data} />}
+      {tab === "spielstil" && <StylePanel data={data} />}
       {tab === "torschuetzen" && <ScorersPanel data={data} />}
       {tab === "pattern" && <PatternsPanel patterns={data.patterns} fixture={data.fixture} />}
       {tab === "statistik" && <StatsPanel data={data} />}
