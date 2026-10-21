@@ -362,6 +362,7 @@ def fixture_detail(fixture_id: int) -> dict:
         "odds": {"betano_at": max(betano_at) if betano_at else None, "closing": fixture["finished"]},
         "stats": _stats(fixture_id, fixture),
         "goals": _goals(fixture_id),
+        "events": _events(fixture_id, fixture),
     }
     detail["preview"] = preview.build(detail, default_profile())
     return detail
@@ -435,6 +436,59 @@ def _stats(fixture_id: int, fixture: dict) -> dict:
         side = "home" if r["team_id"] == fixture["home"]["id"] else "away"
         out[side][r["period"]] = {k: _clean(float(v) if v is not None and k in ("xg", "possession") else v)
                                   for k, v in r.items() if k not in ("fixture_id", "team_id", "period")}  # fmt: skip
+    return out
+
+
+def _events(fixture_id: int, fixture: dict) -> list[dict]:
+    rows = df(
+        """select e.minute, e.extra_minute, e.team_id, e.player_id, e.player_name, a.name as assist_name, e.type,
+                  e.detail, e.comments
+           from core.fixture_events e left join core.players a on a.id = e.assist_player_id
+           where e.fixture_id = :id order by e.seq""",
+        id=fixture_id,
+    )
+    return timeline(
+        [{k: _clean(v) for k, v in r.items()} for r in rows.to_dict("records")], fixture["home"]["id"]
+    )
+
+
+def timeline(rows: list[dict], home_id: int) -> list[dict]:
+    """Match events for the timeline: goals (with the score after them), cards, substitutions, VAR.
+
+    ``rows`` in API order (seq). API-Football conventions (checked on our data): an own goal carries the team
+    it counts for; for a substitution ``player`` leaves the pitch and ``assist`` comes on; a second yellow comes
+    as a yellow and a red card (only "Gelb-Rot" is kept)."""
+    yellows: set = set()  # (team, player) with a yellow card
+    out = []
+    for r in rows:
+        detail = r.get("detail") or ""
+        if r["type"] == "Goal":
+            kind = {"Own Goal": "own_goal", "Penalty": "penalty", "Missed Penalty": "missed_penalty"}.get(
+                detail, "goal"
+            )
+        elif r["type"] == "Card":
+            if "Red" in detail:
+                kind = "second_yellow" if (r["team_id"], r["player_id"]) in yellows else "red"
+            else:
+                kind = "yellow"
+                yellows.add((r["team_id"], r["player_id"]))
+        elif r["type"] in ("subst", "Var"):
+            kind = "sub" if r["type"] == "subst" else "var"
+        else:
+            continue
+        out.append({"minute": r.get("minute"), "extra_minute": r.get("extra_minute"),
+                    "side": "home" if r["team_id"] == home_id else "away", "kind": kind, "player": r.get("player_name"),
+                    "related": r.get("assist_name"), "detail": detail or None, "comments": r.get("comments"),
+                    "_player": r.get("player_id")})  # fmt: skip
+    second = {(e["_player"], e["minute"]) for e in out if e["kind"] == "second_yellow"}
+    out = [e for e in out if not (e["kind"] == "yellow" and (e["_player"], e["minute"]) in second)]
+    out.sort(key=lambda e: (e["minute"] or 0, e["extra_minute"] or 0))  # stable: same minute keeps API order
+    score = [0, 0]
+    for e in out:
+        del e["_player"]
+        if e["kind"] in ("goal", "penalty", "own_goal") and (e["minute"] or 0) <= 120:
+            score[0 if e["side"] == "home" else 1] += 1
+            e["score"] = list(score)
     return out
 
 

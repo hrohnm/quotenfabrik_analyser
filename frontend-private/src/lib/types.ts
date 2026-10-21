@@ -136,6 +136,8 @@ export type FixtureDetail = {
   picks: Record<string, Pick[]>;
   stats: { home: Record<string, TeamStats>; away: Record<string, TeamStats> };
   goals: { minute: number; extra_minute: number | null; team_id: number; player_id: number | null; player_name: string; detail: string; comments: string | null }[];
+  /** match events for the timeline (goals with the score after them, cards, substitutions, VAR) */
+  events?: MatchEvent[];
   /** last matches in all competitions before kickoff and the form (points above/below the model's expectation) */
   form?: Record<"home" | "away", TeamForm>;
   /** playing style before kickoff, ranked against the teams of the competition (null: too few matches with statistics) */
@@ -306,4 +308,18 @@ export type BetsResponse = {
   /** start of the current evaluation period (last reset), null = all time */
   period_start: string | null;
   earlier_bets: number;
+};
+
+export type MatchEvent = {
+  minute: number | null;
+  extra_minute: number | null;
+  side: "home" | "away";
+  kind: "goal" | "penalty" | "own_goal" | "missed_penalty" | "yellow" | "second_yellow" | "red" | "sub" | "var";
+  player: string | null;
+  /** goals: assist; substitutions: player coming on */
+  related: string | null;
+  detail: string | null;
+  comments: string | null;
+  /** score after a goal (home, away) */
+  score?: [number, number];
 };
