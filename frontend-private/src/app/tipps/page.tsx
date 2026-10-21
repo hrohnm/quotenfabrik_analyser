@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, getMeta } from "@/lib/api";
-import { addDays, berlinToday, dateShort, pct, seasonLabel, time, weekday } from "@/lib/format";
-import type { ComboRate, Fixture, Meta, PickRate, PickStats } from "@/lib/types";
+import { api, getDays, getMeta } from "@/lib/api";
+import { addDays, berlinToday, dateLong, dateShort, pct, seasonLabel, time, weekday } from "@/lib/format";
+import type { ComboRate, Day, Fixture, Meta, PickRate, PickStats } from "@/lib/types";
 import { Card, Select, StatTile, TeamLogo } from "@/components/ui";
 import { Segmented } from "@/components/match/Segmented";
 import { PickList, comboOutcome } from "@/components/picks/PickList";
@@ -18,8 +18,9 @@ export default function TipsPage() {
   const [profile, setProfile] = useState("ausgewogen");
   const [season, setSeason] = useState("");
   const [league, setLeague] = useState("");
-  const [upcoming, setUpcoming] = useState<Fixture[]>([]);
-  const [recent, setRecent] = useState<Fixture[]>([]);
+  const [days, setDays] = useState<Day[]>([]);
+  const [day, setDay] = useState<string | null>(null);
+  const [fixtures, setFixtures] = useState<Fixture[] | null>(null);
   const [stats, setStats] = useState<PickStats | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,15 +30,27 @@ export default function TipsPage() {
       .catch((e) => setError(String(e)));
   }, []);
 
+  // days with fixtures around today; default: today or the next day with fixtures
   useEffect(() => {
     const today = berlinToday();
-    Promise.all([
-      api<Fixture[]>("/fixtures", { from: today, to: addDays(today, 10), profile, league: league || undefined }),
-      api<Fixture[]>("/fixtures", { from: addDays(today, -10), to: addDays(today, -1), profile, league: league || undefined }),
-    ])
-      .then(([u, r]) => { setUpcoming(u.filter((f) => !f.finished)); setRecent(r.filter((f) => f.finished).reverse()); })
+    getDays(addDays(today, -60), addDays(today, 60), league || undefined)
+      .then((list) => {
+        setDays(list);
+        setDay((cur) => cur ?? list.find((d) => d.date >= today)?.date ?? list.at(-1)?.date ?? today);
+      })
       .catch((e) => setError(String(e)));
-  }, [profile, league]);
+  }, [league]);
+
+  // only the fixtures (with picks) of the selected day
+  useEffect(() => {
+    if (!day) return;
+    let current = true;
+    setFixtures(null);
+    api<Fixture[]>("/fixtures", { date: day, profile, league: league || undefined })
+      .then((list) => current && setFixtures(list))
+      .catch((e) => current && setError(String(e)));
+    return () => { current = false; };
+  }, [day, profile, league]);
 
   useEffect(() => {
     api<PickStats>("/stats/picks", { profile, season: season || undefined, league: league || undefined }).then(setStats).catch((e) => setError(String(e)));
@@ -45,8 +58,11 @@ export default function TipsPage() {
 
   const profiles = meta?.pick_profiles ?? [];
   const current = profiles.find((p) => p.key === profile);
-  const recentCombos = recent.filter((f) => (f.picks?.length ?? 0) === 3);
-  const recentHits = recentCombos.filter((f) => comboOutcome(f.picks ?? []) === true).length;
+  const idx = days.findIndex((d) => d.date === day);
+  const prev = idx > 0 ? days[idx - 1].date : days.filter((d) => day && d.date < day).at(-1)?.date;
+  const next = idx >= 0 ? days[idx + 1]?.date : days.find((d) => day && d.date > day)?.date;
+  const finished = (fixtures ?? []).filter((f) => f.finished && (f.picks?.length ?? 0) === 3);
+  const hits = finished.filter((f) => comboOutcome(f.picks ?? []) === true).length;
 
   return (
     <div className="space-y-6">
@@ -69,25 +85,36 @@ export default function TipsPage() {
 
       {error && <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
-      <DayCombos />
+      {day && (
+        <div className="sticky top-[57px] z-10 -mx-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-background/95 px-4 py-2 backdrop-blur">
+          <div className="flex items-center gap-1 text-sm">
+            <button type="button" disabled={!prev} onClick={() => prev && setDay(prev)} className="rounded-md border border-slate-300 bg-white px-2 py-1 disabled:opacity-30" aria-label="voriger Spieltag">‹</button>
+            <span className="min-w-56 text-center font-semibold capitalize">{dateLong(`${day}T12:00:00Z`)}</span>
+            <button type="button" disabled={!next} onClick={() => next && setDay(next)} className="rounded-md border border-slate-300 bg-white px-2 py-1 disabled:opacity-30" aria-label="nächster Spieltag">›</button>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-slate-500">
+            {fixtures && <span>{fixtures.length} {fixtures.length === 1 ? "Spiel" : "Spiele"}{finished.length > 0 && ` · Kombi aus 3 Tipps ${hits} von ${finished.length} getroffen`}</span>}
+            {day !== (days.find((d) => d.date >= berlinToday())?.date ?? berlinToday()) && (
+              <button type="button" onClick={() => setDay(days.find((d) => d.date >= berlinToday())?.date ?? berlinToday())} className="text-emerald-700 hover:underline">
+                nächster Spieltag ab heute
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {day && <DayCombos day={day} />}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Nächste Spiele</h2>
-        {upcoming.length === 0 ? (
-          <Card><p className="text-sm text-slate-500">Keine Spiele mit Prognose in den nächsten 10 Tagen.</p></Card>
+        <h2 className="text-lg font-semibold">Tipps pro Spiel</h2>
+        {fixtures === null ? (
+          <Card><p className="text-sm text-slate-400">Tipps werden geladen …</p></Card>
+        ) : fixtures.length === 0 ? (
+          <Card><p className="text-sm text-slate-500">An diesem Tag gibt es keine Spiele mit Prognose.</p></Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{upcoming.map((f) => <FixturePicks key={f.id} f={f} />)}</div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{fixtures.map((f) => <FixturePicks key={f.id} f={f} />)}</div>
         )}
       </section>
-
-      {recent.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">
-            Zuletzt <span className="text-sm font-normal text-slate-500">· Kombi {recentHits} von {recentCombos.length} getroffen</span>
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{recent.map((f) => <FixturePicks key={f.id} f={f} />)}</div>
-        </section>
-      )}
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">

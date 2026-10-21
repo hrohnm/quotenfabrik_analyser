@@ -16,6 +16,7 @@ from quotenfabrik.ingest.db_utils import raw_response_saver
 from quotenfabrik.models import OddsPapiFixture
 from quotenfabrik.reports import (
     BETANO_REPORT,
+    CALIBRATION_REPORT,
     COMBO_REPORT,
     CUP_REPORT,
     FORM_REPORT,
@@ -400,6 +401,26 @@ def model_shots_eval(
         shots_eval.report(result, {lg: league_name(engine, lg) for lg in leagues}), encoding="utf-8"
     )
     typer.echo(f"gewählt: {result['best']}, Δ Log-Loss 1X2 {result['delta']} → {report}")
+
+
+@model_app.command("calibration-eval")
+def model_calibration_eval(
+    seasons: str = typer.Option("2018-2026", help="Testsaisons (jede mit den Saisons davor kalibriert)"),
+    report: Path = typer.Option(CALIBRATION_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Kalibrierung (Nachkorrektur je Markt) gegen die rohen Prognosen prüfen (Backtest nötig)."""
+    from quotenfabrik.analytics import calibration
+    from quotenfabrik.analytics.data import league_name
+    from quotenfabrik.analytics.evaluation import market_group_of
+
+    engine = get_engine()
+    results = {}
+    for league_id in app_config.league_ids():
+        preds = calibration.load_backtest(engine, league_id)
+        results[league_name(engine, league_id)] = calibration.walk_forward(preds, _seasons(seasons))
+        typer.echo(f"Liga {league_id}: {len(results[league_name(engine, league_id)])} Prognosen")
+    report.write_text(calibration.report(results, market_group_of), encoding="utf-8")
+    typer.echo(f"→ {report}")
 
 
 @model_app.command("cup-eval")
