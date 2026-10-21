@@ -1,13 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { TeamLogo } from "@/components/ui";
 import type { MatchEvent, Team } from "@/lib/types";
 
 const minuteLabel = (e: MatchEvent) => `${e.minute ?? "?"}${e.extra_minute ? `+${e.extra_minute}` : ""}'`;
 
 const KIND_LABEL: Record<MatchEvent["kind"], string> = {
   goal: "Tor", penalty: "Tor (Elfmeter)", own_goal: "Eigentor", missed_penalty: "Elfmeter verschossen", yellow: "Gelbe Karte",
-  second_yellow: "Gelb-Rot", red: "Rote Karte", sub: "Wechsel", var: "Videobeweis",
+  second_yellow: "Gelb-Rote Karte", red: "Rote Karte", sub: "Wechsel", var: "Videobeweis",
+};
+
+/** Accent of the tooltip header per event kind. */
+const KIND_TONE: Record<MatchEvent["kind"], string> = {
+  goal: "bg-emerald-50 text-emerald-800", penalty: "bg-emerald-50 text-emerald-800", own_goal: "bg-rose-50 text-rose-800",
+  missed_penalty: "bg-slate-100 text-slate-700", yellow: "bg-yellow-50 text-yellow-800", second_yellow: "bg-orange-50 text-orange-800",
+  red: "bg-rose-50 text-rose-800", sub: "bg-sky-50 text-sky-800", var: "bg-slate-100 text-slate-700",
 };
 
 const VAR_DETAIL: Record<string, string> = {
@@ -15,15 +23,6 @@ const VAR_DETAIL: Record<string, string> = {
   "Penalty cancelled": "Elfmeter zurückgenommen", "Penalty awarded": "Elfmeter gegeben", "Card upgrade": "Karte verschärft",
   "Red card cancelled": "Rote Karte zurückgenommen", "Card reviewed": "Karte überprüft",
 };
-
-function describe(e: MatchEvent): string {
-  if (e.kind === "own_goal") return `${minuteLabel(e)} Eigentor: ${e.player ?? "?"}${e.score ? ` – ${e.score[0]}:${e.score[1]}` : ""}`;
-  if (e.kind === "sub") return `${minuteLabel(e)} Wechsel: ${e.related ?? "?"} für ${e.player ?? "?"}`;
-  if (e.kind === "var") return `${minuteLabel(e)} Videobeweis: ${VAR_DETAIL[e.detail ?? ""] ?? e.detail ?? ""}${e.player ? ` (${e.player})` : ""}`;
-  const assist = (e.kind === "goal" || e.kind === "penalty") && e.related ? `, Vorlage ${e.related}` : "";
-  const score = e.score ? ` – ${e.score[0]}:${e.score[1]}` : "";
-  return `${minuteLabel(e)} ${KIND_LABEL[e.kind]}: ${e.player ?? "?"}${assist}${score}`;
-}
 
 /** Small icon per event kind (goals, cards, substitutions, VAR). */
 function Icon({ kind }: { kind: MatchEvent["kind"] }) {
@@ -48,6 +47,45 @@ function Icon({ kind }: { kind: MatchEvent["kind"] }) {
   }
 }
 
+/** Card shown on hover (desktop) or tap (mobile) of a marker. */
+function Tooltip({ e, team, left }: { e: MatchEvent; team: Team; left: number }) {
+  const align = left < 18 ? "left-0" : left > 82 ? "right-0" : "left-1/2 -translate-x-1/2";
+  let sub: ReactNode = null;
+  if ((e.kind === "goal" || e.kind === "penalty") && e.related) sub = <>Vorlage: {e.related}</>;
+  else if (e.kind === "own_goal") sub = <>zählt für {team.name}</>;
+  else if (e.kind === "var") sub = <>{VAR_DETAIL[e.detail ?? ""] ?? e.detail}</>;
+  return (
+    <span
+      role="tooltip"
+      className={`pointer-events-none absolute bottom-full z-20 mb-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white text-left opacity-0 shadow-lg ring-1 ring-black/5 transition duration-150 group-hover:opacity-100 group-focus:opacity-100 ${align}`}
+    >
+      <span className={`flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold ${KIND_TONE[e.kind]}`}>
+        <span className="grid w-4 place-items-center"><Icon kind={e.kind} /></span>
+        <span className="flex-1">{KIND_LABEL[e.kind]}</span>
+        <span className="tabular-nums opacity-70">{minuteLabel(e)}</span>
+      </span>
+      <span className="block px-3 py-2">
+        {e.kind === "sub" ? (
+          <>
+            <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900"><span className="text-emerald-600">▲</span>{e.related ?? "?"}</span>
+            <span className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500"><span className="text-rose-500">▼</span>{e.player ?? "?"}</span>
+          </>
+        ) : (
+          <>
+            {e.player && <span className="block text-sm font-semibold text-slate-900">{e.player}</span>}
+            {sub && <span className="mt-0.5 block text-xs text-slate-500">{sub}</span>}
+          </>
+        )}
+      </span>
+      <span className="flex items-center gap-2 border-t border-slate-100 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-500">
+        <TeamLogo team={team} size={14} />
+        <span className="min-w-0 flex-1 truncate">{team.name}</span>
+        {e.score && <span className="rounded bg-slate-900 px-1.5 py-0.5 font-semibold tabular-nums text-white">{e.score[0]}:{e.score[1]}</span>}
+      </span>
+    </span>
+  );
+}
+
 /** Timeline of a finished (or running) match: home events above, away events below the line. */
 export function Timeline({ events, home, away }: { events: MatchEvent[]; home: Team; away: Team }) {
   const [subs, setSubs] = useState(false);
@@ -61,7 +99,7 @@ export function Timeline({ events, home, away }: { events: MatchEvent[]; home: T
     for (const e of shown.filter((x) => x.side === side)) {
       const left = pos(e);
       let row = 0;
-      while (placed.some((p) => p.row === row && Math.abs(p.left - left) < 2.2)) row++;
+      while (placed.some((p) => p.row === row && Math.abs(p.left - left) < 3)) row++;
       placed.push({ e, left, row });
     }
     return placed;
@@ -69,10 +107,22 @@ export function Timeline({ events, home, away }: { events: MatchEvent[]; home: T
   const top = rows("home");
   const bottom = rows("away");
   const depth = (list: typeof top) => Math.max(1, ...list.map((p) => p.row + 1));
+  const marker = ({ e, left, row }: (typeof top)[number], i: number, edge: "bottom" | "top") => (
+    <span
+      key={i}
+      tabIndex={0}
+      aria-label={`${minuteLabel(e)} ${KIND_LABEL[e.kind]} ${e.player ?? ""}`}
+      className="group absolute grid h-5 w-5 -translate-x-1/2 cursor-default place-items-center rounded outline-none transition hover:z-10 hover:scale-125 focus:z-10 focus:scale-125"
+      style={{ left: `${left}%`, [edge]: `${row * 22}px` }}
+    >
+      <Icon kind={e.kind} />
+      <Tooltip e={e} team={e.side === "home" ? home : away} left={left} />
+    </span>
+  );
 
   return (
     <div className="border-t border-slate-100 px-4 py-4 sm:px-6">
-      <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
+      <div className="mb-3 flex items-center justify-between text-xs text-slate-500">
         <span className="font-medium uppercase tracking-wide">Spielverlauf</span>
         {events.some((e) => e.kind === "sub") && (
           <button type="button" onClick={() => setSubs(!subs)} className="text-emerald-700 hover:underline">
@@ -81,50 +131,31 @@ export function Timeline({ events, home, away }: { events: MatchEvent[]; home: T
         )}
       </div>
 
-      {/* desktop: horizontal timeline */}
-      <div className="hidden sm:block">
-        <div className="relative" style={{ height: `${depth(top) * 22}px` }}>
-          {top.map(({ e, left, row }, i) => (
-            <span key={i} title={describe(e)} className="absolute -translate-x-1/2 cursor-default" style={{ left: `${left}%`, bottom: `${row * 22}px` }}>
-              <Icon kind={e.kind} />
-            </span>
-          ))}
+      <div className="flex items-stretch gap-2 sm:gap-3">
+        <div className="flex w-5 shrink-0 flex-col justify-between py-0.5">
+          <TeamLogo team={home} size={18} />
+          <TeamLogo team={away} size={18} />
         </div>
-        <div className="relative my-1 h-1.5 rounded-full bg-slate-200">
-          <div className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-slate-400" style={{ left: `${(45 / end) * 100}%` }} title="Halbzeit" />
-          {shown.filter((e) => e.score).map((e, i) => (
-            <span key={i} className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-900" style={{ left: `${pos(e)}%` }} />
-          ))}
+        <div className="min-w-0 flex-1">
+          <div className="relative" style={{ height: `${depth(top) * 22}px` }}>
+            {top.map((p, i) => marker(p, i, "bottom"))}
+          </div>
+          <div className="relative my-1 h-1.5 rounded-full bg-slate-200">
+            <div className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-slate-400" style={{ left: `${(45 / end) * 100}%` }} title="Halbzeit" />
+            {shown.filter((e) => e.score).map((e, i) => (
+              <span key={i} className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-900" style={{ left: `${pos(e)}%` }} />
+            ))}
+          </div>
+          <div className="relative" style={{ height: `${depth(bottom) * 22}px` }}>
+            {bottom.map((p, i) => marker(p, i, "top"))}
+          </div>
+          <div className="relative mt-1 h-3 text-[10px] tabular-nums text-slate-400">
+            <span className="absolute left-0">0&apos;</span>
+            <span className="absolute -translate-x-1/2" style={{ left: `${(45 / end) * 100}%` }}>45&apos;</span>
+            <span className={`absolute ${end > 93 ? "-translate-x-1/2" : "-translate-x-full"}`} style={{ left: `${(90 / end) * 100}%` }}>90&apos;</span>
+          </div>
         </div>
-        <div className="relative" style={{ height: `${depth(bottom) * 22}px` }}>
-          {bottom.map(({ e, left, row }, i) => (
-            <span key={i} title={describe(e)} className="absolute -translate-x-1/2 cursor-default" style={{ left: `${left}%`, top: `${row * 22}px` }}>
-              <Icon kind={e.kind} />
-            </span>
-          ))}
-        </div>
-        <div className="mt-1 flex justify-between text-[10px] tabular-nums text-slate-400">
-          <span>0&apos;</span><span style={{ marginLeft: `${(45 / end) * 100 - 4}%` }}>45&apos;</span><span className="ml-auto">90&apos;</span>
-        </div>
-        <div className="mt-1 flex justify-between text-[11px] text-slate-400"><span>oben: {home.name}</span><span>unten: {away.name}</span></div>
       </div>
-
-      {/* events as a list (all screens; on desktop collapsed below the timeline) */}
-      <ul className="mt-2 space-y-1 text-xs sm:mt-3 sm:columns-2 sm:gap-6">
-        {shown.map((e, i) => (
-          <li key={i} className={`flex break-inside-avoid items-center gap-2 ${e.side === "away" ? "flex-row-reverse text-right sm:flex-row sm:text-left" : ""}`}>
-            <span className="w-9 shrink-0 tabular-nums text-slate-400">{minuteLabel(e)}</span>
-            <span className="grid w-5 shrink-0 place-items-center"><Icon kind={e.kind} /></span>
-            <span className="min-w-0 text-slate-700">
-              {e.kind === "sub" ? <>{e.related} <span className="text-slate-400">für {e.player}</span></> : e.kind === "var" ? <>{VAR_DETAIL[e.detail ?? ""] ?? e.detail}{e.player ? <span className="text-slate-400"> ({e.player})</span> : null}</> : e.player}
-              {e.score && <span className="ml-1 font-semibold tabular-nums text-slate-900">{e.score[0]}:{e.score[1]}</span>}
-              <span className="ml-1 text-slate-400">
-                <span className="hidden sm:inline">· </span>{e.kind === "own_goal" ? "Eigentor, zählt für " : ""}{e.side === "home" ? home.name : away.name}
-              </span>
-            </span>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
