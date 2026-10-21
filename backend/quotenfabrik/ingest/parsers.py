@@ -154,6 +154,25 @@ def parse_events(fixture_id: int, events: list[dict]) -> list[dict[str, Any]]:
     return rows
 
 
+def detail_teams(item: dict[str, Any]) -> list[dict[str, Any]]:
+    """Teams referenced in the details of a fixture (events, line-ups, statistics, players).
+
+    Usually the two teams of the fixture, but the API occasionally sends another team ID there (seen in old
+    European cup fixtures); those teams must exist before the detail rows reference them."""
+    teams = {}
+    blocks = [e.get("team") for e in item.get("events") or []]
+    for key in ("lineups", "statistics", "players"):
+        blocks += [b.get("team") for b in item.get(key) or []]
+    for t in blocks:
+        if t and t.get("id"):
+            teams[t["id"]] = {
+                "id": t["id"],
+                "name": t.get("name") or f"Team {t['id']}",
+                "logo_url": t.get("logo"),
+            }
+    return list(teams.values())
+
+
 def parse_lineups(fixture_id: int, lineups: list[dict]) -> tuple[list[dict], dict[int, str | None]]:
     """Returns lineup rows and a player_id -> grid position map (grid may be None) for the starting XI."""
     rows, grids = [], {}

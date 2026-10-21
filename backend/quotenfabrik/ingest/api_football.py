@@ -69,6 +69,7 @@ def process_fixtures_payload(session: Session, payload: dict[str, Any], fetched_
 
 def _process_details(session: Session, item: dict, fixture: dict, fetched_at: datetime) -> None:
     fixture_id = fixture["id"]
+    upsert(session, Team, parsers.detail_teams(item), update=False)  # known teams keep their data
     session.execute(delete(FixtureEvent).where(FixtureEvent.fixture_id == fixture_id))
     events = parsers.parse_events(fixture_id, item.get("events"))
     if events:

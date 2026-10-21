@@ -91,3 +91,18 @@ def test_venue_id_zero_means_unknown():
     item["fixture"]["venue"] = {"id": 0, "name": None, "city": None}
     p = parsers.parse_fixture(item, NOW)
     assert p["fixture"]["venue_id"] is None and p["venue"] is None
+
+
+def test_detail_teams_include_teams_outside_the_fixture():
+    item = {
+        "events": [{"team": {"id": 853, "name": "Team A"}}, {"team": None}],
+        "lineups": [
+            {"team": {"id": 853, "name": "Team A", "logo": "a.png"}},
+            {"team": {"id": 2263, "name": "Team X"}},
+        ],
+        "players": [{"team": {"id": 2263, "name": "Team X", "logo": "x.png"}}],
+    }
+    teams = {t["id"]: t for t in parsers.detail_teams(item)}
+    assert set(teams) == {853, 2263}
+    assert teams[2263]["logo_url"] == "x.png" and teams[853]["name"] == "Team A"
+    assert parsers.detail_teams({}) == []
