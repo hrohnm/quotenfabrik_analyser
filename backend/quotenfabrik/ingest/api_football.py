@@ -6,7 +6,7 @@ without new API requests (see ``quotenfabrik.ingest.rebuild``).
 
 import logging
 from collections.abc import Iterable, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import delete, select, update
@@ -142,6 +142,28 @@ def sync_details(session: Session, client: ApiFootballClient, fixture_ids: Seque
         done += len(process_fixtures_payload(session, result.payload, _now()))
         session.commit()
     return done
+
+
+DUE_AFTER = timedelta(minutes=110)  # 90 minutes + half-time + stoppage time
+POLL_FOR = timedelta(days=2)  # stop polling fixtures that never got a result (the daily import catches them)
+NOT_PLAYED = {"PST", "CANC", "ABD"}  # postponed, cancelled, abandoned: no result to wait for
+
+
+def fixtures_due(session: Session, league_ids: Sequence[int], now: datetime | None = None) -> list[int]:
+    """Fixtures whose regular end has passed but that have no final result yet."""
+    now = now or _now()
+    return list(
+        session.scalars(
+            select(Fixture.id)
+            .where(
+                Fixture.league_id.in_(list(league_ids)),
+                Fixture.kickoff_utc <= now - DUE_AFTER,
+                Fixture.kickoff_utc >= now - POLL_FOR,
+                Fixture.status.not_in(parsers.FINISHED_STATUSES | NOT_PLAYED),
+            )
+            .order_by(Fixture.kickoff_utc)
+        )
+    )
 
 
 def fixtures_missing_half_stats(session: Session, league_id: int, season: int) -> list[int]:

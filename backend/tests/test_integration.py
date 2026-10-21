@@ -186,3 +186,28 @@ def test_oddspapi_mapping_history_and_rebuild(session):
     assert oddspapi.unlink_tournament(session, 78, 35) == 2
     session.commit()
     assert session.get(OddsPapiFixture, "id1000003572513246").fixture_id is None
+
+
+def test_fixtures_due_for_live_results(session):
+    from datetime import timedelta
+
+    from quotenfabrik.ingest.api_football import fixtures_due
+    from quotenfabrik.models import Fixture
+
+    api_football.process_fixtures_payload(session, load_json("fixture_detail.json"), NOW)
+    session.commit()
+    f = session.get(Fixture, 1575189)
+    league = f.league_id
+    cases = {  # (minutes since kickoff, status) -> due?
+        (130, "2H"): True,  # regular end passed, still running in the data
+        (130, "NS"): True,  # kickoff passed but never updated
+        (60, "1H"): False,  # still being played
+        (130, "FT"): False,  # result known
+        (130, "PST"): False,  # postponed
+        (60 * 24 * 3, "2H"): False,  # older than the polling window
+    }
+    for (minutes, status), expected in cases.items():
+        f.kickoff_utc, f.status = NOW - timedelta(minutes=minutes), status
+        session.commit()
+        assert (fixtures_due(session, [league], NOW) == [1575189]) is expected, (minutes, status)
+    assert fixtures_due(session, [league + 1000], NOW) == []

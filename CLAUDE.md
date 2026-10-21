@@ -122,6 +122,7 @@ alembic upgrade head                          # Schema anlegen
 qf ingest football-data --seasons 2015-2026   # Historie (kostet keine API-Quota)
 qf ingest api-football --seasons 2015-2026 --half-stats   # Backfill (~1.000 Requests)
 qf map-teams && qf quality                    # Verknüpfen + Datenqualität prüfen
+qf ingest live                                # Ergebnisse fälliger Spiele + Abrechnung (Cron alle 15 Min.)
 qf odds snapshot                              # Quoten-Snapshot API-Football (Cron alle 3 h)
 qf oddspapi update                            # Betano-Verläufe über OddsPapi (Cron alle 3 h, kostenlos)
 qf model evaluate --seasons 2022-2026         # Walk-Forward-Evaluation → docs/09_modell_evaluation.md

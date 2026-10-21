@@ -49,6 +49,7 @@ Details zum Seed: `seed/README.md`.
 |---|---|---|
 | `qf status` | Quota und Abo-Ende (warnt 7 Tage vorher) | 0 |
 | `qf ingest football-data --seasons 2015-2026` | CSVs laden, roh speichern, normalisieren | 0 |
+| `qf ingest live` | Ergebnisse von Spielen, deren reguläres Ende erreicht ist (Anpfiff + 110 Min., noch ohne Endergebnis, höchstens 2 Tage zurück; verschoben/abgesagt ausgenommen), über `/fixtures?ids=` inkl. Tore und Aufstellungen, danach Prognosen, Tipps und Wetten abrechnen (Cron alle 15 Minuten) | 1 pro 20 fällige Spiele, sonst 0 |
 | `qf ingest results [--seasons aktuell] [--league 39]` | Ergebnisse der Stärke-Ligen und Europapokale (Einstellungsseite → „Stärke-Ligen und Europapokal“); Europapokale der laufenden und vorigen Saison zusätzlich mit Spieldetails (Aufstellungen, Tore, Spielerstatistik für Torschützen) | 1 pro Saison und Wettbewerb, Pokal-Details 1 pro 20 Spiele |
 | `qf ingest api-football --seasons 2015-2026 [--half-stats] [--no-details] [--no-injuries]` | Spielplan, Ergebnisse, Events, Lineups, Team-/Spieler-Stats, Ausfälle; bereits geladene Details werden übersprungen | ≈20 pro Saison (+≈306 mit `--half-stats` ab 2024) |
 | `qf map-teams` | football-data-Teamnamen ↔ API-Team-IDs, Spiele verknüpfen, Report | 0 |

@@ -8,6 +8,9 @@
 # Aktuelle Saison nachziehen (Ergebnisse, Details, Halbzeit-Stats, Ausfälle; Saisonwechsel im Juli automatisch)
 30 4 * * *      qf ingest api-football --seasons aktuell --half-stats
 45 4 * * 2      qf ingest football-data --seasons aktuell && qf map-teams
+# Ergebnisse beendeter Spiele alle 15 Minuten (nur fällige Spiele, 20 pro Request, ohne fällige Spiele kein Request),
+# danach Prognosen, Tipps und Wetten abrechnen
+*/15 * * * *    qf ingest live
 # Stärke-Ligen (nur Ergebnisse, 1 Request pro Liga)
 15 5 * * *      qf ingest results
 # Ergebnisse abrechnen, Prognosen + Tipps für die nächsten 10 Tage
