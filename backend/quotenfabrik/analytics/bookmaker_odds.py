@@ -75,16 +75,22 @@ def latest_prices(
 def pinnacle_fair(prices: pd.DataFrame) -> pd.DataFrame:
     """Margin-free Pinnacle probability per selection (complete outcome sets only; double chance from 1X2)."""
     pin = prices[prices["bookmaker"] == PINNACLE]
-    rows = []
+    sets: dict[str, tuple[list, list]] = {}  # market -> (fixture_id, line) per outcome set, odds rows
     for (fixture_id, market, line), g in pin.groupby(["fixture_id", "market", "line"], dropna=False):
         names = EXHAUSTIVE.get(market)
         if names is None or set(g["selection"]) != set(names):
             continue
-        by_sel = g.set_index("selection")["price"]
-        fair = remove_margin(np.array([[by_sel[n] for n in names]]))[0]
-        if np.isnan(fair).any():
-            continue
-        rows += [(fixture_id, market, _line(line), n, float(p)) for n, p in zip(names, fair, strict=True)]
+        by_sel = dict(zip(g["selection"], g["price"], strict=True))
+        keys, odds = sets.setdefault(market, ([], []))
+        keys.append((fixture_id, line))
+        odds.append([by_sel[n] for n in names])
+    rows = []
+    for market, (keys, odds) in sets.items():  # one vectorised margin removal per market
+        names = EXHAUSTIVE[market]
+        for (fixture_id, line), fair in zip(keys, remove_margin(np.array(odds)), strict=True):
+            if np.isnan(fair).any():
+                continue
+            rows += [(fixture_id, market, _line(line), n, float(p)) for n, p in zip(names, fair, strict=True)]
     fair = pd.DataFrame(rows, columns=[*KEY, "fair"])
     hda = fair[fair["market"] == "1x2"].pivot_table(index="fixture_id", columns="selection", values="fair")
     if not hda.empty and {"H", "D", "A"} <= set(hda.columns):

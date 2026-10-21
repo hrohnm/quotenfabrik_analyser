@@ -223,7 +223,9 @@ def pick_stats(league: int | None = None, season: int | None = None, profile: st
     Without ``league`` all configured leagues are combined.
     """
     leagues = [league] if league else app_config.shown_league_ids()
-    data = pd.concat([_settled_picks(lg) for lg in leagues], ignore_index=True)
+    frames = [_settled_picks(lg) for lg in leagues]
+    # an empty frame (league without settled picks) has object columns and would make pandas aggregate in Python
+    data = pd.concat([f for f in frames if not f.empty] or frames[:1], ignore_index=True)
     if season:
         data = data[data["season"] == season]
     overview = []
