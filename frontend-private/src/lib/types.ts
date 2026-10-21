@@ -138,6 +138,8 @@ export type FixtureDetail = {
   goals: { minute: number; extra_minute: number | null; team_id: number; player_id: number | null; player_name: string; detail: string; comments: string | null }[];
   /** last matches in all competitions before kickoff and the form (points above/below the model's expectation) */
   form?: Record<"home" | "away", TeamForm>;
+  /** playing style before kickoff, ranked against the teams of the competition (null: too few matches with statistics) */
+  style?: Record<"home" | "away", TeamStyle | null>;
   /** last Betano price change; closing = prices are the last ones before kickoff */
   odds?: { betano_at: string | null; closing: boolean };
 };
@@ -259,3 +261,19 @@ export type TeamForm = {
     xpts: number | null;
   }[];
 };
+
+export type StyleMetric = {
+  key: string;
+  label: string;
+  group: "control" | "attack" | "finishing" | "defence" | "intensity";
+  /** pct/ratio: 0–1 shown as %, pp: difference in percentage points, num: per match */
+  unit: "pct" | "ratio" | "pp" | "num";
+  /** which direction is good ('' = style only) */
+  better: "high" | "low" | "";
+  value: number | null;
+  /** rank among the competition's teams, 0 = lowest value, 1 = highest */
+  percentile: number | null;
+  league_avg: number | null;
+};
+
+export type TeamStyle = { matches: number; xg_matches: number; peers: number; labels: string[]; metrics: StyleMetric[] };

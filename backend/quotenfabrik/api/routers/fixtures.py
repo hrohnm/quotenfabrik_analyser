@@ -8,10 +8,10 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from quotenfabrik import app_config
-from quotenfabrik.analytics import bookmaker_odds, form
+from quotenfabrik.analytics import bookmaker_odds, form, style
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.picks import default_profile
-from quotenfabrik.api.data import chosen_runs_cte, df, model_data, team_names
+from quotenfabrik.api.data import chosen_runs_cte, df, model_data, style_data, team_names
 from quotenfabrik.api.labels import (
     GROUP_LABELS,
     MARKET_LABELS,
@@ -332,6 +332,7 @@ def fixture_detail(fixture_id: int) -> dict:
         "scorers": sorted(scorers.values(), key=lambda s: -s.get("anytime", 0)),
         "patterns": _patterns(r, forms),
         "form": forms,
+        "style": _styles(r),
         "picks": _picks([fixture]).get(fixture_id, {}),
         "odds": {"betano_at": max(betano_at) if betano_at else None, "closing": fixture["finished"]},
         "stats": _stats(fixture_id, fixture),
@@ -357,6 +358,23 @@ def _patterns(r, forms: dict) -> list[dict]:
                     "signal": f["signal"], "details": {"sequence": f["sequence"], "ppg": f["ppg"],
                                                        "expected_ppg": f["expected_ppg"]}})  # fmt: skip
     return out
+
+
+def _styles(r) -> dict:
+    """Playing style of both teams before kickoff, ranked against the teams of the competition and season."""
+    rows = style_data.get()
+    league_id, kickoff = int(r.league_id), pd.Timestamp(r.kickoff_utc)
+    peers = set(
+        df("""select home_team_id as t from core.fixtures where league_id = :l and season = :s
+              union select away_team_id from core.fixtures where league_id = :l and season = :s""",
+           l=league_id, s=int(r.season))["t"].astype(int)
+    )  # fmt: skip
+    # leagues: league matches only; cups: all competitions of the teams (ranked among the cup's teams)
+    base = rows if app_config.is_cup(league_id) else rows[rows["league_id"] == league_id]
+    return {
+        scope: style.team_style(base, team, kickoff, peers, fallback_rows=rows)
+        for scope, team in (("home", int(r.home_team_id)), ("away", int(r.away_team_id)))
+    }
 
 
 def _forms(r) -> dict:

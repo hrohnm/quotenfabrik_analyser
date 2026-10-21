@@ -87,6 +87,26 @@ class _ModelData:
 model_data = _ModelData()
 
 
+class _StyleData:
+    """Match statistics of all competitions with statistics (playing style), refreshed every 10 min."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._loaded: tuple[float, pd.DataFrame] | None = None
+
+    def get(self) -> pd.DataFrame:
+        from quotenfabrik.analytics import style
+
+        with self._lock:
+            if self._loaded is None or time.time() - self._loaded[0] > CACHE_TTL_S:
+                ids = app_config.league_ids() + [lg.id for lg in app_config.cup_leagues()]
+                self._loaded = (time.time(), style.load_stats(engine(), ids))
+            return self._loaded[1]
+
+
+style_data = _StyleData()
+
+
 @lru_cache(maxsize=1)
 def team_names() -> dict[int, str]:
     return {int(r.id): r.name for r in df("select id, name from core.teams").itertuples()}

@@ -58,6 +58,7 @@ Details zum Seed: `seed/README.md`.
 | `qf model evaluate --seasons 2022-2026` | Walk-Forward-Evaluation aller Marktgruppen ohne Quoten → `analytics.*` + `docs/09_modell_evaluation.md` | 0 |
 | `qf model joint-eval [--validation 2018-2020 --test 2021-2026]` | Gemeinsames Modell über verbundene Ligen gegen getrennte Modelle (Walk-Forward, 1X2/Ü-U/BTTS, Auf-/Absteiger) → `docs/14_gemeinsames_modell.md` | 0 |
 | `qf model form-eval` | Form-Pattern (Punkte minus Modell-Erwartung der letzten 6 Spiele aller Wettbewerbe) gegen das nächste Spiel → `docs/17_form.md` | 0 |
+| `qf model style-eval` | Spielstil (Schüsse, Ballbesitz, Verwertung, Defensive, Intensität aus den letzten 12 Ligaspielen) gegen die Tor-Erwartung des Modells: Korrelationen, Test auf späteren Saisons, Ballbesitz-Duelle → `docs/18_spielstil.md` | 0 |
 | `qf model cup-eval [--validation 2019-2021 --test 2022-2026]` | Europapokal: gemeinsames Modell über alle Ligen und Pokale, Walk-Forward auf Pokalspielen (Basisrate, ohne Pokalspiele, gemeinsam, eigener Heimvorteil) + Auswirkung auf die eigenen Ligen → `docs/15_europapokal.md` | 0 |
 | `qf model forecast --days 10` (auch Europapokale, `--league 2`) | Prognosen + Pattern für kommende Spiele → `analytics.predictions` / `analytics.pattern_results` | 0 |
 | `qf model backtest --seasons 2016-2026` | rückwirkende Walk-Forward-Prognosen aller beendeten Spiele inkl. Ergebnis → Explorer/Auswertung | 0 |
@@ -99,7 +100,7 @@ Installation: `docs/13_deployment_vps.md`):
 | `GET /api/meta` | Ligen, Saisons, Teams, Märkte, Labels |
 | `GET /api/days?from&to` | Tage mit Spielen (Kalender Europe/Berlin) |
 | `GET /api/fixtures?date=YYYY-MM-DD` (oder `from`/`to`, `season`, `team`) | Spiele mit Kurzprognose (1X2, Ü2,5, BTTS) |
-| `GET /api/fixtures/{id}` | Detail: letzte 10 Spiele beider Teams in allen Wettbewerben mit Form (`form`), alle Märkte (je Auswahl `betano`, `pinnacle` ohne Marge, `edge` = p × Betano − 1; letzte Quote vor Anpfiff aus OddsPapi), Torschützen, Pattern (vor Anpfiff berechnet), Statistik, Tore |
+| `GET /api/fixtures/{id}` | Detail: letzte 10 Spiele beider Teams in allen Wettbewerben mit Form (`form`), Spielstil beider Teams mit Rang im Wettbewerb und Stil-Etiketten (`style`), alle Märkte (je Auswahl `betano`, `pinnacle` ohne Marge, `edge` = p × Betano − 1; letzte Quote vor Anpfiff aus OddsPapi), Torschützen, Pattern (vor Anpfiff berechnet), Statistik, Tore |
 | `GET /api/explorer?market&selection&line&…` | Prognosen eines Marktes über viele Spiele + Zusammenfassung |
 | `GET /api/stats/overview|markets|confidence|calibration|seasons|scorers` | Trefferquoten und Kalibrierung |
 | `GET /api/stats/picks?profile&season` | Trefferquote der 3 Tipps pro Spiel (einzeln, Kombi, je Saison/Rang/Markt) |
