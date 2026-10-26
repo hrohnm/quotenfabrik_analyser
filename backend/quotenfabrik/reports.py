@@ -17,6 +17,7 @@ FORM_REPORT = DOCS / "17_form.md"
 STYLE_REPORT = DOCS / "18_spielstil.md"
 SHOTS_REPORT = DOCS / "19_schuesse_im_modell.md"
 LINEUP_REPORT = DOCS / "21_aufstellung.md"
+AVAILABILITY_REPORT = DOCS / "22_ausfaelle_und_belastung.md"
 CALIBRATION_REPORT = DOCS / "20_kalibrierung.md"
 
 

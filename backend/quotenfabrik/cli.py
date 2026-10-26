@@ -15,6 +15,7 @@ from quotenfabrik.ingest import odds, oddspapi, quality, rebuild
 from quotenfabrik.ingest.db_utils import raw_response_saver
 from quotenfabrik.models import OddsPapiFixture
 from quotenfabrik.reports import (
+    AVAILABILITY_REPORT,
     BETANO_REPORT,
     CALIBRATION_REPORT,
     COMBO_REPORT,
@@ -445,6 +446,47 @@ def model_lineup_eval(
     )
     means = ", ".join(f"{v}: {result[v].mean():.2f}" for v in lineups.VARIANTS)
     typer.echo(f"{len(result)} Startelfen, richtig im Schnitt {means} → {report}")
+
+
+@model_app.command("availability-eval")
+def model_availability_eval(
+    report: Path = typer.Option(AVAILABILITY_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Termine (Ruhetage, Europapokal davor/danach), Ausfälle und Rotation gegen das Tor-Modell prüfen."""
+    import pandas as pd
+
+    from quotenfabrik.analytics import availability as av
+    from quotenfabrik.analytics import availability_eval as ev
+    from quotenfabrik.analytics.data import league_name
+
+    engine = get_engine()
+    leagues = app_config.league_ids()
+    pool = app_config.model_pool(engine, leagues[0])
+    base = ev.base_lambdas(pool, leagues, range(2016, 2027), app_config.model_params())
+    typer.echo(f"Basismodell: {len(base)} Spiele")
+    schedule = av.schedule_features(av.load_schedule(engine, [lg.id for lg in app_config.cup_leagues()]))
+    teams = pd.concat(
+        [base[["fixture_id", "kickoff"]].assign(team_id=base[side]) for side in ("home_id", "away_id")]
+    )
+    teams = teams[
+        teams["kickoff"] >= pd.Timestamp("2021-07-01", tz="UTC")
+    ]  # absences are reported from 2021 on
+    avail = av.availability_features(
+        teams, av.load_player_roles(engine), av.load_absences(engine), av.load_starting_xi(engine)
+    )
+    features = schedule.merge(avail, on=["fixture_id", "team_id"], how="left")
+    for col in av.FEATURES["absences"] + av.FEATURES["rotation"]:
+        features[col] = features[col].fillna(0.0)
+    splits = {"schedule": (list(range(2016, 2021)), list(range(2021, 2027))),
+              "availability": ([2021, 2022, 2023], [2024, 2025, 2026])}  # fmt: skip
+    result = ev.evaluate(base, features, splits)
+    names = [league_name(engine, lg) for lg in leagues]
+    report.write_text(ev.report(result, ev.situations(base, features), names), encoding="utf-8")
+    for name, r in result.items():
+        typer.echo(
+            f"{name}: Δ Log-Loss 1X2 {r['delta'][0]:+.4f} ({r['delta'][1]:+.4f} … {r['delta'][2]:+.4f})"
+        )
+    typer.echo(f"→ {report}")
 
 
 @model_app.command("calibration-eval")

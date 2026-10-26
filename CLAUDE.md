@@ -59,6 +59,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/18_spielstil.md` | Automatisch erzeugt: Spielstil (Schüsse, Ballbesitz, Verwertung, …) gegen die Tor-Erwartung des Modells (`qf model style-eval`) |
 | `docs/19_schuesse_im_modell.md` | Automatisch erzeugt: Schüsse im Tor-Modell (Mischung aus Toren und Schuss-Erwartung) gegen das reine Tor-Modell (`qf model shots-eval`) |
 | `docs/21_aufstellung.md` | Automatisch erzeugt: voraussichtliche Startelf gegen die bestätigte (`qf model lineup-eval`, nur Anzeige) |
+| `docs/22_ausfaelle_und_belastung.md` | Automatisch erzeugt: Termine (Ruhetage, Europapokal davor/danach), Ausfälle und Rotation gegen das Tor-Modell (`qf model availability-eval`, nicht aktiv: kein belastbarer Gewinn) |
 | `docs/20_kalibrierung.md` | Automatisch erzeugt: Nachkalibrierung je Markt gegen die rohen Prognosen (`qf model calibration-eval`, nicht aktiv: kein belastbarer Gewinn) |
 | `docs/17_form.md` | Automatisch erzeugt: Form-Pattern (Punkte über/unter Modell-Erwartung) gegen das nächste Spiel (`qf model form-eval`) |
 | `docs/16_tageskombis.md` | Automatisch erzeugt: Backtest der Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance, Quote 5–10, `qf combos report`) |
@@ -134,6 +135,7 @@ qf model form-eval                            # Form-Pattern gegen das nächste 
 qf model style-eval                           # Spielstil gegen die Tor-Erwartung → docs/18_spielstil.md
 qf model shots-eval                           # Schüsse im Tor-Modell vs. nur Tore → docs/19_schuesse_im_modell.md
 qf model lineup-eval                          # voraussichtliche Startelf vs. bestätigte → docs/21_aufstellung.md
+qf model availability-eval                    # Termine, Ausfälle, Rotation vs. Modell → docs/22_ausfaelle_und_belastung.md
 qf model calibration-eval                     # Nachkalibrierung je Markt vs. roh → docs/20_kalibrierung.md
 qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebnisse eintragen
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
@@ -164,7 +166,8 @@ pytest && ruff check . && ruff format --check .
   Form und letzte Spiele aller Wettbewerbe (`form.py`), Spielstil-Profile (`style.py`, Nachweis `style_eval.py`),
   Einschätzung in Textform je Spiel (`preview.py`, regelbasiert aus den Detaildaten),
   voraussichtliche Startelf bis zur bestätigten Aufstellung (`lineups.py`, Nachweis `docs/21_aufstellung.md`),
-  Erklärung je Tipp (`pick_explain.py`), Tabelle/Torjäger/Ligazahlen (`league_table.py`)
+  Erklärung je Tipp (`pick_explain.py`), Tabelle/Torjäger/Ligazahlen (`league_table.py`),
+  Termine/Ausfälle/Rotation je Team und Spiel (`availability.py`, Nachweis `availability_eval.py`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - `quotenfabrik/day_freeze.py` – fixiert Tipps und Tageskombis eines Tages (`analytics.frozen_runs`, `analytics.day_combos`);
   der fixierte Lauf hat in `api.data.CHOSEN_RUNS_SQL` Vorrang vor neueren Prognosen
