@@ -17,7 +17,7 @@ export function PlayerHeader({ data }: { data: PlayerOverview }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-col gap-4 bg-gradient-to-br from-slate-50 to-white px-5 py-6 sm:flex-row sm:items-center sm:gap-6 sm:px-6">
-        <div className="relative">
+        <div className="relative w-fit shrink-0">
           <Logo src={data.player.photo} alt={data.player.name} size={96} shape="round" />
           {data.number != null && (
             <span className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full border-2 border-white bg-slate-900 text-sm font-bold text-white">{data.number}</span>
