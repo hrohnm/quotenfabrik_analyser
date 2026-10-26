@@ -275,7 +275,8 @@ def oddspapi_history(
     league: int | None = typer.Option(None),
     limit: int | None = typer.Option(None, help="Maximal so viele Spiele (Test)"),
 ) -> None:
-    """Quotenverläufe (Betano + Pinnacle) aller offenen Spiele seit 01/2026 laden (kostenlos, 5 s/Spiel)."""
+    """Quotenverläufe (Betano + Pinnacle) offener Spiele laden: kommende und die der letzten N Tage
+    (Einstellung „OddsPapi: Quotenverläufe zurück“), kostenlos, 5 s/Spiel."""
     with Session(get_engine()) as session, OddsPapiClient() as client:
         for league_id in _leagues(league):
             result = pipeline.oddspapi_history(session, client, league_id, limit, typer.echo)

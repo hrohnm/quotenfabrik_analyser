@@ -166,6 +166,26 @@ def test_rate_limit_is_retried_after_retry_ms():
     assert len(calls) == 2
 
 
+def test_rate_limit_waits_longer_than_transport_retries():
+    """Another process may hold the shared cooldown: RATE_LIMITED is retried more often than max_retries."""
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        if len(calls) <= 6:  # max_retries is 2
+            return httpx.Response(429, json={"code": "RATE_LIMITED", "retryMs": 4188})
+        return httpx.Response(200, json={"fixtureId": "x", "bookmakers": {}})
+
+    assert _client(handler).get("historical-odds", {"fixtureId": "x"}).payload["fixtureId"] == "x"
+    assert len(calls) == 7
+
+    def always_limited(request):
+        return httpx.Response(429, json={"code": "RATE_LIMITED", "retryMs": 10})
+
+    with pytest.raises(OddsPapiError, match="HTTP 429"):
+        _client(always_limited).get("historical-odds", {"fixtureId": "x"})
+
+
 def test_errors_never_contain_the_api_key():
     def handler(request):
         if request.url.path.endswith("/account"):

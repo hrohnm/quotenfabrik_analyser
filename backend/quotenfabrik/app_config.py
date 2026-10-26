@@ -93,6 +93,11 @@ SETTINGS: list[SettingDef] = [
                "Drosselung (Limit 300/min; Überschreitung kann zur Firewall-Sperre führen).", "float", 4.0, 0.5, 4.5),
     SettingDef("oddspapi.request_reserve", "API-Quota", "OddsPapi: Monatsreserve",
                "Abrechenbare Requests pro Monat, die nie verbraucht werden (Free-Plan: 250).", "int", 20, 0, 240),
+    SettingDef("oddspapi.history_days", "API-Quota", "OddsPapi: Quotenverläufe zurück (Tage)",
+               "Betano/Pinnacle-Verläufe werden nur für kommende Spiele und Spiele der letzten N Tage geladen "
+               "(Schlussquoten). Ältere Spiele neuer Ligen bleiben ohne Verlauf – Modelle und Pattern brauchen "
+               "keine historischen Quoten, nur der Betano-Nebenmarkt-Backtest (docs/11). 400 = alles seit 01/2026.",
+               "int", 7, 1, 400),
     SettingDef("backup.keep", "Backup", "Backups behalten", "Anzahl Backups unter backups/ (ältere werden gelöscht).",
                "int", 5, 1, 50),
     SettingDef("backup.update_seed", "Backup", "Seed aktualisieren (0/1)", "1 = jedes Backup ersetzt auch "
