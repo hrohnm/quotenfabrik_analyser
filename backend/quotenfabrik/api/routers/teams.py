@@ -310,7 +310,8 @@ def _starting_xi(team_id: int, season: int, leagues: list[int]) -> dict:
 
 @router.get("/search")
 def search(q: str = Query(..., min_length=2), limit: int = Query(8, le=20)) -> dict:
-    """Teams of the shown competitions whose name contains ``q`` (most recent first)."""
+    """Teams of the shown competitions and players (with matches in the last two years) whose name contains
+    ``q``."""
     teams = df(
         """select t.id, t.name, t.logo_url, max(f.kickoff_utc) as last, max(f.league_id) filter (
                    where f.league_id = any(:full)) as league_id
@@ -320,8 +321,25 @@ def search(q: str = Query(..., min_length=2), limit: int = Query(8, le=20)) -> d
            group by t.id order by (t.name ilike :prefix) desc, last desc limit :n""",
         q=f"%{q}%", prefix=f"{q}%", n=limit, full=app_config.league_ids(), shown=app_config.shown_league_ids(),
     )  # fmt: skip
+    players = df(
+        """select p.id, p.name, (array_agg(s.team_id order by f.kickoff_utc desc))[1] as team_id,
+                  sum(coalesce(s.minutes, 0)) as minutes
+           from core.players p
+           join core.fixture_player_stats s on s.player_id = p.id
+           join core.fixtures f on f.id = s.fixture_id
+           where p.name ilike :q and f.kickoff_utc > now() - interval '2 years'
+           group by p.id order by (p.name ilike :prefix) desc, minutes desc limit :n""",
+        q=f"%{q}%", prefix=f"{q}%", n=limit,
+    )  # fmt: skip
+    team_names = df("select id, name, logo_url from core.teams where id = any(:ids)",
+                    ids=[int(x) for x in players["team_id"].dropna()]).set_index("id")  # fmt: skip
     now = datetime.now(UTC)
     return {
+        "players": [{"id": int(r.id), "name": r.name, "photo": f"{MEDIA_BASE}/players/{int(r.id)}.png",
+                     "team": None if r.team_id not in team_names.index else
+                     {"id": int(r.team_id), "name": team_names.at[r.team_id, "name"],
+                      "logo": team_names.at[r.team_id, "logo_url"]}}
+                    for r in players.itertuples()],
         "teams": [{"id": int(r.id), "name": r.name, "logo": r.logo_url,
                    "league_id": _clean(r.league_id),
                    "active": bool(pd.notna(r.last) and (now - pd.Timestamp(r.last)).days < 400)}
