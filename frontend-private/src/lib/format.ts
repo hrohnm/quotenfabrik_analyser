@@ -26,6 +26,15 @@ export const weekday = (isoDate: string) =>
 export const dayMonth = (isoDate: string) =>
   new Date(`${isoDate}T12:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", timeZone: TZ });
 
+const COUNTRIES: Record<string, string> = {
+  World: "International", Germany: "Deutschland", England: "England", Spain: "Spanien", Italy: "Italien", France: "Frankreich",
+  Netherlands: "Niederlande", Portugal: "Portugal", Belgium: "Belgien", Turkey: "Türkei", Scotland: "Schottland",
+  Austria: "Österreich", Switzerland: "Schweiz", Denmark: "Dänemark", Sweden: "Schweden", Norway: "Norwegen",
+  Poland: "Polen", Greece: "Griechenland", "Czech-Republic": "Tschechien", Croatia: "Kroatien", Serbia: "Serbien",
+  Ukraine: "Ukraine", Russia: "Russland", USA: "USA", Brazil: "Brasilien", Argentina: "Argentinien", Japan: "Japan",
+};
+/** German name of an API-Football country. */
+export const countryLabel = (c: string | null | undefined) => (c ? COUNTRIES[c] ?? c : "");
 export const seasonLabel = (s: number) => `${s}/${String((s + 1) % 100).padStart(2, "0")}`;
 
 export function berlinToday(): string {

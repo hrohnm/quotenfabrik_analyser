@@ -1,6 +1,6 @@
 import { Logo } from "@/components/Logo";
 import { SeasonSelect } from "@/components/team/SeasonSelect";
-import { dateShort, num, pct, time } from "@/lib/format";
+import { countryLabel, dateShort, num, pct, time } from "@/lib/format";
 import type { CompetitionOverview } from "@/lib/types";
 
 /** Competition header: logo, flag, season, progress and key figures of the season. */
@@ -13,7 +13,7 @@ export function CompetitionHeader({ data }: { data: CompetitionOverview }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-sm text-slate-500">
             {league.flag && <Logo src={league.flag} alt={league.country ?? "Land"} size={16} />}
-            {league.country === "World" ? "International" : league.country}
+            {countryLabel(league.country)}
             {league.cup && <span className="rounded bg-slate-100 px-1.5 text-xs">Europapokal</span>}
           </div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{league.name}</h1>

@@ -55,7 +55,7 @@ export function StandingsTable({ rows, teams, highlight = {}, onToggle }: {
                 <td className="whitespace-nowrap px-1.5 py-1.5 text-right">{r.gf}:{r.ga}</td>
                 <td className="px-1.5 py-1.5 text-right">{r.gd > 0 ? `+${r.gd}` : r.gd < 0 ? `−${-r.gd}` : "0"}</td>
                 <td className="px-2 py-1.5 text-right font-semibold">{r.points}</td>
-                <td className="hidden px-2 py-1.5 md:table-cell">{r.form && <FormChips sequence={r.form} size="h-4 w-4" />}</td>
+                <td className="hidden min-w-[6.5rem] whitespace-nowrap px-2 py-1.5 md:table-cell">{r.form && <FormChips sequence={r.form} size="h-4 w-4" />}</td>
               </tr>
             );
           })}
