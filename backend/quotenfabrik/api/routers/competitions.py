@@ -235,3 +235,15 @@ def competition_players(league_id: int, season: int) -> dict:
     rankings = competition_stats.player_rankings(players)
     team_ids = {e["team_id"] for key, lst in rankings.items() if isinstance(lst, list) for e in lst}
     return {"season": season, "rankings": rankings, "teams": _teams(team_ids)}
+
+
+@router.get("/competitions/{league_id}/betting")
+def competition_betting(league_id: int, season: int) -> dict:
+    """ "Wetten & Modell": model and picks hit rates, own bets, Betano against Pinnacle and the model."""
+    from quotenfabrik.api import betting_report
+
+    _league(league_id)
+    rows = _season_rows(league_id, season)
+    ids = rows["fixture_id"].astype(int).tolist()
+    finished = rows.loc[rows["finished"], "fixture_id"].astype(int).tolist()
+    return {"season": season, **betting_report.report(finished, "l.fixture_id = any(:ids)", ids=ids)}

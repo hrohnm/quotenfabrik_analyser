@@ -345,3 +345,14 @@ def search(q: str = Query(..., min_length=2), limit: int = Query(8, le=20)) -> d
                    "active": bool(pd.notna(r.last) and (now - pd.Timestamp(r.last)).days < 400)}
                   for r in teams.itertuples()],
     }  # fmt: skip
+
+
+@router.get("/teams/{team_id}/betting")
+def team_betting(team_id: int, season: int) -> dict:
+    """ "Wetten & Modell" for the team's matches of the season (all shown competitions)."""
+    from quotenfabrik.api import betting_report
+
+    matches = _matches(team_id, season, app_config.shown_league_ids())
+    ids = matches["fixture_id"].astype(int).tolist()
+    finished = matches.loc[matches["finished"], "fixture_id"].astype(int).tolist()
+    return {"season": season, **betting_report.report(finished, "l.fixture_id = any(:ids)", ids=ids)}

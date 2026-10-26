@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { OutcomeBadge, Card, TeamLogo } from "@/components/ui";
 import { TeamLink } from "@/components/TeamLink";
+import { BettingReport } from "@/components/BettingReport";
 import { api } from "@/lib/api";
 import { dateShort, num, pct, time } from "@/lib/format";
 import { leagueLogo } from "@/lib/media";
@@ -17,6 +18,7 @@ const TABS = [
   { key: "spiele", label: "Spiele" },
   { key: "statistik", label: "Statistik" },
   { key: "kader", label: "Kader" },
+  { key: "wetten", label: "Wetten & Modell" },
 ];
 
 /** Tabs of the team page; every tab loads its own data. */
@@ -55,6 +57,7 @@ export function TeamTabs({ data }: { data: TeamOverview }) {
       {tab === "spiele" && <Matches data={data} matches={matches} />}
       {tab === "statistik" && <Statistics data={data} />}
       {tab === "kader" && <Squad data={data} />}
+      {tab === "wetten" && <BettingReport path={`/teams/${data.team.id}/betting`} season={data.season} scope="der Mannschaft" />}
     </div>
   );
 }

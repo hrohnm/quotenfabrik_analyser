@@ -222,3 +222,11 @@ def player_absences(player_id: int) -> dict:
         "teams": _teams({i["opponent_id"] for i in items}),
         "leagues": _leagues({i["league_id"] for i in items}),
     }
+
+
+@router.get("/players/{player_id}/bets")
+def player_bets(player_id: int) -> dict:
+    """Own bets with a goalscorer leg on the player."""
+    from quotenfabrik.api.betting_report import bets_section
+
+    return bets_section("l.market like 'scorer%' and l.selection = :sel", sel=str(player_id))

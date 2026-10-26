@@ -5,6 +5,7 @@ import { PlayerLink } from "@/components/PlayerLink";
 import { useEffect, useMemo, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { StandingsTable } from "@/components/StandingsTable";
+import { BettingReport } from "@/components/BettingReport";
 import { TeamLink } from "@/components/TeamLink";
 import { Card, OutcomeBadge, TeamLogo } from "@/components/ui";
 import { Segmented } from "@/components/match/Segmented";
@@ -30,6 +31,7 @@ const TABS = [
   { key: "statistik", label: "Statistik" },
   { key: "spieler", label: "Spieler" },
   { key: "spielplan", label: "Spielplan" },
+  { key: "wetten", label: "Wetten & Modell" },
 ];
 
 /** Tabs of the competition page; every tab loads its own data. */
@@ -71,6 +73,7 @@ export function CompetitionTabs({ data }: { data: CompetitionOverview }) {
       {tab === "statistik" && <Statistics data={data} />}
       {tab === "spieler" && <Players data={data} />}
       {tab === "spielplan" && <Schedule data={data} fixtures={fixtures} />}
+      {tab === "wetten" && <BettingReport path={`/competitions/${data.league.id}/betting`} season={data.season} scope="des Wettbewerbs" />}
     </div>
   );
 }
