@@ -12,6 +12,7 @@ import { Logo } from "@/components/Logo";
 import { leagueLogo } from "@/lib/media";
 import { DayCombos } from "@/components/bets/DayCombos";
 import { BetDialog, type BetDraft } from "@/components/bets/BetDialog";
+import { ClvView } from "@/components/picks/ClvView";
 
 export default function TipsPage() {
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -125,6 +126,17 @@ export default function TipsPage() {
           </Select>
         </div>
         {stats && <StatsView stats={stats} />}
+      </section>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold">Closing Line Value (Quote beim Tipp gegen den fairen Schlusspreis)</h2>
+          <p className="max-w-3xl text-sm text-slate-500">
+            Sinkt die Betano-Quote nach dem Tipp, hatte das Modell Informationen, die der Markt erst später einpreist – der
+            verlässlichste Hinweis auf einen echten Vorteil, lange bevor Gewinn und Verlust aussagekräftig sind.
+          </p>
+        </div>
+        <ClvView />
       </section>
     </div>
   );

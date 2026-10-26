@@ -173,6 +173,21 @@ Quoten über dem fairen Preis und dann nur knapp (Ø +0,8 %, CLV ≈ 0) – die 
 Hauptmärkten abgeleitet. Die Marge unterscheidet sich stark: ≈ 4–7 % (1X2, Doppelte Chance, Ü/U, Team-Tore) bis
 ≈ 10–17 % (Halbzeit-Ergebnis, Handicap, torreichste Halbzeit, exakte Toranzahl).
 
+### Closing Line Value der Tipps (`qf value clv`)
+
+`analytics/clv.py` misst für jeden Tipp die Betano-Quote zu dem Zeitpunkt, an dem er gezeigt wurde (Live: Fixieren des
+Tages, sonst Prognose; Backtest: erster Anpfiff des Spieltags, das Modell kennt nur Spiele davor), gegen den
+Schlussmarkt: **CLV** = genommene Betano-Quote × Pinnacle-Wahrscheinlichkeit ohne Marge beim Anpfiff − 1. Weil Betano
+auf Favoriten weniger Marge nimmt, ist der Vergleich alle Auswahlen derselben Märkte und Spiele, gewichtet auf die
+Quotenverteilung der Tipps; der **Abstand** (CLV − Vergleich, Standardfehler nach Spiel geclustert) zeigt, ob die
+Auswahl des Modells Information enthält, die der Markt erst später einpreist. Ergebnis: **`docs/23_clv.md`**, im
+Frontend auf der Tipps-Seite (`/api/stats/clv`, 1 h Cache) und je Tipp im Popover (Quote beim Tipp, zuletzt, CLV).
+
+**Stand 26.10.2026** (1.447 Tipps, 180 Spiele mit Betano-Verlauf): CLV −3,0 %, Vergleichsgruppe −3,6 %, Abstand
++0,7 %-Punkte (≈ 3 Standardfehler). Das Modell trifft die Richtung der Marktbewegung leicht besser als der Zufall, die
+Tipps liegen aber nach Betano-Marge unter dem fairen Schlusspreis → für Gewinn braucht es zusätzlich einen
+Value-Filter (nächster Schritt: Value-Profil mit Backtest).
+
 ### Paper-Trading
 Ab Inbetriebnahme werden alle Value-Signale automatisch als „Papierwetten“ in `analytics.value_bets` protokolliert
 (mit Quote zum Signalzeitpunkt, Schlussquote, Ergebnis). So entsteht ein ehrlicher Live-Track-Record je Markt.

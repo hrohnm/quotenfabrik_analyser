@@ -151,10 +151,12 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
     rows = df(
         f"""with runs as ({chosen_runs_cte("and p.fixture_id = any(:ids)")})
             select k.fixture_id, k.profile, k.rank, k.market_group, k.market, k.selection, k.line, k.probability,
-                   k.base_rate, k.reasons, p.fair_odd, p.outcome
+                   k.base_rate, k.reasons, p.fair_odd, p.outcome,
+                   greatest(runs.predicted_at, coalesce(z.frozen_at, runs.predicted_at)) as taken_at
             from analytics.picks k
             join runs on runs.model_run_id = k.model_run_id and runs.fixture_id = k.fixture_id
             join analytics.predictions p on p.id = k.prediction_id
+            left join analytics.frozen_runs z on z.fixture_id = k.fixture_id and z.model_run_id = k.model_run_id
             where k.fixture_id = any(:ids) and (cast(:profile as text) is null or k.profile = :profile)
             order by k.fixture_id, k.profile, k.rank""",
         ids=list(names), profile=profile,
@@ -162,6 +164,9 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
     if rows.empty:
         return {}
     prices = _bookmaker_prices(list(names))
+    first = rows.groupby("fixture_id")["taken_at"].min()
+    taken_at = {int(f): pd.Timestamp(t).to_pydatetime() for f, t in first.items()}
+    taken = _taken_prices(taken_at)
     contexts = _pick_contexts(names)
     track = pick_track_records()
     profs = profiles()
@@ -173,7 +178,8 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
              "label": pick_label(r.market, r.selection, line, *names[int(r.fixture_id)]),
              "probability": float(r.probability), "fair_odd": _clean(r.fair_odd), "base_rate": _clean(r.base_rate),
              "outcome": None if pd.isna(r.outcome) else bool(r.outcome), "reasons": r.reasons or [],
-             **_prices(prices, int(r.fixture_id), r.market, line, r.selection, float(r.probability))}
+             **_prices(prices, int(r.fixture_id), r.market, line, r.selection, float(r.probability)),
+             **_taken(taken, prices, int(r.fixture_id), r.market, line, r.selection, r.taken_at)}
         )  # fmt: skip
     for fixture_id, by_profile in out.items():
         for key, picks in by_profile.items():
@@ -235,6 +241,44 @@ def _bookmaker_prices(fixture_ids: list[int]) -> dict[tuple, dict]:
         for f in fixture_ids:
             out.update(_price_cache.get(f, (0, {}))[1])
     return out
+
+
+_taken_cache: dict[tuple[int, datetime], tuple[float, dict[tuple, dict]]] = {}
+
+
+def _taken_prices(taken_at: dict[int, datetime]) -> dict[tuple, dict]:
+    """Betano odds per selection when the picks of a fixture were published (cached like the prices)."""
+    now = time.time()
+    with _price_lock:
+        missing = {f: t for f, t in taken_at.items()
+                   if (f, t) not in _taken_cache or now - _taken_cache[(f, t)][0] > PRICE_TTL_S}  # fmt: skip
+    if missing:
+        fresh = bookmaker_odds.lookup(bookmaker_odds.odds_table(get_engine(), list(missing), at=missing))
+        per_fixture: dict[int, dict[tuple, dict]] = {f: {} for f in missing}
+        for key, value in fresh.items():
+            per_fixture.setdefault(key[0], {})[key] = value
+        with _price_lock:
+            if len(_taken_cache) > 5000:
+                _taken_cache.clear()
+            for f, entries in per_fixture.items():
+                _taken_cache[(f, missing[f])] = (now, entries)
+    out: dict[tuple, dict] = {}
+    with _price_lock:
+        for f, t in taken_at.items():
+            out.update(_taken_cache.get((f, t), (0, {}))[1])
+    return out
+
+
+def _taken(
+    taken: dict, prices: dict, fixture_id: int, market: str, line: float | None, selection: str, taken_at
+) -> dict:
+    """Betano odds when the pick was published (``betano_taken``) and its CLV against Pinnacle without margin
+    now or at kickoff (``clv`` = taken odds × fair probability − 1)."""
+    key = (fixture_id, market, None if line is None else round(line, 2), selection)
+    odds = (taken.get(key) or {}).get("betano")
+    fair = (prices.get(key) or {}).get("fair")
+    return {"taken_at": _clean(taken_at), "betano_taken": odds,
+            "clv": None if odds is None or fair is None else odds * fair - 1}  # fmt: skip
 
 
 def _prices(prices: dict, fixture_id: int, market: str, line: float | None, selection: str, p: float) -> dict:

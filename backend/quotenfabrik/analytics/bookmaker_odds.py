@@ -5,6 +5,8 @@ i.e. the current price for upcoming fixtures and the closing price for finished 
 Suspended prices are dropped.
 """
 
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 from sqlalchemy import Engine, text
@@ -24,8 +26,11 @@ _SQL = text(
     join core.fixtures f on f.id = o.fixture_id
     join core.odds_history h on h.oddspapi_fixture_id = o.id
     join core.oddspapi_markets m on m.id = h.market_id
+    left join unnest(cast(:at_ids as bigint[]), cast(:at_times as timestamptz[])) c(fixture_id, at)
+           on c.fixture_id = o.fixture_id
     where o.fixture_id = any(:ids) and h.player_id = 0 and h.bookmaker = any(:books)
-      and h.changed_at < f.kickoff_utc and (cast(:types as text[]) is null or m.market_type = any(:types))
+      and h.changed_at < least(f.kickoff_utc, c.at)
+      and (cast(:types as text[]) is null or m.market_type = any(:types))
     order by o.fixture_id, h.bookmaker, h.market_id, h.outcome_id, h.changed_at desc
     """
 )
@@ -36,17 +41,27 @@ def _line(x) -> float | None:
 
 
 def latest_prices(
-    engine: Engine, fixture_ids: list[int], market_types: list[str] | None = None
+    engine: Engine,
+    fixture_ids: list[int],
+    market_types: list[str] | None = None,
+    at: dict[int, datetime] | None = None,
 ) -> pd.DataFrame:
     """Last active price before kickoff per fixture, bookmaker and model selection (optionally only some
-    OddsPapi market types, e.g. ``["totals", "doublechance"]``)."""
+    OddsPapi market types, e.g. ``["totals", "doublechance"]``; ``at``: price at that time per fixture
+    instead, e.g. when a pick was published)."""
     cols = ["fixture_id", "bookmaker", "market", "line", "selection", "price", "changed_at"]
     if not fixture_ids:
         return pd.DataFrame(columns=cols)
     raw = pd.read_sql(
         _SQL,
         engine,
-        params={"ids": [int(i) for i in fixture_ids], "books": [BETANO, PINNACLE], "types": market_types},
+        params={
+            "ids": [int(i) for i in fixture_ids],
+            "books": [BETANO, PINNACLE],
+            "types": market_types,
+            "at_ids": list(at or {}),
+            "at_times": list((at or {}).values()),
+        },
     )
     raw = raw[raw["active"].astype(bool) & raw["name"].notna()]
     if raw.empty:
@@ -100,9 +115,14 @@ def pinnacle_fair(prices: pd.DataFrame) -> pd.DataFrame:
     return fair
 
 
-def odds_table(engine: Engine, fixture_ids: list[int], market_types: list[str] | None = None) -> pd.DataFrame:
+def odds_table(
+    engine: Engine,
+    fixture_ids: list[int],
+    market_types: list[str] | None = None,
+    at: dict[int, datetime] | None = None,
+) -> pd.DataFrame:
     """Per fixture and selection: ``betano``, ``betano_at`` and Pinnacle without margin (``fair``)."""
-    prices = latest_prices(engine, fixture_ids, market_types)
+    prices = latest_prices(engine, fixture_ids, market_types, at)
     betano = prices[prices["bookmaker"] == BETANO].rename(
         columns={"price": "betano", "changed_at": "betano_at"}
     )
