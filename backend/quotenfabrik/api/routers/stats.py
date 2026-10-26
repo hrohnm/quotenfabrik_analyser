@@ -9,8 +9,9 @@ import pandas as pd
 from fastapi import APIRouter, Query
 
 from quotenfabrik import app_config
+from quotenfabrik.analytics import clv
 from quotenfabrik.analytics.picks import default_profile, evaluate_picks, profiles
-from quotenfabrik.api.data import chosen_runs_cte, df
+from quotenfabrik.api.data import chosen_runs_cte, df, engine
 from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, PICK_SETS, SELECTION_LABELS, pick_label
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
@@ -218,9 +219,36 @@ def _settled_picks(league_id: int) -> pd.DataFrame:
         return data
 
 
-_track_cache: dict = {}
-_track_refreshing = threading.Event()
-TRACK_TTL_S = 1800
+class _Background:
+    """Slow aggregate cached for ``ttl`` seconds; once stale the old value is served while a thread refreshes
+    it (first call waits)."""
+
+    def __init__(self, name: str, loader, ttl: float = 1800) -> None:
+        self.name, self.loader, self.ttl = name, loader, ttl
+        self.value: tuple[float, object] | None = None
+        self.refreshing = threading.Lock()
+
+    def _refresh(self) -> None:
+        try:
+            self.value = (time.time(), self.loader())
+        except Exception:  # noqa: BLE001 - a failed refresh keeps the old value
+            log.exception("%s refresh failed", self.name)
+        finally:
+            self.refreshing.release()
+
+    def refresh_async(self) -> None:
+        if self.refreshing.acquire(blocking=False):
+            threading.Thread(target=self._refresh, daemon=True).start()
+
+    def get(self):
+        if self.value is None:
+            with self.refreshing:  # wait for a running refresh
+                pass
+            if self.value is None and self.refreshing.acquire(blocking=False):
+                self._refresh()
+        elif time.time() - self.value[0] > self.ttl:
+            self.refresh_async()
+        return None if self.value is None else self.value[1]
 
 
 def _load_track_records() -> dict[tuple, dict]:
@@ -242,40 +270,25 @@ def _load_track_records() -> dict[tuple, dict]:
     }  # fmt: skip
 
 
-def _refresh_track_records() -> None:
-    try:
-        out = _load_track_records()
-        with _lock:
-            _track_cache["all"] = (time.time(), out)
-    except Exception:  # noqa: BLE001 - a failed refresh keeps the old value
-        log.exception("pick track records refresh failed")
-    finally:
-        _track_refreshing.clear()
+_track = _Background("pick track records", _load_track_records)
+_clv = _Background("pick clv", lambda: clv.run(engine(), app_config.shown_league_ids()), ttl=3600)
 
 
 def pick_track_records() -> dict[tuple, dict]:
-    """Past hit rate per (profile, market, selection, line) over the shown leagues (for the pick hover card).
-    One SQL aggregate, cached; once stale the old value is served while a thread refreshes it."""
-    with _lock:
-        hit = _track_cache.get("all")
-    if hit is None:
-        _refresh_track_records_once()
-        with _lock:
-            return _track_cache.get("all", (0, {}))[1]
-    if time.time() - hit[0] > TRACK_TTL_S and not _track_refreshing.is_set():
-        _track_refreshing.set()
-        threading.Thread(target=_refresh_track_records, daemon=True).start()
-    return hit[1]
-
-
-def _refresh_track_records_once() -> None:
-    _track_refreshing.set()
-    _refresh_track_records()
+    """Past hit rate per (profile, market, selection, line) over the shown leagues (for the pick hover card)."""
+    return _track.get() or {}
 
 
 def warm_caches() -> None:
-    """Fill the slow caches in the background at API start (first Spieltage request stays fast)."""
-    threading.Thread(target=_refresh_track_records_once, daemon=True).start()
+    """Fill the slow caches in the background at API start (first page requests stay fast)."""
+    _track.refresh_async()
+    _clv.refresh_async()
+
+
+@router.get("/clv")
+def pick_clv() -> dict:
+    """Closing line value of the picks (Betano odds when published against the fair closing price)."""
+    return _clv.get() or {"picks": 0}
 
 
 @router.get("/picks")

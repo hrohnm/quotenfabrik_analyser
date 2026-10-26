@@ -37,6 +37,41 @@ export type Pick = BookPrices & {
   reasons: PickReason[];
   /** generated explanation: why this pick, why the model considers it likely */
   explain?: { why: string[]; likely: string[] };
+  /** when the pick was published (day frozen, else forecast) and the Betano odds at that time */
+  taken_at?: string | null;
+  betano_taken?: number | null;
+  /** closing line value: odds taken × Pinnacle probability without margin (now / at kickoff) − 1 */
+  clv?: number | null;
+};
+
+/** Closing line value of a set of picks (``/stats/clv``). */
+export type ClvRow = {
+  key: string | number;
+  label: string;
+  n: number;
+  fixtures?: number;
+  odds?: number;
+  clv?: number | null;
+  clv_se?: number | null;
+  baseline?: number | null;
+  delta?: number | null;
+  beat_close?: number;
+  worse_close?: number;
+  hit_rate?: number | null;
+  roi?: number | null;
+};
+export type ClvResult = {
+  picks: number;
+  fixtures?: number;
+  from?: string;
+  to?: string;
+  total?: ClvRow;
+  sources?: ClvRow[];
+  profiles?: ClvRow[];
+  groups?: ClvRow[];
+  leads?: ClvRow[];
+  leagues?: ClvRow[];
+  value?: ClvRow | null;
 };
 
 export type PickProfile = { key: string; label: string; min_p: number; max_p: number; default: boolean };

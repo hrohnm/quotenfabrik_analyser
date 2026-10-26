@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { pct } from "@/lib/format";
+import { dateShort, odd, pct, signedPct, time } from "@/lib/format";
 import type { Pick } from "@/lib/types";
 
 /** Hover card (tap on mobile) explaining why a pick was chosen and why it is considered likely. */
@@ -18,6 +18,7 @@ export function PickInfo({ pick, children, className = "" }: { pick: Pick; child
         </span>
         <Section title="Warum dieser Tipp?" lines={pick.explain.why} tone="text-slate-900" />
         <Section title="Warum wahrscheinlich?" lines={pick.explain.likely} tone="text-emerald-800" />
+        <OddsMove pick={pick} />
       </span>
     </span>
   );
@@ -36,6 +37,44 @@ function Section({ title, lines, tone }: { title: string; lines: string[]; tone:
           </span>
         ))}
       </span>
+    </span>
+  );
+}
+
+/** Betano odds when the pick was published against the latest price (closing price once the match started). */
+function OddsMove({ pick }: { pick: Pick }) {
+  const taken = pick.betano_taken;
+  if (taken == null) return null;
+  const last = pick.betano;
+  const moved = last != null && Math.abs(last - taken) >= 0.005;
+  return (
+    <span className="block border-t border-slate-100 px-3 py-2">
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-900">Quote seit dem Tipp</span>
+      <span className="flex items-baseline justify-between gap-2">
+        <span>
+          Betano beim Tipp{pick.taken_at && <span className="text-slate-400"> ({dateShort(pick.taken_at)} {time(pick.taken_at)})</span>}
+        </span>
+        <span className="tabular-nums font-semibold text-slate-900">{odd(taken)}</span>
+      </span>
+      {last != null && (
+        <span className="flex items-baseline justify-between gap-2">
+          <span>zuletzt (bis Anpfiff)</span>
+          <span className={`tabular-nums font-semibold ${moved ? (last < taken ? "text-emerald-700" : "text-rose-700") : "text-slate-900"}`}>
+            {odd(last)}{moved && (last < taken ? " ↓" : " ↑")}
+          </span>
+        </span>
+      )}
+      {pick.clv != null && (
+        <span className="flex items-baseline justify-between gap-2">
+          <span title="Quote beim Tipp × Pinnacle-Wahrscheinlichkeit ohne Marge − 1">CLV gegen Pinnacle</span>
+          <span className={`tabular-nums font-semibold ${pick.clv > 0 ? "text-emerald-700" : "text-rose-700"}`}>{signedPct(pick.clv)}</span>
+        </span>
+      )}
+      {moved && (
+        <span className="mt-1 block leading-snug text-slate-500">
+          {last! < taken ? "Die Quote ist gefallen: Der Markt hat sich in Richtung des Tipps bewegt." : "Die Quote ist gestiegen: Der Markt hat sich gegen den Tipp bewegt."}
+        </span>
+      )}
     </span>
   );
 }

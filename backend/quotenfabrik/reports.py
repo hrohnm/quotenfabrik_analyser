@@ -19,6 +19,7 @@ SHOTS_REPORT = DOCS / "19_schuesse_im_modell.md"
 LINEUP_REPORT = DOCS / "21_aufstellung.md"
 AVAILABILITY_REPORT = DOCS / "22_ausfaelle_und_belastung.md"
 CALIBRATION_REPORT = DOCS / "20_kalibrierung.md"
+CLV_REPORT = DOCS / "23_clv.md"
 
 
 def report_path(path: Path | None, league_id: int) -> Path | None:

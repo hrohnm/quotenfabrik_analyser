@@ -173,6 +173,12 @@ def test_oddspapi_mapping_history_and_rebuild(session):
     assert "1x2" in set(prices["market"])
     table = odds_table(session.get_bind(), [1575189])
     assert table["betano"].notna().any()
+    # price at an earlier time (when a pick was published): never later than that time
+    cut = prices["changed_at"].min().to_pydatetime() + timedelta(seconds=1)
+    early = latest_prices(session.get_bind(), [1575189], at={1575189: cut})
+    assert not early.empty and (early["changed_at"] < cut).all()
+    past = {1575189: datetime(2000, 1, 1, tzinfo=UTC)}
+    assert latest_prices(session.get_bind(), [1575189], at=past).empty
 
     # odds reload: finished fixtures without prices are fetched again, fixtures with prices stay final
     session.get(OddsPapiFixture, "id1000003572513246").history_final = True

@@ -18,6 +18,7 @@ from quotenfabrik.reports import (
     AVAILABILITY_REPORT,
     BETANO_REPORT,
     CALIBRATION_REPORT,
+    CLV_REPORT,
     COMBO_REPORT,
     CUP_REPORT,
     FORM_REPORT,
@@ -637,6 +638,18 @@ def value_betano(
         path = _report(report, league_id)
         result = run_betano_value(get_engine(), league_id, path)
         typer.echo(f"Liga {league_id}: {result}" + (f" · Bericht: {path}" if path else ""))
+
+
+@value_app.command("clv")
+def value_clv(report: Path = typer.Option(CLV_REPORT, help="Markdown-Bericht")) -> None:
+    """Closing Line Value der Tipps: Betano-Quote beim Tipp gegen den fairen Pinnacle-Schlusspreis."""
+    from quotenfabrik.analytics import clv
+
+    result = clv.run(get_engine(), app_config.shown_league_ids())
+    report.write_text(clv.report(result), encoding="utf-8")
+    total = result.get("total") or {}
+    typer.echo(f"{result.get('picks', 0)} Tipps · CLV {total.get('clv')} · Abstand {total.get('delta')}")
+    typer.echo(f"Bericht: {report}")
 
 
 # --------------------------------------------------------------------------- picks
