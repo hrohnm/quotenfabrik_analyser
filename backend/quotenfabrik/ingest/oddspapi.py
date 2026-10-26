@@ -9,12 +9,15 @@ import gzip
 import hashlib
 import json
 import logging
+import time
 from collections import Counter, defaultdict
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
 
 from quotenfabrik.ingest import oddspapi_parsers as parsers
@@ -29,7 +32,7 @@ from quotenfabrik.models import (
     Team,
     TeamAlias,
 )
-from quotenfabrik.sources.oddspapi import OddsPapiClient, OddsPapiNotFound, OddsPapiResult
+from quotenfabrik.sources.oddspapi import COOLDOWN_S, OddsPapiClient, OddsPapiNotFound, OddsPapiResult
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +45,7 @@ KICKOFF_TOLERANCE = timedelta(hours=1)  # for name-based voting
 LINK_TOLERANCE = timedelta(days=4)  # for linking via mapped teams (rescheduled matches)
 MIN_VOTES = 2
 MIN_SHARE = 0.7
+HISTORY_LOCK = 81_500_002  # pg advisory lock: one /historical-odds call at a time (all processes)
 
 
 def _now() -> datetime:
@@ -143,16 +147,21 @@ def sync_fixtures(
 
 
 def fixtures_needing_history(
-    session: Session, tournament_id: int, now: datetime | None = None, limit: int | None = None
+    session: Session,
+    tournament_id: int,
+    now: datetime | None = None,
+    limit: int | None = None,
+    since: datetime | None = None,
 ) -> list[OddsPapiFixture]:
-    """Fixtures since January 2026 up to 14 days ahead whose history is not final yet."""
+    """Fixtures from ``since`` (not before 01/2026) up to 14 days ahead whose history is not final yet."""
     now = now or _now()
+    since = max(since or HISTORY_SINCE, HISTORY_SINCE)
     stmt = (
         select(OddsPapiFixture)
         .where(
             OddsPapiFixture.tournament_id == tournament_id,
             OddsPapiFixture.history_final.is_(False),
-            OddsPapiFixture.start_time >= HISTORY_SINCE,
+            OddsPapiFixture.start_time >= since,
             OddsPapiFixture.start_time <= now + PRE_MATCH_WINDOW,
             func.coalesce(OddsPapiFixture.status_id, 0) != CANCELLED,
         )
@@ -193,18 +202,36 @@ def reset_empty_histories(session: Session, tournament_id: int) -> int:
     return result.rowcount or 0
 
 
+@contextmanager
+def shared_cooldown(session: Session, seconds: float = COOLDOWN_S["historical-odds"]) -> Iterator[None]:
+    """Serialises /historical-odds calls of all processes (import jobs of several leagues, cron) with a
+    PostgreSQL advisory lock that is held for the cooldown after the call – otherwise parallel processes run
+    into HTTP 429 although each one keeps its own 5 s pace."""
+    with session.get_bind().connect() as conn:  # own connection: the lock survives the session's commits
+        conn.execute(text("select pg_advisory_lock(:k)"), {"k": HISTORY_LOCK})
+        conn.commit()
+        start = time.monotonic()
+        try:
+            yield
+        finally:
+            time.sleep(max(0.0, seconds - (time.monotonic() - start)))
+            conn.execute(text("select pg_advisory_unlock(:k)"), {"k": HISTORY_LOCK})
+            conn.commit()
+
+
 def sync_history(
     session: Session, client: OddsPapiClient, fixtures: list[OddsPapiFixture], bookmakers: list[str]
 ) -> dict[str, int]:
-    """Odds histories via the free /historical-odds endpoint (5 s per fixture)."""
+    """Odds histories via the free /historical-odds endpoint (5 s per fixture, shared by all processes)."""
     stats = {"fixtures": 0, "final": 0, "rows": 0, "not_found": 0}
     for fixture in fixtures:
         now = _now()
         final = fixture.start_time + FINAL_AFTER_KICKOFF < now
         try:
-            result = client.get(
-                "historical-odds", {"fixtureId": fixture.id, "bookmakers": ",".join(bookmakers[:3])}
-            )
+            with shared_cooldown(session):
+                result = client.get(
+                    "historical-odds", {"fixtureId": fixture.id, "bookmakers": ",".join(bookmakers[:3])}
+                )
             payload = result.payload
             if final:
                 store_raw(session, result)  # complete history: keep the raw response

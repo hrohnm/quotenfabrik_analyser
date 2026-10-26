@@ -61,9 +61,18 @@ Saison) mit Betano und Pinnacle kostenlos möglich.
 | `qf oddspapi status` | Plan, Monatsverbrauch, Buchmacher im Plan | 0 |
 | `qf oddspapi markets` | Marktkatalog → `core.oddspapi_markets` (`market_group` = unsere Marktgruppe, NULL = nicht verfolgt) | 1 |
 | `qf oddspapi fixtures --from 2026-01-01` | Spielplan → `core.oddspapi_fixtures`, Team-Mapping (`team_aliases`, source `oddspapi`) und Verknüpfung mit `core.fixtures` | 1 |
-| `qf oddspapi history` | Verläufe aller offenen Spiele (bis 14 Tage voraus) → `core.odds_history`; nach Spielende final inkl. Rohdaten (gzip) | 0 |
+| `qf oddspapi history` | Verläufe offener Spiele (bis 14 Tage voraus, zurück nur die letzten N Tage – Einstellung „OddsPapi: Quotenverläufe zurück“, Standard 7; 400 = alles seit 01/2026) → `core.odds_history`; nach Spielende final inkl. Rohdaten (gzip) | 0 |
 | `qf oddspapi players` | Spielernamen für Torschützen-Märkte → `core.oddspapi_players` | 1 |
 | `qf oddspapi update` | Laufbetrieb: Spielplan max. 1×/Woche, danach Verläufe | 0–1 |
+
+**Cooldown über Prozesse hinweg:** Der 5-s-Cooldown von `/historical-odds` gilt pro API-Key. Laufen mehrere Prozesse
+gleichzeitig (Import-Jobs mehrerer Ligen, Cron), stimmen sie sich über ein PostgreSQL-Advisory-Lock ab (immer nur ein
+Abruf, danach 5,2 s Pause). Ein HTTP 429 `RATE_LIMITED` wird bis zu 12-mal nach `retryMs` wiederholt.
+
+**Wozu historische Quoten?** Modelle, Pattern und Tipps nutzen nur Ergebnisse (API-Football, football-data). Die
+Verläufe liefern die Betano-/Pinnacle-Preise für kommende Spiele (Anzeige, Edge, Tageskombis) und die Schlussquote
+nach Abpfiff. Ältere Spiele braucht nur der Betano-Nebenmarkt-Backtest (`docs/11`); neue Ligen laden sie deshalb
+standardmäßig nicht mehr nach.
 
 Gespeichert werden nur verfolgte Märkte (97 von 1.122; keine asiatischen Linien, keine Ecken/Karten), nur Preise **vor
 Anpfiff** und nur Änderungen von (Preis, aktiv). Schlussquote = letzter Eintrag vor Anpfiff.

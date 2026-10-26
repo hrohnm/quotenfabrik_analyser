@@ -297,3 +297,35 @@ def test_frozen_run_stays_chosen_after_a_new_forecast(session, engine, monkeypat
     session.commit()
     assert chosen() == noon  # without freezing: the latest forecast before kickoff
     assert session.query(FrozenRun).count() == 0
+
+
+def test_history_window_and_shared_cooldown(session):
+    import threading
+    import time
+    from datetime import timedelta
+
+    from quotenfabrik.ingest import oddspapi
+    from quotenfabrik.models import OddsPapiFixture
+
+    for i, days in enumerate((-40, -3, 2)):
+        session.add(OddsPapiFixture(id=f"f{i}", tournament_id=35, start_time=NOW + timedelta(days=days),
+                                    participant1_id=1, participant2_id=2, updated_at=NOW,
+                                    history_final=False))  # fmt: skip
+    session.commit()
+    ids = lambda **kw: [f.id for f in oddspapi.fixtures_needing_history(session, 35, now=NOW, **kw)]  # noqa: E731
+    assert ids() == ["f0", "f1", "f2"]  # default: everything since 01/2026
+    assert ids(since=NOW - timedelta(days=7)) == ["f1", "f2"]
+
+    # two processes: the second call waits until the first one's cooldown is over
+    calls = []
+
+    def call():
+        with oddspapi.shared_cooldown(session, seconds=0.3):
+            calls.append(time.monotonic())
+
+    threads = [threading.Thread(target=call) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert abs(calls[1] - calls[0]) >= 0.29

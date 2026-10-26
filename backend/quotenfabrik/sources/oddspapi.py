@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 
 FREE_ENDPOINTS = {"historical-odds", "account"}
 COOLDOWN_S = {"historical-odds": 5.2}
+RATE_LIMIT_RETRIES = 12  # waits on HTTP 429 RATE_LIMITED (cooldown shared with other processes using the key)
 DEFAULT_INTERVAL_S = 1.0
 
 
@@ -110,7 +111,8 @@ class OddsPapiClient:
         endpoint = endpoint.strip("/")
         params = {k: v for k, v in (params or {}).items() if v is not None}
         self._guard_quota(endpoint)
-        for attempt in range(self._max_retries + 1):
+        attempt = rate_limited = 0
+        while True:
             self._throttle(endpoint)
             try:
                 resp = self._http.get(
@@ -119,19 +121,22 @@ class OddsPapiClient:
             except httpx.TransportError as exc:
                 if attempt == self._max_retries:
                     raise OddsPapiError(f"{endpoint} {params}: {type(exc).__name__}") from None
-                time.sleep(2 ** (attempt + 1))
+                attempt += 1
+                time.sleep(2**attempt)
                 continue
             if resp.status_code == 429:
                 error = _error(resp)
                 if error.get("code") == "REQUEST_LIMIT_EXCEEDED":
                     raise OddsPapiQuotaExhausted(f"OddsPapi request limit exceeded ({endpoint})")
-                if attempt < self._max_retries:
+                if rate_limited < RATE_LIMIT_RETRIES:
+                    rate_limited += 1
                     wait_ms = error.get("retryMs") or 5000
                     log.info("OddsPapi %s rate limited, waiting %.1fs", endpoint, wait_ms / 1000)
                     time.sleep(wait_ms / 1000 + 0.2)
                     continue
             elif resp.status_code >= 500 and attempt < self._max_retries:
-                time.sleep(2 ** (attempt + 1))
+                attempt += 1
+                time.sleep(2**attempt)
                 continue
             break
 

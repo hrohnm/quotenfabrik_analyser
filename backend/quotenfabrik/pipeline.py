@@ -195,7 +195,8 @@ def oddspapi_history(
     if not oddspapi.tracked_market_ids(session):
         log("Marktkatalog fehlt, wird geladen (1 Request)")
         oddspapi.sync_markets(session, client)
-    fixtures = oddspapi.fixtures_needing_history(session, tournament, limit=limit)
+    since = datetime.now(UTC) - timedelta(days=app_config.get("oddspapi.history_days"))
+    fixtures = oddspapi.fixtures_needing_history(session, tournament, limit=limit, since=since)
     log(f"{len(fixtures)} Spiele, ca. {len(fixtures) * 5 // 60 + 1} Minuten")
     stats = oddspapi.sync_history(session, client, fixtures, get_settings().oddspapi_bookmakers)
     return (
