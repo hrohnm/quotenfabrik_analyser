@@ -26,7 +26,7 @@ export function TeamHeader({ data }: { data: TeamOverview }) {
                 <span key={c.league.id} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-xs text-slate-700">
                   {c.league.flag && <Logo src={c.league.flag} alt="Flagge" size={14} />}
                   <Logo src={c.league.logo} alt={c.league.name} size={16} />
-                  <span className="font-medium">{c.league.name}</span>
+                  <Link href={`/wettbewerb/${c.league.id}?saison=${data.season}`} className="font-medium hover:underline">{c.league.name}</Link>
                   {c.rank !== null && <span className="text-slate-500">· Platz {c.rank}{c.teams ? `/${c.teams}` : ""} · {c.points} Pkt.</span>}
                 </span>
               ))}
@@ -47,7 +47,7 @@ export function TeamHeader({ data }: { data: TeamOverview }) {
             </div>
           </div>
           <div className="flex flex-col items-start gap-2 sm:items-end">
-            <SeasonSelect teamId={data.team.id} season={data.season} seasons={data.seasons} />
+            <SeasonSelect basePath={`/team/${data.team.id}`} season={data.season} seasons={data.seasons} />
             {data.form.length > 0 && (
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 Form

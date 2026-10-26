@@ -491,3 +491,61 @@ export type TeamSquad = {
   rotation: { avg_changes: number | null; matches: number } | null;
 };
 export type SearchResult = { teams: (Team & { league_id: number | null; active: boolean })[] };
+
+export type CompetitionLeague = { id: number; name: string; country: string | null; flag: string | null; logo: string; cup: boolean };
+export type LeagueFigures = NonNullable<LeagueOverview["figures"]>;
+export type KnockoutRound = {
+  round: string;
+  label: string | null;
+  kickoff: string;
+  ties: { team_a: number; team_b: number; aggregate: [number, number] | null; legs: { fixture_id: number; kickoff: string; score: [number, number] | null }[] }[];
+};
+export type CompetitionOverview = {
+  league: CompetitionLeague;
+  season: number;
+  seasons: number[];
+  progress: { matches: number; finished: number; matchday: number | null; matchdays: number | null; next_kickoff: string | null };
+  tables: { group: string | null; rows: TableRow[] }[];
+  knockout: KnockoutRound[];
+  figures: LeagueFigures | null;
+  teams: Record<number, Team>;
+};
+export type ExpectedRow = { rank: number; team_id: number; matches: number; points: number; expected: number; diff: number };
+export type CompetitionTables = {
+  season: number;
+  group: string | null;
+  groups: string[];
+  tables: { total: TableRow[]; home: TableRow[]; away: TableRow[]; first_half: TableRow[]; second_half: TableRow[]; form: TableRow[] } | null;
+  expected?: ExpectedRow[];
+  history?: { matchdays: number[]; positions: Record<number, (number | null)[]> };
+  teams?: Record<number, Team>;
+};
+export type TeamRanking = {
+  team_id: number;
+  matches: number;
+  shots: number | null;
+  shots_on: number | null;
+  xg: number | null;
+  possession: number | null;
+  goals: number | null;
+  conceded: number | null;
+  shots_against: number | null;
+  conversion: number | null;
+};
+export type CompetitionStats = {
+  season: number;
+  figures: LeagueFigures | null;
+  history: (LeagueFigures & { season: number })[];
+  segments: { label: string; goals: number; matches: number }[];
+  halves: { first: number; second: number; matches: number } | null;
+  events: { matches: number; penalties_scored: number; penalties_missed: number; own_goals: number; red_cards: number };
+  per_match: Record<string, number | null>;
+  teams_ranked: TeamRanking[];
+  teams: Record<number, Team>;
+};
+export type RankedPlayer = { player_id: number; name: string; team_id: number; value: number } & Record<string, number | string | null>;
+export type CompetitionPlayers = {
+  season: number;
+  rankings: Partial<Record<"goals" | "assists" | "points" | "goals_per_90" | "points_per_90" | "rating" | "cards", RankedPlayer[]>> & { min_minutes?: number };
+  teams: Record<number, Team>;
+};

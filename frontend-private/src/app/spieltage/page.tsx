@@ -113,7 +113,8 @@ export default async function MatchdaysPage({ searchParams }: { searchParams: Pr
                 <div key={l.id}>
                   {leagues.length > 1 && (
                     <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      <Logo src={leagueLogo(l.id)} alt={l.name} size={16} />{l.name}
+                      <Logo src={leagueLogo(l.id)} alt={l.name} size={16} />
+                      <Link href={`/wettbewerb/${l.id}`} className="hover:text-slate-900 hover:underline">{l.name}</Link>
                     </div>
                   )}
                   <div className="divide-y divide-slate-100">

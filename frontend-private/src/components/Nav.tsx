@@ -60,7 +60,7 @@ function LeagueMenu({ leagues }: { leagues: { id: number; name: string; country?
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const params = useSearchParams();
-  const active = pathname.startsWith("/spieltage") ? params.get("liga") : null;
+  const active = pathname.startsWith("/wettbewerb/") ? pathname.split("/")[2] : pathname.startsWith("/spieltage") ? params.get("liga") : null;
   const current = leagues.find((l) => String(l.id) === active);
 
   useEffect(() => setOpen(false), [pathname, params]);
@@ -109,7 +109,7 @@ function LeagueMenu({ leagues }: { leagues: { id: number; name: string; country?
           {leagues.map((l) => (
             <Link
               key={l.id}
-              href={`/spieltage?liga=${l.id}`}
+              href={`/wettbewerb/${l.id}`}
               className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50 ${String(l.id) === active ? "bg-slate-100 font-semibold text-slate-900" : "text-slate-700"}`}
             >
               <Logo src={leagueLogo(l.id)} alt={l.name} size={20} />
