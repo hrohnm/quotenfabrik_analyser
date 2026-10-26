@@ -14,11 +14,8 @@ export function TeamHeader({ data }: { data: TeamOverview }) {
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="relative">
         {venue && (
-          <div className="absolute inset-0 opacity-15">
-            {/* stadium image as a soft background (falls back to plain white without image) */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={venue.image} alt="" className="h-full w-full object-cover" />
-          </div>
+          // stadium image as a soft background (plain white if it cannot be loaded)
+          <div className="absolute inset-0 bg-cover bg-center opacity-15" style={{ backgroundImage: `url(${venue.image})` }} aria-hidden />
         )}
         <div className="relative flex flex-col gap-4 px-5 py-6 sm:flex-row sm:items-center sm:gap-6 sm:px-6">
           <TeamLogo team={team} size={72} />

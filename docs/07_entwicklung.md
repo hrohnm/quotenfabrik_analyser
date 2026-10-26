@@ -111,6 +111,10 @@ Installation: `docs/13_deployment_vps.md`):
 | `GET /api/stats/overview|markets|confidence|calibration|seasons|scorers` | Trefferquoten und Kalibrierung |
 | `GET /api/stats/picks?profile&season` | Trefferquote der 3 Tipps pro Spiel (einzeln, Kombi, je Saison/Rang/Markt) |
 | `GET /api/combos?date=YYYY-MM-DD` | Tageskombis eines Tages mit echten Betano-Quoten, sonst geschätzt (Einstellungen „Tageskombis“: Zielquote, Wahrscheinlichkeitsfenster, Marge, max. Tipps); fixierte Tage aus `analytics.day_combos` (`frozen_at`, Ergebnis je Tipp aktuell), sonst berechnet (`frozen_at` = null) |
+| `GET /api/teams/{id}?season=` | Teamseite, Kopf: Wettbewerbe der Saison mit Tabellenplatz, Stadion (Bild), Trainer (Foto), Form, Kennzahlen, Serien, Punkte gegen die Modell-Erwartung; ohne `season` die aktuelle |
+| `GET /api/teams/{id}/stats?season=&competition=` | Heim/Auswärts-Kennzahlen, Tore nach Spielminute, Serien, Spielstatistik pro Spiel gegen den Ligaschnitt, Punkte gegen die Modell-Erwartung |
+| `GET /api/teams/{id}/squad?season=` | Kader der Saison (alle Wettbewerbe mit Spielerdaten): Einsätze, Minuten, Tore, Vorlagen, Karten, Note, Rückennummer, Ausfall-Status; häufigste Startelf und Rotation |
+| `GET /api/search?q=` | Suche nach Mannschaften der angezeigten Wettbewerbe (Kopfzeile) |
 | `GET /api/fixtures/{id}/league` | Liga-Details der Saison des Spiels: Tabelle (gesamt, Heim, Auswärts, Stand vor dem Spiel; Pokale: Liga- bzw. Gruppenphase), Torjäger, Vorlagen, Torschützen beider Teams, Ligazahlen |
 | `GET /api/bets[?all=true]`, `POST /api/bets`, `PATCH` / `DELETE /api/bets/{id}` | Wetten des aktuellen Auswertungszeitraums (`all`: auch frühere; rechnet offene Wetten vorher ab) mit Auswertung und Bankroll / erfassen / Status, Einsatz, Quote, Auszahlung (`payout`, `payout_auto`) korrigieren / löschen |
 | `POST /api/bankroll`, `DELETE /api/bankroll/{id}`, `POST /api/bets/reset` | Bankroll-Buchung (Startkapital, Einzahlung, Auszahlung) / löschen / Auswertung zurücksetzen (neuer Zeitraum, optional Startkapital und alte Wetten löschen) |
