@@ -1,4 +1,5 @@
 import { Card, TeamLogo } from "@/components/ui";
+import { TeamLink } from "@/components/TeamLink";
 import { dateShort } from "@/lib/format";
 import type { Absence, FixtureDetail, LineupPlayer, Team, TeamLineup } from "@/lib/types";
 
@@ -169,7 +170,7 @@ function AbsenceList({ missing }: { missing: Absence[] }) {
 function TeamCard({ team, lineup, predicted }: { team: Team; lineup: TeamLineup; predicted: boolean }) {
   const replaced = lineup.start.filter((p) => p.replaces);
   return (
-    <Card title={<span className="flex items-center gap-2"><TeamLogo team={team} size={18} />{team.name}{lineup.formation && <span className="font-normal text-slate-400">{lineup.formation}</span>}</span>}>
+    <Card title={<span className="flex items-center gap-2"><TeamLogo team={team} size={18} /><TeamLink id={team.id}>{team.name}</TeamLink>{lineup.formation && <span className="font-normal text-slate-400">{lineup.formation}</span>}</span>}>
       <div className="space-y-4 text-sm">
         {lineup.coach && <p className="text-xs text-slate-500">Trainer: <span className="text-slate-800">{lineup.coach}</span></p>}
         {predicted && lineup.basis && (

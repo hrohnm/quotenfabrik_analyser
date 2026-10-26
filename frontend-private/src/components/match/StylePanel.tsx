@@ -1,4 +1,5 @@
 import { Card, TeamLogo } from "@/components/ui";
+import { TeamLink } from "@/components/TeamLink";
 import { num, pct } from "@/lib/format";
 import type { FixtureDetail, StyleMetric, Team, TeamStyle } from "@/lib/types";
 
@@ -91,7 +92,7 @@ export function StylePanel({ data }: { data: FixtureDetail }) {
 
 function Labels({ team, style }: { team: Team; style: TeamStyle | null }) {
   return (
-    <Card title={<span className="flex items-center gap-2"><TeamLogo team={team} size={18} />{team.name}</span>}>
+    <Card title={<span className="flex items-center gap-2"><TeamLogo team={team} size={18} /><TeamLink id={team.id}>{team.name}</TeamLink></span>}>
       {!style ? (
         <p className="text-sm text-slate-500">Zu wenige Spiele mit Statistik.</p>
       ) : style.labels.length ? (

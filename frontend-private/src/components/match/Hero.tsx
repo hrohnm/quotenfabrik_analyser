@@ -1,4 +1,5 @@
 import { Logo } from "@/components/Logo";
+import { TeamLink } from "@/components/TeamLink";
 import { SourceBadge, TeamLogo } from "@/components/ui";
 import { dateLong, seasonLabel, time } from "@/lib/format";
 import { leagueLogo } from "@/lib/media";
@@ -64,8 +65,8 @@ function TeamSide({ team, goals, align }: { team: Team; goals: Goal[]; align: "s
   return (
     <div className={`flex flex-col items-center gap-2 text-center ${right ? "sm:items-end sm:text-right" : "sm:items-start sm:text-left"}`}>
       <div className={`flex flex-col items-center gap-2 sm:flex-row ${right ? "sm:flex-row-reverse" : ""}`}>
-        <TeamLogo team={team} size={64} />
-        <span className="text-base font-semibold leading-tight sm:text-xl">{team.name}</span>
+        <TeamLink id={team.id}><TeamLogo team={team} size={64} /></TeamLink>
+        <TeamLink id={team.id} className="text-base font-semibold leading-tight sm:text-xl">{team.name}</TeamLink>
       </div>
       {goals.length > 0 && (
         <ul className="space-y-0.5 text-xs text-slate-600">

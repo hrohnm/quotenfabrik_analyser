@@ -35,6 +35,7 @@ export function Logo({ src, alt, size = 24, shape = "square", className = "" }: 
       width={size}
       height={size}
       onError={() => setFailed(true)}
+      unoptimized={src.endsWith(".svg")}
       className={`shrink-0 object-contain ${shape === "round" ? "rounded-full bg-slate-100 object-cover" : ""} ${className}`}
       style={{ width: size, height: size }}
     />

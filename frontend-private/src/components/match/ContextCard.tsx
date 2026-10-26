@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TeamLink } from "@/components/TeamLink";
 import { Logo } from "@/components/Logo";
 import { Card, TeamLogo } from "@/components/ui";
 import { dateShort } from "@/lib/format";
@@ -32,7 +33,7 @@ function TeamColumn({ team, ctx }: { team: Team; ctx: TeamContext }) {
   const doubtful = ctx.absences.filter((a) => a.type === "doubtful");
   return (
     <div className="min-w-0 space-y-3">
-      <div className="flex items-center gap-2 font-medium"><TeamLogo team={team} size={18} />{team.name}</div>
+      <div className="flex items-center gap-2 font-medium"><TeamLogo team={team} size={18} /><TeamLink id={team.id}>{team.name}</TeamLink></div>
       <div className="space-y-1.5 text-sm">
         <MatchRow label="Zuletzt" m={ctx.prev} />
         <MatchRow label="Danach" m={ctx.next} />
