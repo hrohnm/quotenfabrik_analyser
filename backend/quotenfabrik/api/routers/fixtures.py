@@ -10,7 +10,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from quotenfabrik import app_config
-from quotenfabrik.analytics import bookmaker_odds, form, lineups, pick_explain, preview, style
+from quotenfabrik.analytics import availability, bookmaker_odds, form, lineups, pick_explain, preview, style
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.picks import default_profile, profiles
 from quotenfabrik.api.data import chosen_runs_cte, df, model_data, style_data, team_names
@@ -403,6 +403,7 @@ def fixture_detail(fixture_id: int) -> dict:
         "goals": _goals(fixture_id),
         "events": _events(fixture_id, fixture),
         "lineups": _lineups(fixture_id, r, fixture),
+        "context": _context(fixture_id, r),
     }
     detail["preview"] = preview.build(detail, default_profile())
     return detail
@@ -476,6 +477,52 @@ def _stats(fixture_id: int, fixture: dict) -> dict:
         side = "home" if r["team_id"] == fixture["home"]["id"] else "away"
         out[side][r["period"]] = {k: _clean(float(v) if v is not None and k in ("xg", "possession") else v)
                                   for k, v in r.items() if k not in ("fixture_id", "team_id", "period")}  # fmt: skip
+    return out
+
+
+def _context(fixture_id: int, r) -> dict:
+    """Schedule (previous / next match of both teams, all competitions) and reported absences with the role of
+    the players in their team's last matches – facts for the match preview, not used by the model
+    (``docs/22_ausfaelle_und_belastung.md``)."""
+    teams = {"home": int(r.home_team_id), "away": int(r.away_team_id)}
+    kickoff = pd.Timestamp(r.kickoff_utc)
+    schedule = df(
+        """select f.id as fixture_id, f.kickoff_utc as kickoff, f.league_id, l.name as league,
+                  f.home_team_id as home_id, f.away_team_id as away_id, h.name as home, a.name as away,
+                  f.ft_home as hg, f.ft_away as ag
+           from core.fixtures f
+           join core.leagues l on l.id = f.league_id
+           join core.teams h on h.id = f.home_team_id join core.teams a on a.id = f.away_team_id
+           where (f.home_team_id = any(:teams) or f.away_team_id = any(:teams)) and f.id <> :id
+             and f.kickoff_utc between :k - interval '30 days' and :k + interval '30 days'
+             and f.status <> all(:skip)""",
+        teams=list(teams.values()), id=fixture_id, k=kickoff, skip=list(availability.NOT_PLAYED),
+    )  # fmt: skip
+    schedule["kickoff"] = pd.to_datetime(schedule["kickoff"], utc=True)
+    schedule["cup"] = schedule["league_id"].isin([lg.id for lg in app_config.cup_leagues()])
+    players = df(
+        """select s.fixture_id, f.kickoff_utc as kickoff, s.team_id, s.player_id, s.is_starter,
+                  coalesce(s.goals, 0) + coalesce(s.assists, 0) as ga, s.position
+           from core.fixture_player_stats s join core.fixtures f on f.id = s.fixture_id
+           where s.team_id = any(:teams) and s.is_starter is not null
+             and f.kickoff_utc < :k and f.kickoff_utc > :k - interval '180 days'
+           order by f.kickoff_utc""",
+        teams=list(teams.values()), k=kickoff,
+    )  # fmt: skip
+    players["kickoff"] = pd.to_datetime(players["kickoff"], utc=True)
+    absences = df(
+        """select i.team_id, i.player_id, i.player_name, i.type, i.reason, p.name
+           from core.injuries i left join core.players p on p.id = i.player_id where i.fixture_id = :id""",
+        id=fixture_id,
+    )
+    names = {int(a.player_id): a.name for a in absences.itertuples() if isinstance(a.name, str)}
+    out = {}
+    for scope, team in teams.items():
+        roles = availability.roles_before(players, team, kickoff)
+        out[scope] = {
+            **availability.neighbour_matches(schedule, team, kickoff),
+            "absences": availability.missing_players(roles, absences[absences["team_id"] == team], names),
+        }
     return out
 
 

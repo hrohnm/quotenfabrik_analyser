@@ -141,6 +141,8 @@ export type FixtureDetail = {
   /** match events for the timeline (goals with the score after them, cards, substitutions, VAR) */
   events?: MatchEvent[];
   lineups?: Lineups | null;
+  /** schedule and absences (facts, not used by the model) */
+  context?: { home: TeamContext; away: TeamContext };
   /** last matches in all competitions before kickoff and the form (points above/below the model's expectation) */
   form?: Record<"home" | "away", TeamForm>;
   /** playing style before kickoff, ranked against the teams of the competition (null: too few matches with statistics) */
@@ -389,3 +391,28 @@ export type LeagueOverview = {
     nil_nil: number;
   } | null;
 };
+
+export type NeighbourMatch = {
+  fixture_id: number;
+  kickoff: string;
+  days: number;
+  league_id: number;
+  league: string;
+  cup: boolean;
+  home: boolean;
+  opponent: string;
+  /** own goals first (previous match only) */
+  score: [number, number] | null;
+};
+export type ContextAbsence = {
+  player_id: number;
+  name: string | null;
+  type: "missing" | "doubtful";
+  reason: string | null;
+  reason_label: string;
+  position: string | null;
+  start_share: number;
+  attack_share: number;
+  regular: boolean;
+};
+export type TeamContext = { prev: NeighbourMatch | null; next: NeighbourMatch | null; absences: ContextAbsence[] };

@@ -125,6 +125,57 @@ def _form_text(name: str, form: dict | None) -> str | None:
     return text + "."
 
 
+def _competition(name: str) -> str:
+    return name.replace("UEFA ", "").replace("Europa Conference League", "Conference League")
+
+
+def _team_context(team: str, c: dict) -> list[str]:
+    """Schedule and absences of one team (facts, not used by the model)."""
+    out = []
+    prev, nxt = c.get("prev"), c.get("next")
+    if prev and prev["cup"] and prev["days"] <= 4.5:
+        where = "gegen" if prev["home"] else "bei"
+        score = f"{prev['score'][0]}:{prev['score'][1]} " if prev.get("score") else ""
+        out.append(f"{team} kommt nach {round(prev['days'])} Tagen Pause aus der {_competition(prev['league'])} "
+                   f"({score}{where} {prev['opponent']}).")  # fmt: skip
+    elif prev and prev["days"] <= 3.5:
+        out.append(f"{team} hatte nur {round(prev['days'])} Tage Pause.")
+    if nxt and nxt["cup"] and nxt["days"] <= 4.5:
+        where = "gegen" if nxt["home"] else "bei"
+        out.append(f"{team} spielt in {round(nxt['days'])} Tagen {_competition(nxt['league'])} {where} "
+                   f"{nxt['opponent']} – Rotation möglich.")  # fmt: skip
+    absences = c.get("absences") or []
+    regulars = [a for a in absences if a["type"] == "missing" and a["regular"]]
+    others = [a for a in absences if a["type"] == "missing" and not a["regular"]]
+    doubtful = [a for a in absences if a["type"] == "doubtful" and a["regular"]]
+    if regulars:
+        names = ", ".join(f"{a['name']} ({a['reason_label']})" for a in regulars)
+        text = f"Bei {team} fehlen {len(regulars)} Stammspieler: {names}" if len(regulars) > 1 else (
+            f"Bei {team} fehlt Stammspieler {names}")  # fmt: skip
+        share = sum(a["attack_share"] for a in regulars)
+        if share >= 0.2:
+            text += f" – zusammen {_pct(share)} der Tore und Vorlagen der letzten 10 Spiele"
+        if others:
+            text += f"; dazu {len(others)} weitere{'r' if len(others) == 1 else ''} Spieler"
+        out.append(text + ".")
+    elif others:
+        out.append(f"Bei {team} fehlen {len(others)} Spieler, aber kein Stammspieler." if len(others) > 1 else
+                   f"Bei {team} fehlt {others[0]['name']}, kein Stammspieler.")  # fmt: skip
+    if doubtful:
+        out.append(f"Fraglich bei {team}: {', '.join(a['name'] for a in doubtful)}.")
+    return out
+
+
+def _context_text(home: str, away: str, context: dict | None) -> str | None:
+    if not context:
+        return None
+    lines = _team_context(home, context.get("home") or {}) + _team_context(away, context.get("away") or {})
+    if not lines:
+        return None
+    return " ".join(lines) + (" Im Backtest verändern Termine und Ausfälle die Ergebnisse kaum gegenüber dem "
+                              "Modell (docs/22) – ein Hinweis, kein Wettsignal.")  # fmt: skip
+
+
 def _style_text(home: str, away: str, style: dict | None) -> str | None:
     if not style:
         return None
@@ -334,6 +385,7 @@ def build(detail: dict, profile: str) -> dict | None:
     if form_lines:
         sections.append({"title": "Ausgangslage", "text": " ".join(form_lines)})
     for title, text in (
+        ("Termine & Personal", _context_text(home, away, detail.get("context"))),
         ("Spielstil", _style_text(home, away, detail.get("style"))),
         ("Auffällig", _patterns_text(detail.get("patterns") or [])),
         ("Spielverlauf", _flow_text(m, home, away, ph, pa)),

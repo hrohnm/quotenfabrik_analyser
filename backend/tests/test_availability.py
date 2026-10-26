@@ -56,3 +56,32 @@ def test_correction_recovers_a_known_effect():
     rows = pd.DataFrame({"goals": goals, "lam": lam, "own_a": x, "opp_a": 0.0})
     beta = fit_correction(rows, ["a"])
     assert abs(beta[0] + 0.2) < 0.03 and abs(beta[1]) < 0.01
+
+
+def test_neighbour_matches_and_missing_players():
+    from quotenfabrik.analytics.availability import missing_players, neighbour_matches, roles_before
+
+    schedule = pd.DataFrame([
+        {"fixture_id": 1, "kickoff": T("2026-10-07 19:00"), "league_id": 2, "league": "UEFA Champions League",
+         "cup": True, "home_id": 8, "away_id": 7, "home": "Viking", "away": "Bayern", "hg": 3, "ag": 1},
+        {"fixture_id": 3, "kickoff": T("2026-10-14 19:00"), "league_id": 2, "league": "UEFA Champions League",
+         "cup": True, "home_id": 7, "away_id": 9, "home": "Bayern", "away": "Arsenal", "hg": None, "ag": None},
+    ])  # fmt: skip
+    ctx = neighbour_matches(schedule, 7, T("2026-10-10 15:30"))
+    assert ctx["prev"]["score"] == [1, 3] and not ctx["prev"]["home"] and ctx["prev"]["opponent"] == "Viking"
+    assert ctx["next"]["days"] == 4.1 and ctx["next"]["home"] and ctx["next"]["score"] is None
+
+    roles = roles_before(_players(), 7, T("2026-09-29"))
+    absences = pd.DataFrame([
+        {"player_id": 10, "player_name": "P10", "type": "Missing Fixture", "reason": "Knock"},
+        {"player_id": 9, "player_name": "P9", "type": "Missing Fixture", "reason": "Knee Injury"},
+        {"player_id": 1, "player_name": "P1", "type": "Questionable", "reason": None},
+    ])  # fmt: skip
+    out = missing_players(roles, absences, {9: "Stürmer Neun"})
+    assert [p["player_id"] for p in out] == [9, 10, 1]  # missing regulars first, doubtful last
+    assert (
+        out[0]["name"] == "Stürmer Neun" and out[0]["regular"] and out[0]["reason_label"] == "Knieverletzung"
+    )
+    assert (
+        not out[1]["regular"] and out[2]["type"] == "doubtful" and out[2]["reason_label"] == "Grund unbekannt"
+    )

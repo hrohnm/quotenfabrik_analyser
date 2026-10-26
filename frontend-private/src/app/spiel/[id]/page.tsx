@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ApiError, api, getFixture, getMeta } from "@/lib/api";
 import { Hero } from "@/components/match/Hero";
 import { MatchTabs } from "@/components/match/MatchTabs";
+import { ContextCard } from "@/components/match/ContextCard";
 import { PreviewCard } from "@/components/match/PreviewCard";
 import { Summary } from "@/components/match/Summary";
 import { PicksCard } from "@/components/picks/PicksCard";
@@ -37,6 +38,7 @@ export default async function FixturePage({ params }: { params: Promise<{ id: st
         </p>
       )}
       {data.preview && <PreviewCard preview={data.preview} />}
+      <ContextCard data={data} />
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Auf einen Blick</h2>
         {meta?.pick_profiles?.length ? (
