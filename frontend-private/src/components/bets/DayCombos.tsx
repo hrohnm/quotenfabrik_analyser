@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { dayMonth, odd, pct, signedPct, time } from "@/lib/format";
+import { berlinToday, dateShort, dayMonth, odd, pct, signedPct, time } from "@/lib/format";
 import type { DayCombo } from "@/lib/types";
 import { Card, OutcomeBadge, TeamLogo } from "@/components/ui";
 import { Logo } from "@/components/Logo";
@@ -57,6 +57,7 @@ export function DayCombos({ day }: { day: string }) {
       </div>
       {error && <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
       {!combos && !error && <Card><p className="text-sm text-slate-400">Kombis werden berechnet …</p></Card>}
+      {combos && combos.length > 0 && <FreezeNote combos={combos} day={day} />}
       {combos && combos.length === 0 && (
         <Card><p className="text-sm text-slate-500">An diesem Tag gibt es nicht genug passende Tipps für eine Kombi mit Quote 5–10.</p></Card>
       )}
@@ -107,5 +108,27 @@ export function DayCombos({ day }: { day: string }) {
       )}
       {draft && <BetDialog draft={draft} onClose={() => setDraft(null)} />}
     </section>
+  );
+}
+
+/** Whether the combos are fixed (stored by the morning job) or still computed from the latest forecast. */
+function FreezeNote({ combos, day }: { combos: DayCombo[]; day: string }) {
+  const frozen = combos[0].frozen_at;
+  if (frozen) {
+    return (
+      <p className="flex items-center gap-2 text-xs text-slate-500">
+        <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800">Fixiert</span>
+        am {dateShort(frozen)} um {time(frozen)} Uhr gespeichert – spätere Prognosen ändern diese Kombis nicht mehr.
+      </p>
+    );
+  }
+  const today = berlinToday();
+  return (
+    <p className="flex items-center gap-2 text-xs text-slate-500">
+      <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">{day >= today ? "Vorläufig" : "Rückwirkend"}</span>
+      {day >= today
+        ? "aus der aktuellen Prognose; die Kombis werden am Spieltag mit der Morgen-Prognose fixiert (danach unverändert)."
+        : "für diesen Tag wurden keine Kombis fixiert – berechnet aus den gespeicherten Prognosen (Backtest)."}
+    </p>
   );
 }

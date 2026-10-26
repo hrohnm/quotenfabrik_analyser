@@ -139,6 +139,7 @@ qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebn
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
 qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md
 qf picks build && qf picks report             # 3 Tipps pro Spiel speichern / Trefferquote → docs/12_tipps.md
+qf picks freeze                               # Tipps + Tageskombis des Tages fixieren (Cron nach der Prognose)
 qf combos report                              # Tageskombis im Backtest → docs/16_tageskombis.md
 qf seed import                                # Datenbank aus seed/quotenfabrik_seed.dump (statt API-Abruf)
 qf backup                                     # Backup nach backups/ (auch automatisch nach Liga-Import)
@@ -162,13 +163,16 @@ pytest && ruff check . && ruff format --check .
   (`betano_value.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`), Tageskombis (`combos.py`),
   Form und letzte Spiele aller Wettbewerbe (`form.py`), Spielstil-Profile (`style.py`, Nachweis `style_eval.py`),
   Einschätzung in Textform je Spiel (`preview.py`, regelbasiert aus den Detaildaten),
-  voraussichtliche Startelf bis zur bestätigten Aufstellung (`lineups.py`, Nachweis `docs/21_aufstellung.md`)
+  voraussichtliche Startelf bis zur bestätigten Aufstellung (`lineups.py`, Nachweis `docs/21_aufstellung.md`),
+  Erklärung je Tipp (`pick_explain.py`), Tabelle/Torjäger/Ligazahlen (`league_table.py`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
+- `quotenfabrik/day_freeze.py` – fixiert Tipps und Tageskombis eines Tages (`analytics.frozen_runs`, `analytics.day_combos`);
+  der fixierte Lauf hat in `api.data.CHOSEN_RUNS_SQL` Vorrang vor neueren Prognosen
 - `quotenfabrik/bets.py` – Wett-Tracking (`app.bets`, `app.bet_legs`): Abrechnung aus Ergebnissen, Auswertung
 - `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)
 - `quotenfabrik/pipeline.py` – Import-Schritte je Liga (CLI und Jobs); `jobs.py` – Hintergrund-Jobs (`app.jobs`,
   Prozess `qf jobs run <id>`); `backup.py` – Backups; `reports.py` – Berichtspfade je Liga
-- `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, explorer, stats, admin = Einstellungsseite), Labels in `api/labels.py`
+- `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, league, explorer, stats, bets, admin = Einstellungsseite), Labels in `api/labels.py`
 - `frontend-private/` – Next.js App Router (`src/app/spieltage`, `tipps`, `wetten`, `spiel/[id]`, `explorer`, `auswertung`, `einstellungen`)
 - `.devcontainer/` – GitHub Codespaces: App-Container + PostgreSQL, Seed beim ersten Start, startet API und Frontend
 - `docker-compose.yml` + `docker/` – kompletter Server-Stack (db mit Seed, api, cron, frontend, caddy mit HTTPS und Passwort),

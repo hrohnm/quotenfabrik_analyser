@@ -23,16 +23,19 @@ def df(sql: str, **params) -> pd.DataFrame:
         return pd.read_sql(text(sql), conn, params=params)
 
 
-# Chosen prediction run per fixture: the latest forecast made before kickoff, otherwise the backtest.
+# Chosen prediction run per fixture: the frozen run of the day (``qf picks freeze``), otherwise the latest
+# forecast made before kickoff, otherwise the backtest.
 CHOSEN_RUNS_SQL = """
     select distinct on (p.fixture_id) p.fixture_id, p.model_run_id, r.kind,
            coalesce(p.predicted_at, r.as_of) as predicted_at
     from analytics.predictions p
     join analytics.model_runs r on r.id = p.model_run_id
     join core.fixtures f on f.id = p.fixture_id
+    left join analytics.frozen_runs z on z.fixture_id = p.fixture_id
     where r.kind in ('forecast', 'backtest') and p.market = '1x2' and p.selection = 'H'
       and (r.kind = 'backtest' or coalesce(p.predicted_at, r.as_of) <= f.kickoff_utc) {where}
-    order by p.fixture_id, (r.kind = 'forecast') desc, r.id desc
+    order by p.fixture_id, (p.model_run_id = z.model_run_id) is true desc, (r.kind = 'forecast') desc,
+             r.id desc
 """
 
 

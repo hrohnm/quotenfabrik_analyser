@@ -35,6 +35,8 @@ export type Pick = BookPrices & {
   base_rate: number | null;
   outcome: boolean | null;
   reasons: PickReason[];
+  /** generated explanation: why this pick, why the model considers it likely */
+  explain?: { why: string[]; likely: string[] };
 };
 
 export type PickProfile = { key: string; label: string; min_p: number; max_p: number; default: boolean };
@@ -186,6 +188,8 @@ export type DayCombo = {
   probability: number;
   outcome: boolean | null;
   legs: ComboLeg[];
+  /** time the combos of the day were frozen (morning job); null = computed now (provisional or backtest) */
+  frozen_at: string | null;
 };
 
 export type BetSource = "tageskombi" | "tipps" | "manuell";
@@ -347,3 +351,41 @@ export type TeamLineup = {
   basis?: { fixture_id: number; kickoff: string; opponent: string | null; home: boolean } | null;
 };
 export type Lineups = { status: "confirmed" | "predicted"; home: TeamLineup; away: TeamLineup };
+
+export type TableRow = {
+  rank: number;
+  team_id: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  gf: number;
+  ga: number;
+  gd: number;
+  points: number;
+  /** last results, oldest first: S / U / N */
+  form: string;
+};
+export type LeaguePlayer = { rank: number; player_id: number; name: string; team_id: number; goals: number; assists: number; penalties?: number };
+export type LeagueOverview = {
+  league: { id: number; name: string; logo: string } | null;
+  season: number;
+  group: string | null;
+  teams: Record<number, Team>;
+  home_id: number;
+  away_id: number;
+  table: { total: TableRow[]; home: TableRow[]; away: TableRow[]; before: TableRow[] } | null;
+  scorers: LeaguePlayer[];
+  assists: LeaguePlayer[];
+  team_scorers: { home: LeaguePlayer[]; away: LeaguePlayer[] };
+  figures: {
+    matches: number;
+    goals_per_match: number;
+    home_win: number;
+    draw: number;
+    away_win: number;
+    over_2_5: number;
+    btts: number;
+    nil_nil: number;
+  } | null;
+};

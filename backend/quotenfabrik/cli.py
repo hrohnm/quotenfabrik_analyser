@@ -628,6 +628,21 @@ def picks_build(
         typer.echo(f"Liga {league_id}: {build_picks(get_engine(), league_id)}")
 
 
+@picks_app.command("freeze")
+def picks_freeze(
+    day: str | None = typer.Option(None, "--date", help="Tag (JJJJ-MM-TT), Standard: heute (Berlin)"),
+) -> None:
+    """Tipps und Tageskombis des Tages fixieren (Cron nach der Morgen-Prognose): spätere Prognosen ändern sie
+    nicht mehr. Wiederholte Aufrufe fixieren nur neu hinzugekommene Spiele."""
+    from datetime import date as date_
+
+    from quotenfabrik import day_freeze
+
+    target = date_.fromisoformat(day) if day else day_freeze.today()
+    result = day_freeze.freeze_day(get_engine(), target)
+    typer.echo(f"{target}: {result['fixtures']} Spiele fixiert, {result['combos']} Tageskombis gespeichert")
+
+
 @picks_app.command("report")
 def picks_report(
     league: int | None = typer.Option(None),
