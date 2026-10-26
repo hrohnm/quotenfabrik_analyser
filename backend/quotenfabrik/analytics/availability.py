@@ -63,7 +63,7 @@ def schedule_features(schedule: pd.DataFrame) -> pd.DataFrame:
     s["short_rest"] = (s["rest_days"] <= 3.5).astype(float)
     counts = []
     for _, t in s.groupby("team_id", sort=False):
-        k = t["kickoff"].to_numpy()
+        k = t["kickoff"].dt.tz_convert(None).to_numpy()
         lo = np.searchsorted(k, k - np.timedelta64(14, "D"), side="left")
         counts.append(pd.Series(np.arange(len(k)) - lo, index=t.index))
     s["games_14d"] = pd.concat(counts).clip(upper=5).astype(float)
