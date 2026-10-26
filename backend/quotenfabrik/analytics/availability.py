@@ -155,3 +155,88 @@ def availability_features(
                 row["rotated"] = float(regular.loc[~regular.index.isin(xi_players), "start_share"].sum())
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+# --------------------------------------------------------------------------- context of one fixture (display)
+
+REGULAR = 0.5  # start share from which a player counts as regular starter
+
+REASONS = {
+    "Knee Injury": "Knieverletzung", "Muscle Injury": "Muskelverletzung",
+    "Ankle Injury": "Sprunggelenksverletzung",
+    "Injury": "Verletzung", "Illness": "Krankheit", "Thigh Injury": "Oberschenkelverletzung",
+    "Groin Injury": "Leistenverletzung", "Yellow Cards": "Gelbsperre", "Calf Injury": "Wadenverletzung",
+    "Shoulder Injury": "Schulterverletzung", "Hip Injury": "Hüftverletzung", "Red Card": "Rotsperre",
+    "Foot Injury": "Fußverletzung", "Achilles Tendon Injury": "Achillessehnenverletzung",
+    "Back Injury": "Rückenverletzung", "Leg Injury": "Beinverletzung", "Knock": "Prellung",
+    "Lacking Match Fitness": "fehlende Spielpraxis", "Jumpers knee": "Patellasehne",
+    "National selection": "Nationalmannschaft", "Tendon Injury": "Sehnenverletzung",
+    "Hamstring Injury": "Oberschenkel hinten", "Broken ankle": "Knöchelbruch",
+    "Abdominal strain": "Bauchmuskelzerrung", "Concussion": "Gehirnerschütterung", "Broken Leg": "Beinbruch",
+    "Toe Injury": "Zehenverletzung", "Inactive": "inaktiv", "International duty": "Länderspielreise",
+    "Broken calfbone": "Wadenbeinbruch", "Finger Injury": "Fingerverletzung",
+    "Muscle bruise": "Muskelprellung",
+    "Head Injury": "Kopfverletzung", "Hand Injury": "Handverletzung", "Elbow Injury": "Ellenbogenverletzung",
+    "Suspended": "gesperrt", "Surgery": "Operation", "Stomach Disorder": "Magenprobleme",
+    "Wrist Injury": "Handgelenksverletzung", "Personal Reasons": "persönliche Gründe",
+    "Contusion": "Prellung",
+    "Health problems": "gesundheitliche Probleme", "Broken shinbone": "Schienbeinbruch",
+    "Heart Problems": "Herzprobleme", "Wound": "Wunde",
+}  # fmt: skip
+
+
+def absence_reason(reason: str | None) -> str:
+    if not isinstance(reason, str) or not reason:
+        return "Grund unbekannt"
+    return REASONS.get(reason, reason)
+
+
+def neighbour_matches(schedule: pd.DataFrame, team_id: int, kickoff: pd.Timestamp) -> dict:
+    """Previous and next match of the team (all competitions) with the days in between.
+
+    ``schedule``: fixtures (fixture_id, kickoff, league_id, league, cup, home_id, away_id, home, away, hg,
+    ag)."""
+    t = schedule[(schedule["home_id"] == team_id) | (schedule["away_id"] == team_id)].sort_values("kickoff")
+    out: dict = {"prev": None, "next": None}
+    before, after = t[t["kickoff"] < kickoff].tail(1), t[t["kickoff"] > kickoff].head(1)
+    for key, part in (("prev", before), ("next", after)):
+        if part.empty:
+            continue
+        m = part.iloc[0]
+        home = m["home_id"] == team_id
+        score = None
+        if key == "prev" and pd.notna(m["hg"]) and pd.notna(m["ag"]):
+            score = [int(m["hg"]), int(m["ag"])] if home else [int(m["ag"]), int(m["hg"])]
+        out[key] = {
+            "fixture_id": int(m["fixture_id"]),
+            "kickoff": m["kickoff"].isoformat(),
+            "days": round(abs((kickoff - m["kickoff"]).total_seconds()) / 86400, 1),
+            "league_id": int(m["league_id"]),
+            "league": m["league"],
+            "cup": bool(m["cup"]),
+            "home": bool(home),
+            "opponent": m["away"] if home else m["home"],
+            "score": score,  # own goals first
+        }
+    return out
+
+
+def missing_players(roles: pd.DataFrame, absences: pd.DataFrame, names: dict[int, str]) -> list[dict]:
+    """Reported absences of a team with the player's role (``start_share``, ``attack_share``), regulars
+    first."""
+    out = []
+    for a in absences.itertuples(index=False):
+        role = roles.loc[a.player_id] if a.player_id in roles.index else None
+        fallback = a.player_name if isinstance(a.player_name, str) else None
+        out.append({
+            "player_id": int(a.player_id),
+            "name": names.get(int(a.player_id)) or fallback,
+            "type": "doubtful" if a.type == "Questionable" else "missing",
+            "reason": a.reason if isinstance(a.reason, str) else None,
+            "reason_label": absence_reason(a.reason),
+            "position": None if role is None else role["position"],
+            "start_share": 0.0 if role is None else float(role["start_share"]),
+            "attack_share": 0.0 if role is None else float(role["attack_share"]),
+            "regular": role is not None and float(role["start_share"]) >= REGULAR,
+        })  # fmt: skip
+    return sorted(out, key=lambda p: (p["type"] != "missing", -p["start_share"], -p["attack_share"]))

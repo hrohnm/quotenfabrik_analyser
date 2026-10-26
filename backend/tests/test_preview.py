@@ -66,3 +66,33 @@ def test_no_prediction_no_preview():
     d = detail()
     d["markets"] = []
     assert preview.build(d, "ausgewogen") is None
+
+
+def test_context_section_names_cup_matches_and_missing_regulars():
+    cup = {
+        "cup": True,
+        "league": "UEFA Champions League",
+        "opponent": "Arsenal",
+        "home": True,
+        "score": [2, 1],
+    }
+    context = {
+        "home": {
+            "prev": {**cup, "days": 3.9},
+            "next": {**cup, "days": 3.1, "opponent": "PSG", "home": False, "score": None},
+            "absences": [
+                {"name": "Neuer", "type": "missing", "regular": True, "reason_label": "Fußverletzung", "attack_share": 0.0},
+                {"name": "Kane", "type": "missing", "regular": True, "reason_label": "Prellung", "attack_share": 0.4},
+                {"name": "Reserve", "type": "missing", "regular": False, "reason_label": "Krankheit", "attack_share": 0},
+                {"name": "Olise", "type": "doubtful", "regular": True, "reason_label": "Knock", "attack_share": 0.2},
+            ],
+        },
+        "away": {"prev": {"cup": False, "days": 7.0}, "next": None, "absences": []},
+    }  # fmt: skip
+    text = preview._context_text("Bayern", "Leipzig", context)
+    assert "Bayern kommt nach 4 Tagen Pause aus der Champions League (2:1 gegen Arsenal)" in text
+    assert "spielt in 3 Tagen Champions League bei PSG – Rotation möglich" in text
+    assert "fehlen 2 Stammspieler: Neuer (Fußverletzung), Kane (Prellung) – zusammen 40" in text
+    assert "dazu 1 weiterer Spieler" in text and "Fraglich bei Bayern: Olise" in text
+    assert "Leipzig" not in text  # nothing to report for the away team
+    assert preview._context_text("A", "B", {"home": {"absences": []}, "away": {}}) is None
