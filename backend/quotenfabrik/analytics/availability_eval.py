@@ -40,7 +40,8 @@ def base_lambdas(
                 lh, la = model.lambdas(f.home_id, f.away_id)
                 rows.append({"fixture_id": f.fixture_id, "league_id": league_id, "season": int(season),
                              "kickoff": f.kickoff, "home_id": f.home_id, "away_id": f.away_id,
-                             "hg": int(f.hg), "ag": int(f.ag), "lh": lh, "la": la, "rho": model.rho})  # fmt: skip
+                             "hg": int(f.hg), "ag": int(f.ag), "lh": lh, "la": la,
+                             "rho": model.rho})  # fmt: skip
     return pd.DataFrame(rows)
 
 
@@ -54,7 +55,8 @@ def team_rows(base: pd.DataFrame, features: pd.DataFrame, cols: list[str]) -> pd
     ):  # noqa: E501
         own = f.reindex(pd.MultiIndex.from_arrays([base["fixture_id"], base[team]])).to_numpy()
         other = f.reindex(pd.MultiIndex.from_arrays([base["fixture_id"], base[opp]])).to_numpy()
-        part = pd.DataFrame({"fixture_id": base["fixture_id"].to_numpy(), "side": side, "season": base["season"].to_numpy(),
+        part = pd.DataFrame({"fixture_id": base["fixture_id"].to_numpy(), "side": side,
+                             "season": base["season"].to_numpy(),
                              "goals": base[goals].to_numpy(), "lam": base[lam].to_numpy()})  # fmt: skip
         part[[f"own_{c}" for c in cols]] = np.nan_to_num(own.astype(float))
         part[[f"opp_{c}" for c in cols]] = np.nan_to_num(other.astype(float))
@@ -95,7 +97,8 @@ def adjusted(
         p = joint_eval._probabilities(h, a, f.rho)
         out.append({"fixture_id": f.fixture_id, "league_id": f.league_id, "season": f.season, **p,
                     "result": "H" if f.hg > f.ag else "D" if f.hg == f.ag else "A",
-                    "y_over25": float(f.hg + f.ag > 2.5), "y_btts": float(f.hg > 0 and f.ag > 0)})  # fmt: skip
+                    "y_over25": float(f.hg + f.ag > 2.5),
+                    "y_btts": float(f.hg > 0 and f.ag > 0)})  # fmt: skip
     return pd.DataFrame(out)
 
 
@@ -165,8 +168,9 @@ def situations(base: pd.DataFrame, features: pd.DataFrame) -> pd.DataFrame:
         if g.empty:
             continue
         out.append({"situation": label, "n": len(g), "goals_ratio": g["gf"].sum() / g["xf"].sum(),
-                    "conceded_ratio": g["ga"].sum() / g["xa"].sum(), "pts_diff": float((g["pts"] - g["xpts"]).mean()),
-                    "rotated": float(g["rotated"].mean()) if g["rotated"].notna().any() else None})  # fmt: skip
+                    "conceded_ratio": g["ga"].sum() / g["xa"].sum(),
+                    "pts_diff": float((g["pts"] - g["xpts"]).mean()),
+                    "rotated": g["rotated"].mean() if g["rotated"].notna().any() else None})  # fmt: skip
     return pd.DataFrame(out)
 
 
@@ -185,18 +189,21 @@ def report(result: dict, table: pd.DataFrame, league_names: list[str]) -> str:
     out = [
         "# 22 – Ausfälle, Aufstellung und Belastung",
         "",
-        f"Automatisch erzeugt von `qf model availability-eval` am {datetime.now(UTC):%d.%m.%Y %H:%M} UTC. Ligen: "
-        f"{', '.join(league_names)}. Basis: Produktionsmodell (gemeinsames Modell, Tore + Schüsse), Walk-Forward "
+        f"Automatisch erzeugt von `qf model availability-eval` am {datetime.now(UTC):%d.%m.%Y %H:%M} UTC. "
+        f"Ligen: {', '.join(league_names)}. Basis: Produktionsmodell (gemeinsames Modell, Tore + Schüsse), "
+        "Walk-Forward "
         "je Spieltag.",
         "",
-        "**Frage:** Kennt das Modell zu wenig über den Spieltag? Rotation vor/nach Europapokalspielen, wenige "
+        "**Frage:** Kennt das Modell zu wenig über den Spieltag? Rotation vor/nach Europapokalspielen, "
+        "wenige "
         "Ruhetage, fehlende Stammspieler und eine rotierte Startelf sind ihm bisher unbekannt.",
         "",
         "## Situationen gegen die Modell-Erwartung",
         "",
         "Verhältnis > 1 = mehr als erwartet. Punkte: Ø Differenz zu den erwarteten Punkten je Spiel.",
         "",
-        "| Situation | Spiele | Tore / erwartet | Gegentore / erwartet | Punkte vs. erwartet | Ø rotierte Stammspieler |",
+        "| Situation | Spiele | Tore / erwartet | Gegentore / erwartet | Punkte vs. erwartet "
+        "| Ø rotierte Stammspieler |",
         "|---|---:|---:|---:|---:|---:|",
     ]
     for r in table.itertuples(index=False):
@@ -213,7 +220,8 @@ def report(result: dict, table: pd.DataFrame, league_names: list[str]) -> str:
         b, a = r["base"], r["adjusted"]
         d, lo, hi = r["delta"]
         tr, te = r["seasons"]
-        out.append(f"| {name} | {span(tr)} → {span(te)} | {a['n']} | {_f(b['logloss_1x2'])} → {_f(a['logloss_1x2'])} | "
+        out.append(f"| {name} | {span(tr)} → {span(te)} | {a['n']} | "
+                   f"{_f(b['logloss_1x2'])} → {_f(a['logloss_1x2'])} | "
                    f"{_s(d)} ({_s(lo)} … {_s(hi)}) | {_f(b['logloss_ou25'])} → {_f(a['logloss_ou25'])} | "
                    f"{_f(b['logloss_btts'])} → {_f(a['logloss_btts'])} |")  # fmt: skip
     out += ["", "### Koeffizienten (log-Faktor auf die erwarteten Tore)", ""]
@@ -223,13 +231,16 @@ def report(result: dict, table: pd.DataFrame, league_names: list[str]) -> str:
     out += ["", "## Bewertung", ""]
     for name, r in result.items():
         d, lo, hi = r["delta"]
-        verdict = ("**signifikant besser** (Intervall unter 0) – Kandidat für das Produktionsmodell" if hi < 0 else
+        best = "**signifikant besser** (Intervall unter 0) – Kandidat für das Produktionsmodell"
+        verdict = (best if hi < 0 else
                    "tendenziell besser, aber nicht belastbar" if d < 0 else "kein Gewinn")  # fmt: skip
         out.append(f"- {name}: {verdict}.")
     out += [
-        "- Rotation ist erst mit der bestätigten Aufstellung bekannt (20–40 Minuten vor Anpfiff); nutzbar nur mit "
+        "- Rotation ist erst mit der bestätigten Aufstellung bekannt (20–40 Minuten vor Anpfiff); nutzbar "
+        "nur mit "
         "einer Prognose kurz vor Anpfiff.",
-        "- Nicht abgedeckt: nationale Pokale (DFB-Pokal sind nicht in der Datenbank), Ausfall-Meldungen vor 2021.",
+        "- Nicht abgedeckt: nationale Pokale (DFB-Pokal ist nicht in der Datenbank), Ausfall-Meldungen "
+        "vor 2021.",
         "",
     ]
     return "\n".join(out)

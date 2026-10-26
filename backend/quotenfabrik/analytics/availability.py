@@ -77,7 +77,8 @@ def load_player_roles(engine: Engine) -> pd.DataFrame:
     with engine.connect() as conn:
         p = pd.read_sql(
             text("""select s.fixture_id, f.kickoff_utc as kickoff, s.team_id, s.player_id, s.is_starter,
-                           coalesce(s.minutes, 0) as minutes, coalesce(s.goals, 0) + coalesce(s.assists, 0) as ga,
+                           coalesce(s.minutes, 0) as minutes,
+                           coalesce(s.goals, 0) + coalesce(s.assists, 0) as ga,
                            s.position
                     from core.fixture_player_stats s join core.fixtures f on f.id = s.fixture_id
                     where s.is_starter is not null"""),
@@ -123,7 +124,7 @@ def roles_before(
 def availability_features(
     fixtures: pd.DataFrame, players: pd.DataFrame, absences: pd.DataFrame, xi: pd.DataFrame | None = None
 ) -> pd.DataFrame:
-    """Absence (and, with ``xi``, rotation) features per row of ``fixtures`` (fixture_id, team_id, kickoff)."""
+    """Absence (with ``xi`` also rotation) features per row of ``fixtures`` (fixture_id, team_id, kickoff)."""
     by_team = {t: g for t, g in players.groupby("team_id")}
     absent = {k: g for k, g in absences.groupby(["fixture_id", "team_id"])}
     starters = {
