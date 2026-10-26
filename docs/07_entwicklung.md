@@ -114,6 +114,10 @@ Installation: `docs/13_deployment_vps.md`):
 | `GET /api/teams/{id}?season=` | Teamseite, Kopf: Wettbewerbe der Saison mit Tabellenplatz, Stadion (Bild), Trainer (Foto), Form, Kennzahlen, Serien, Punkte gegen die Modell-Erwartung; ohne `season` die aktuelle |
 | `GET /api/teams/{id}/stats?season=&competition=` | Heim/Auswärts-Kennzahlen, Tore nach Spielminute, Serien, Spielstatistik pro Spiel gegen den Ligaschnitt, Punkte gegen die Modell-Erwartung |
 | `GET /api/teams/{id}/squad?season=` | Kader der Saison (alle Wettbewerbe mit Spielerdaten): Einsätze, Minuten, Tore, Vorlagen, Karten, Note, Rückennummer, Ausfall-Status; häufigste Startelf und Rotation |
+| `GET /api/competitions/{id}?season=` | Wettbewerbsseite: Kopf (Logo, Flagge, Fortschritt der Saison), Tabelle(n) – bei Pokalen Liga-/Gruppenphase und K.-o.-Runden mit Gesamtergebnis –, Ligazahlen |
+| `GET /api/competitions/{id}/table?season=&group=` | Tabelle gesamt, Heim, Auswärts, 1./2. Halbzeit, letzte 5, erwartete Punkte laut Modell, Tabellenplatz je Spieltag |
+| `GET /api/competitions/{id}/stats?season=` | Ligazahlen mit den 3 Vorsaisons, Tore nach Spielminute, Halbzeiten, Karten/Ecken/Fouls pro Spiel, Elfmeter, Eigentore, Teams im Vergleich (Schüsse, xG, Verwertung, …) |
+| `GET /api/competitions/{id}/players?season=` | Spieler-Ranglisten: Tore, Vorlagen, Scorerpunkte, pro 90 Minuten, Note, Karten |
 | `GET /api/search?q=` | Suche nach Mannschaften der angezeigten Wettbewerbe (Kopfzeile) |
 | `GET /api/fixtures/{id}/league` | Liga-Details der Saison des Spiels: Tabelle (gesamt, Heim, Auswärts, Stand vor dem Spiel; Pokale: Liga- bzw. Gruppenphase), Torjäger, Vorlagen, Torschützen beider Teams, Ligazahlen |
 | `GET /api/bets[?all=true]`, `POST /api/bets`, `PATCH` / `DELETE /api/bets/{id}` | Wetten des aktuellen Auswertungszeitraums (`all`: auch frühere; rechnet offene Wetten vorher ab) mit Auswertung und Bankroll / erfassen / Status, Einsatz, Quote, Auszahlung (`payout`, `payout_auto`) korrigieren / löschen |
