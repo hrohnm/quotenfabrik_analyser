@@ -20,36 +20,78 @@ const LINKS = [
 export function Nav() {
   const pathname = usePathname();
   const [leagues, setLeagues] = useState<{ id: number; name: string; country?: string }[]>([]);
+  const [menu, setMenu] = useState(false);
   useEffect(() => { getMeta().then((m) => setLeagues(m.leagues)).catch(() => setLeagues([])); }, []);
+  useEffect(() => setMenu(false), [pathname]);
+  const isActive = (href: string) => pathname.startsWith(href) || (href === "/spieltage" && pathname.startsWith("/spiel/"));
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:gap-8">
         <Link href="/spieltage" className="flex items-center gap-2 font-semibold tracking-tight">
           <span className="grid h-7 w-7 place-items-center rounded-md bg-emerald-600 text-sm font-bold text-white">Q</span>
-          <span className="hidden sm:inline">Quotenfabrik</span>
+          <span>Quotenfabrik</span>
         </Link>
-        <nav className="flex gap-1 overflow-x-auto text-sm">
-          {LINKS.map((l) => {
-            const active = pathname.startsWith(l.href) || (l.href === "/spieltage" && pathname.startsWith("/spiel/"));
-            return (
+        <nav className="hidden gap-1 text-sm lg:flex">
+          {LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 transition ${isActive(l.href) ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+            >
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+        <span className="ml-auto hidden shrink-0 items-center gap-3 text-xs text-slate-400 lg:flex">
+          <SearchBox />
+          {leagues.length > 0 && <Suspense fallback={null}><LeagueMenu leagues={leagues} /></Suspense>}
+          <span className="hidden whitespace-nowrap xl:inline">Modell dc-v1</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => setMenu(!menu)}
+          aria-expanded={menu}
+          aria-label={menu ? "Menü schließen" : "Menü öffnen"}
+          className="ml-auto grid h-9 w-9 place-items-center rounded-md border border-slate-200 bg-white text-slate-700 lg:hidden"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+            {menu ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+          </svg>
+        </button>
+      </div>
+      {menu && (
+        <div className="max-h-[calc(100vh-61px)] overflow-y-auto border-t border-slate-200 bg-white px-4 pb-5 pt-3 shadow-lg lg:hidden">
+          <SearchBox wide />
+          <nav className="mt-3 grid grid-cols-2 gap-1 text-sm">
+            {LINKS.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
-                className={`whitespace-nowrap rounded-md px-3 py-1.5 transition ${
-                  active ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                }`}
+                className={`rounded-md px-3 py-2 ${isActive(l.href) ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
               >
                 {l.label}
               </Link>
-            );
-          })}
-        </nav>
-        <span className="ml-auto flex shrink-0 items-center gap-3 text-xs text-slate-400">
-          <SearchBox />
-          {leagues.length > 0 && <Suspense fallback={null}><LeagueMenu leagues={leagues} /></Suspense>}
-          <span className="hidden whitespace-nowrap lg:inline">Modell dc-v1</span>
-        </span>
-      </div>
+            ))}
+          </nav>
+          {leagues.length > 0 && (
+            <>
+              <div className="mb-1.5 mt-4 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Wettbewerbe</div>
+              <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+                {leagues.map((l) => (
+                  <Link
+                    key={l.id}
+                    href={`/wettbewerb/${l.id}`}
+                    className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${pathname === `/wettbewerb/${l.id}` ? "bg-slate-100 font-semibold" : "hover:bg-slate-50"}`}
+                  >
+                    <Logo src={leagueLogo(l.id)} alt={l.name} size={20} />
+                    <span className="truncate">{l.name}</span>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </header>
   );
 }

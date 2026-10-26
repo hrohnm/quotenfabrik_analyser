@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PlayerLink } from "@/components/PlayerLink";
 import { useEffect, useMemo, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { StandingsTable } from "@/components/StandingsTable";
@@ -493,7 +494,7 @@ function Players({ data }: { data: CompetitionOverview }) {
                         <span className="w-5 text-right text-xs tabular-nums text-slate-400">{i + 1}.</span>
                         <Logo src={playerPhoto(pl.player_id)} alt={pl.name} size={26} shape="round" />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium">{pl.name}</span>
+                          <PlayerLink id={pl.player_id} className="block truncate font-medium">{pl.name}</PlayerLink>
                           <span className="flex items-center gap-1 text-[11px] text-slate-500">
                             {team && <TeamLogo team={team} size={12} />}<span className="truncate">{team?.name}</span><span className="text-slate-400">· {l.detail(pl)}</span>
                           </span>

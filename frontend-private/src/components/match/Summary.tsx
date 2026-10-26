@@ -1,4 +1,5 @@
 import { Logo } from "@/components/Logo";
+import { PlayerLink } from "@/components/PlayerLink";
 import { Card, OutcomeBadge, ProbabilityBar, TeamLogo } from "@/components/ui";
 import { num, odd, pct } from "@/lib/format";
 import { expectedGoals, market, pick, selection } from "@/lib/markets";
@@ -85,7 +86,7 @@ export function Summary({ data }: { data: FixtureDetail }) {
                   <li key={s.player_id} className="flex items-center gap-3">
                     <Logo src={playerPhoto(s.player_id)} alt={s.name ?? String(s.player_id)} size={36} shape="round" />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium">{s.name}</div>
+                      <PlayerLink id={s.player_id} className="block truncate text-sm font-medium">{s.name}</PlayerLink>
                       <div className="flex items-center gap-1 text-xs text-slate-500">
                         {t && <TeamLogo team={t} size={14} />}
                         <span className="truncate">{t?.name}</span>

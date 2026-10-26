@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PlayerLink } from "@/components/PlayerLink";
 import { Logo } from "@/components/Logo";
 import { Card, OutcomeBadge, ProbabilityBar, TeamLogo } from "@/components/ui";
 import { num, odd, pct } from "@/lib/format";
@@ -49,7 +50,7 @@ function TeamScorers({ team, scorers, form, goals, finished }: { team: Team; sco
               <Logo src={playerPhoto(s.player_id)} alt={s.name ?? String(s.player_id)} size={36} shape="round" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 text-sm font-medium">
-                  <span className="truncate">{s.name ?? s.player_id}</span>
+                  <PlayerLink id={s.player_id} className="truncate">{s.name ?? s.player_id}</PlayerLink>
                   {finished && scored > 0 && <span title={`${scored} Tor(e)`} className="text-xs">{"⚽".repeat(Math.min(scored, 3))}</span>}
                 </div>
                 <div className="truncate text-xs text-slate-400">
