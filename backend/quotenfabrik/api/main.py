@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from quotenfabrik.api.routers import admin, bets, explorer, fixtures, meta, stats
+from quotenfabrik.api.routers import admin, bets, explorer, fixtures, league, meta, stats
 from quotenfabrik.db import get_engine
 
 app = FastAPI(title="Quotenfabrik Analyser", version="0.2.0")
@@ -14,7 +14,15 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
-for router in (meta.router, fixtures.router, explorer.router, stats.router, admin.router, bets.router):
+for router in (
+    meta.router,
+    fixtures.router,
+    league.router,
+    explorer.router,
+    stats.router,
+    admin.router,
+    bets.router,
+):
     app.include_router(router)
 
 

@@ -10,9 +10,9 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from quotenfabrik import app_config
-from quotenfabrik.analytics import bookmaker_odds, form, lineups, preview, style
+from quotenfabrik.analytics import bookmaker_odds, form, lineups, pick_explain, preview, style
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
-from quotenfabrik.analytics.picks import default_profile
+from quotenfabrik.analytics.picks import default_profile, profiles
 from quotenfabrik.api.data import chosen_runs_cte, df, model_data, style_data, team_names
 from quotenfabrik.api.labels import (
     GROUP_LABELS,
@@ -141,7 +141,10 @@ def _summaries(fixture_ids: list[int]) -> dict[int, dict]:
 
 
 def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[str, list[dict]]]:
-    """Picks of the chosen prediction run per fixture: {fixture_id: {profile: [pick, ...]}}."""
+    """Picks of the chosen prediction run per fixture: {fixture_id: {profile: [pick, ...]}}, each with a short
+    explanation (``explain``: why this pick, why likely)."""
+    from quotenfabrik.api.routers.stats import pick_track_records
+
     if not fixtures:
         return {}
     names = {f["id"]: (f["home"]["name"], f["away"]["name"]) for f in fixtures}
@@ -156,7 +159,12 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
             order by k.fixture_id, k.profile, k.rank""",
         ids=list(names), profile=profile,
     )  # fmt: skip
-    prices = _bookmaker_prices(list(names)) if not rows.empty else {}
+    if rows.empty:
+        return {}
+    prices = _bookmaker_prices(list(names))
+    contexts = _pick_contexts(names)
+    track = pick_track_records()
+    profs = profiles()
     out: dict[int, dict[str, list[dict]]] = {}
     for r in rows.itertuples():
         line = None if pd.isna(r.line) else float(r.line)
@@ -167,6 +175,37 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
              "outcome": None if pd.isna(r.outcome) else bool(r.outcome), "reasons": r.reasons or [],
              **_prices(prices, int(r.fixture_id), r.market, line, r.selection, float(r.probability))}
         )  # fmt: skip
+    for fixture_id, by_profile in out.items():
+        for key, picks in by_profile.items():
+            prof = profs.get(key)
+            for pk in picks:
+                pk["explain"] = pick_explain.explain(
+                    pk, profile_label=prof.label if prof else key, min_p=prof.min_p if prof else 0,
+                    max_p=prof.max_p if prof else 1, group_label=GROUP_LABELS.get(pk["group"]),
+                    n_picks=len(picks), ctx=contexts[fixture_id],
+                    track=track.get((key, pk["market"], pk["selection"], pk["line"])),
+                )  # fmt: skip
+    return out
+
+
+def _pick_contexts(names: dict[int, tuple[str, str]]) -> dict[int, pick_explain.FixtureContext]:
+    """1X2 probabilities and expected goals per team (from P(team scores)) of the chosen run per fixture."""
+    rows = df(
+        f"""with runs as ({chosen_runs_cte("and p.fixture_id = any(:ids)")})
+            select p.fixture_id, p.market, p.selection, p.probability
+            from analytics.predictions p
+            join runs on runs.model_run_id = p.model_run_id and runs.fixture_id = p.fixture_id
+            where p.fixture_id = any(:ids)
+              and (p.market = '1x2' or (p.market in ('ou_home', 'ou_away') and p.line = 0.5 and p.selection = 'over'))""",
+        ids=list(names),
+    )  # fmt: skip
+    out = {f: pick_explain.FixtureContext(home=h, away=a) for f, (h, a) in names.items()}
+    for r in rows.itertuples():
+        c, p = out[int(r.fixture_id)], float(r.probability)
+        if r.market == "1x2":
+            setattr(c, {"H": "p_home", "D": "p_draw", "A": "p_away"}[r.selection], p)
+        else:
+            setattr(c, "xg_home" if r.market == "ou_home" else "xg_away", pick_explain.team_goals(p))
     return out
 
 

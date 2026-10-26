@@ -27,8 +27,8 @@ def _day_predictions(day: date) -> pd.DataFrame:
     where = "and (f.kickoff_utc at time zone 'Europe/Berlin')::date = :day and f.league_id = any(:leagues)"
     return df(
         f"""with runs as ({chosen_runs_cte(where)})
-            select p.fixture_id, p.model_run_id, p.market, p.selection, p.line::float as line, p.probability,
-                   p.outcome, f.league_id, f.season, f.kickoff_utc as kickoff,
+            select p.id as prediction_id, p.fixture_id, p.model_run_id, p.market, p.selection,
+                   p.line::float as line, p.probability, p.outcome, f.league_id, f.season, f.kickoff_utc as kickoff,
                    f.home_team_id, h.name as home_name, h.logo_url as home_logo,
                    f.away_team_id, a.name as away_name, a.logo_url as away_logo, f.status
             from analytics.predictions p
@@ -40,17 +40,16 @@ def _day_predictions(day: date) -> pd.DataFrame:
     )  # fmt: skip
 
 
-@router.get("/combos")
-def day_combos(day: date = Query(..., alias="date")) -> list[dict]:
-    """Daily combos (Tore Über, Team-Tore Über, Doppelte Chance) of one day; empty without enough fixtures."""
+def compute_combos(day: date, not_before: datetime | None = None) -> list[dict]:
+    """Daily combos from the chosen prediction runs; with ``not_before`` only fixtures kicking off later."""
     preds = _day_predictions(day)
     if preds.empty:
         return []
-    key = (day, tuple(sorted(preds["model_run_id"].unique())), tuple(sorted(app_config.all_values().items())))
-    hit = _CACHE.get(key)
-    if hit and time.time() - hit[0] < CACHE_TTL_S:
-        return hit[1]
     preds["kickoff"] = pd.to_datetime(preds["kickoff"], utc=True)
+    if not_before is not None:
+        preds = preds[preds["kickoff"] > pd.Timestamp(not_before)]
+        if preds.empty:
+            return []
     with_rates = combos.with_betano(get_engine(), combos.with_base_rates(get_engine(), preds))
     out = []
     for c in combos.build_day(
@@ -60,6 +59,7 @@ def day_combos(day: date = Query(..., alias="date")) -> list[dict]:
         for leg in sorted(c.legs, key=lambda x: x["kickoff"]):
             line = leg["line"]
             legs.append({
+                "prediction_id": int(leg["prediction_id"]),
                 "fixture_id": int(leg["fixture_id"]), "kickoff": leg["kickoff"].isoformat(),
                 "league": {"id": int(leg["league_id"]), "logo": league_logo(int(leg["league_id"]))},
                 "home": {"id": int(leg["home_team_id"]), "name": leg["home_name"], "logo": leg["home_logo"]},
@@ -73,6 +73,62 @@ def day_combos(day: date = Query(..., alias="date")) -> list[dict]:
         out.append({"kind": c.kind, "label": combos.KINDS[c.kind], "odds": round(c.odds, 2),
                     "real_odds": all(leg["odds_source"] == "betano" for leg in c.legs),
                     "probability": c.probability, "outcome": c.outcome, "legs": legs})  # fmt: skip
+    return _by_kind(out)
+
+
+def _by_kind(items: list[dict]) -> list[dict]:
+    order = list(combos.KINDS)
+    return sorted(items, key=lambda c: order.index(c["kind"]) if c["kind"] in order else len(order))
+
+
+def _frozen_combos(day: date) -> list[dict]:
+    """Combos as frozen on the day, with the current outcome of every leg."""
+    rows = df(
+        """select kind, frozen_at, odds::float as odds, probability, real_odds, legs
+           from analytics.day_combos where day = :day""",
+        day=day,
+    )
+    if rows.empty:
+        return []
+    ids = [leg["prediction_id"] for legs in rows["legs"] for leg in legs if leg.get("prediction_id")]
+    outcome = df("select id, outcome from analytics.predictions where id = any(:ids)", ids=ids)
+    outcome = {
+        int(i): (None if o is None or pd.isna(o) else bool(o))
+        for i, o in zip(outcome["id"], outcome["outcome"], strict=True)
+    }
+    out = []
+    for r in rows.itertuples():
+        legs = [
+            {**leg, "outcome": outcome.get(leg.get("prediction_id"), leg.get("outcome"))} for leg in r.legs
+        ]
+        combo = combos.Combo(r.kind, legs)
+        out.append({"kind": r.kind, "label": combos.KINDS.get(r.kind, r.kind), "odds": r.odds,
+                    "real_odds": bool(r.real_odds), "probability": float(r.probability), "outcome": combo.outcome,
+                    "legs": legs, "frozen_at": pd.Timestamp(r.frozen_at).isoformat()})  # fmt: skip
+    return _by_kind(out)
+
+
+@router.get("/combos")
+def day_combos(day: date = Query(..., alias="date")) -> list[dict]:
+    """Daily combos (Tore Über, Team-Tore Über, Doppelte Chance) of one day; empty without enough fixtures.
+
+    Once the day is frozen (``qf day freeze``, morning job) the stored combos; before that and for days
+    without a freeze (backtest) they are computed from the chosen prediction runs."""
+    frozen = _frozen_combos(day)
+    if frozen:
+        return frozen
+    runs = df(
+        f"""with runs as ({chosen_runs_cte("and (f.kickoff_utc at time zone 'Europe/Berlin')::date = :day")})
+            select model_run_id from runs""",
+        day=day,
+    )
+    if runs.empty:
+        return []
+    key = (day, tuple(sorted(runs["model_run_id"].unique())), tuple(sorted(app_config.all_values().items())))
+    hit = _CACHE.get(key)
+    if hit and time.time() - hit[0] < CACHE_TTL_S:
+        return hit[1]
+    out = [{**c, "frozen_at": None} for c in compute_combos(day)]
     _CACHE[key] = (time.time(), out)
     return out
 

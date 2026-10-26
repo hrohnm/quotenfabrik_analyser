@@ -202,6 +202,15 @@ analytics.picks (                   -- 3 Tipps pro Spiel und Profil (qf picks bu
   probability, base_rate (Ligaschnitt 3 Saisons), score, reasons jsonb (stützende Pattern)
 );
 
+analytics.frozen_runs (             -- fixierter Prognoselauf je Spiel (qf picks freeze), Migration 0012
+  fixture_id pk → core.fixtures, model_run_id → model_runs (on delete cascade), frozen_at
+);                                  -- Tipps, Prognosen und Auswertung nutzen ab dann diesen Lauf
+
+analytics.day_combos (              -- Tageskombis wie am Tag veröffentlicht (qf picks freeze), Migration 0012
+  day date, kind text, frozen_at, odds, probability, real_odds, legs jsonb (inkl. prediction_id für die Abrechnung),
+  primary key (day, kind)
+);
+
 analytics.backtests (
   id bigserial pk, name text, market text, config jsonb, period_from date, period_to date,
   n_bets int, roi double precision, yield double precision, log_loss double precision,

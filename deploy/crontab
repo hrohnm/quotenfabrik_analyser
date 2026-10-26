@@ -17,8 +17,9 @@ LOG=/home/qf/logs
 */15 * * * *    flock -n /tmp/qf-live.lock $QF ingest live >> $LOG/live.log 2>&1
 # Stärke-Ligen (nur Ergebnisse, 1 Request pro Liga)
 15 5 * * *      flock -n /tmp/qf-ingest.lock $QF ingest results >> $LOG/ingest.log 2>&1
-# Ergebnisse abrechnen, Prognosen + Tipps für die nächsten 10 Tage
-0 6,12,18 * * * flock -n /tmp/qf-model.lock bash -c "$QF model settle && $QF model forecast" >> $LOG/model.log 2>&1
+# Ergebnisse abrechnen, Prognosen + Tipps für die nächsten 10 Tage; danach Tipps und Tageskombis des Tages fixieren
+# (der erste Lauf des Tages fixiert sie, spätere Läufe ergänzen nur neue Spiele)
+0 6,12,18 * * * flock -n /tmp/qf-model.lock bash -c "$QF model settle && $QF model forecast && $QF picks freeze" >> $LOG/model.log 2>&1
 # Spielernamen für Torschützen-Märkte an Spieltagen (Fr/Sa/So, je 1 OddsPapi-Request)
 0 10 * * 5,6,0  flock -n /tmp/qf-oddspapi.lock $QF oddspapi players >> $LOG/oddspapi.log 2>&1
 # Nächtliches Backup nach backups/ (Anzahl: Einstellung "Backups behalten")

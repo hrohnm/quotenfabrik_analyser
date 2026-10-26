@@ -216,6 +216,31 @@ def _settled_picks(league_id: int) -> pd.DataFrame:
         return data
 
 
+_track_cache: dict = {}
+
+
+def pick_track_records() -> dict[tuple, dict]:
+    """Past hit rate per (profile, market, selection, line) over the shown leagues (for the pick hover card)."""
+    with _lock:
+        hit = _track_cache.get("all")
+        if hit and time.time() - hit[0] < CACHE_TTL_S:
+            return hit[1]
+    frames = [f for f in (_settled_picks(lg) for lg in app_config.shown_league_ids()) if not f.empty]
+    out: dict[tuple, dict] = {}
+    if frames:
+        data = pd.concat(frames, ignore_index=True)
+        data["line"] = data["line"].fillna(-1.0)
+        agg = data.groupby(["profile", "market", "selection", "line"]).agg(
+            n=("outcome", "size"), hit_rate=("outcome", "mean"), expected=("probability", "mean")
+        )
+        for (profile, market, selection, line), r in agg.iterrows():
+            key = (profile, market, selection, None if line == -1.0 else float(line))
+            out[key] = {"n": int(r.n), "hit_rate": float(r.hit_rate), "expected": float(r.expected)}
+    with _lock:
+        _track_cache["all"] = (time.time(), out)
+    return out
+
+
 @router.get("/picks")
 def pick_stats(league: int | None = None, season: int | None = None, profile: str | None = None) -> dict:
     """Hit rates of the suggested picks: per profile (singles and 3-pick combo) and details for one profile.

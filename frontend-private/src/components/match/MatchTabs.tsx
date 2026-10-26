@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { FixtureDetail } from "@/lib/types";
 import { FormPanel } from "./FormPanel";
+import { LeaguePanel } from "./LeaguePanel";
 import { LineupPanel } from "./LineupPanel";
 import { MarketsPanel } from "./MarketsPanel";
 import { PatternsPanel } from "./PatternsPanel";
@@ -18,6 +19,7 @@ const TABS = [
   { key: "torschuetzen", label: "Torschützen" },
   { key: "pattern", label: "Pattern" },
   { key: "statistik", label: "Statistik" },
+  { key: "liga", label: "Liga" },
 ];
 
 export function MatchTabs({ data }: { data: FixtureDetail }) {
@@ -69,6 +71,7 @@ export function MatchTabs({ data }: { data: FixtureDetail }) {
       {tab === "torschuetzen" && <ScorersPanel data={data} />}
       {tab === "pattern" && <PatternsPanel patterns={data.patterns} fixture={data.fixture} />}
       {tab === "statistik" && <StatsPanel data={data} />}
+      {tab === "liga" && <LeaguePanel data={data} />}
     </div>
   );
 }

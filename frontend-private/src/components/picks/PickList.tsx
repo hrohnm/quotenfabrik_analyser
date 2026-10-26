@@ -2,6 +2,7 @@ import { OutcomeBadge, ProbabilityBar } from "@/components/ui";
 import { odd, pct } from "@/lib/format";
 import type { Pick } from "@/lib/types";
 import { BetanoOdd } from "@/components/BetanoOdd";
+import { PickInfo } from "./PickInfo";
 
 /** Combined outcome: true if all picks came true, false as soon as one failed, null while open. */
 export function comboOutcome(picks: Pick[]): boolean | null {
@@ -22,7 +23,9 @@ export function PickList({ picks, finished, reasons = true }: { picks: Pick[]; f
             <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-slate-900 text-xs font-bold text-white">{p.rank}</span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">{p.label}</span>
+                <PickInfo pick={p} className="min-w-0">
+                  <span className="font-medium underline decoration-slate-300 decoration-dotted underline-offset-4">{p.label}</span>
+                </PickInfo>
                 <span className="flex shrink-0 items-center gap-2 tabular-nums">
                   <span className="font-semibold">{pct(p.probability, 0)}</span>
                   <span className="w-10 text-right text-xs text-slate-400" title="faire Quote">{odd(p.fair_odd)}</span>
@@ -69,10 +72,12 @@ export function PickChips({ picks, finished }: { picks: Pick[]; finished: boolea
       {picks.map((p) => {
         const tone = !finished || p.outcome === null ? "border-slate-200 bg-white text-slate-700" : p.outcome ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800";
         return (
-          <span key={p.rank} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${tone}`}>
-            {p.label} <span className="font-semibold tabular-nums">{pct(p.probability, 0)}</span>
-            <BetanoOdd prices={p} />
-          </span>
+          <PickInfo key={p.rank} pick={p}>
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${tone}`}>
+              {p.label} <span className="font-semibold tabular-nums">{pct(p.probability, 0)}</span>
+              <BetanoOdd prices={p} />
+            </span>
+          </PickInfo>
         );
       })}
     </div>

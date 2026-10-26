@@ -1,9 +1,21 @@
 """Schema ``analytics``: model runs, predictions, patterns and evaluations."""
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Index, Integer, Numeric, Text, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -98,3 +110,29 @@ class Pick(Base):
     base_rate: Mapped[float | None] = mapped_column(Float)  # league frequency (3 seasons before the matchday)
     score: Mapped[float] = mapped_column(Float)
     reasons: Mapped[list | None] = mapped_column(JSONB(none_as_null=True))  # supporting pattern signals
+
+
+class FrozenRun(Base):
+    """Forecast run shown and settled for a fixture once its day is frozen (``qf day freeze``)."""
+
+    __tablename__ = "frozen_runs"
+    __table_args__ = ANALYTICS
+
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("core.fixtures.id"), primary_key=True)
+    model_run_id: Mapped[int] = mapped_column(ForeignKey("analytics.model_runs.id", ondelete="CASCADE"))
+    frozen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DayCombo(Base):
+    """Daily combo as published on the day (legs with odds and probabilities at freezing time)."""
+
+    __tablename__ = "day_combos"
+    __table_args__ = ANALYTICS
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    kind: Mapped[str] = mapped_column(Text, primary_key=True)
+    frozen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    odds: Mapped[Decimal] = mapped_column(Numeric(8, 2))
+    probability: Mapped[float] = mapped_column(Float)
+    real_odds: Mapped[bool] = mapped_column(Boolean)
+    legs: Mapped[list] = mapped_column(JSONB)

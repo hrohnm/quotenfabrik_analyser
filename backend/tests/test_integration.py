@@ -250,3 +250,50 @@ def test_fixtures_lineup_due(session):
     api_football.process_fixtures_payload(session, payload, NOW)
     session.commit()
     assert session.scalar(count) > 22
+
+
+def test_frozen_run_stays_chosen_after_a_new_forecast(session, engine, monkeypatch):
+    from datetime import timedelta
+    from zoneinfo import ZoneInfo
+
+    from sqlalchemy import text
+
+    from quotenfabrik import app_config, day_freeze
+    from quotenfabrik.api import data
+    from quotenfabrik.models import Fixture, FrozenRun, ModelRun, Prediction
+
+    monkeypatch.setattr(data, "get_engine", lambda: engine)
+    monkeypatch.setattr(app_config, "shown_league_ids", lambda: [78])
+    api_football.process_fixtures_payload(session, load_json("fixture_detail.json"), NOW)
+    f = session.get(Fixture, 1575189)
+    kickoff = NOW + timedelta(days=1, hours=14)
+    f.kickoff_utc, f.status = kickoff, "NS"
+
+    def forecast(as_of: datetime, p: float) -> int:
+        run = ModelRun(kind="forecast", model_version="dc-v1", league_id=78, as_of=as_of, params={})
+        session.add(run)
+        session.flush()
+        session.add(Prediction(model_run_id=run.id, fixture_id=1575189, market_group="1x2", market="1x2",
+                               selection="H", probability=p, predicted_at=as_of))  # fmt: skip
+        session.flush()
+        return run.id
+
+    def chosen() -> int:
+        sql = f"with runs as ({data.chosen_runs_cte('and p.fixture_id = 1575189')}) select model_run_id from runs"
+        return session.execute(text(sql)).scalar_one()
+
+    morning = forecast(kickoff - timedelta(hours=8), 0.5)
+    session.commit()
+    day = kickoff.astimezone(ZoneInfo("Europe/Berlin")).date()
+    assert day_freeze.freeze_day(engine, day, now=kickoff - timedelta(hours=7)) == {
+        "fixtures": 1,
+        "combos": 0,
+    }
+    noon = forecast(kickoff - timedelta(hours=2), 0.6)
+    session.commit()
+    assert noon != morning and chosen() == morning  # the frozen run, not the newer forecast
+    assert day_freeze.freeze_day(engine, day, now=kickoff - timedelta(hours=1))["fixtures"] == 0
+    session.execute(text("delete from analytics.frozen_runs"))
+    session.commit()
+    assert chosen() == noon  # without freezing: the latest forecast before kickoff
+    assert session.query(FrozenRun).count() == 0
