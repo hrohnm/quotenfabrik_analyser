@@ -40,7 +40,7 @@ function Rate({ hit, expected }: { hit: number | null | undefined; expected: num
   if (hit == null) return <span className="text-slate-400">–</span>;
   const diff = expected != null ? hit - expected : 0;
   return (
-    <span className="tabular-nums">
+    <span className="whitespace-nowrap tabular-nums">
       <b>{pct(hit, 0)}</b>
       {expected != null && <span className={`ml-1 text-xs ${diff >= 0.02 ? "text-emerald-700" : diff <= -0.02 ? "text-rose-700" : "text-slate-400"}`}>(erw. {pct(expected, 0)})</span>}
     </span>

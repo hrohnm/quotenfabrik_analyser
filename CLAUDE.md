@@ -173,6 +173,8 @@ pytest && ruff check . && ruff format --check .
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - `quotenfabrik/day_freeze.py` – fixiert Tipps und Tageskombis eines Tages (`analytics.frozen_runs`, `analytics.day_combos`);
   der fixierte Lauf hat in `api.data.CHOSEN_RUNS_SQL` Vorrang vor neueren Prognosen
+- `quotenfabrik/api/betting_report.py` – „Wetten & Modell“ für Wettbewerb und Mannschaft (Modell- und Tipp-Trefferquoten,
+  Betano gegen Pinnacle und Modell, eigene Wetten)
 - `quotenfabrik/bets.py` – Wett-Tracking (`app.bets`, `app.bet_legs`): Abrechnung aus Ergebnissen, Auswertung
 - `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)
 - `quotenfabrik/pipeline.py` – Import-Schritte je Liga (CLI und Jobs); `jobs.py` – Hintergrund-Jobs (`app.jobs`,
