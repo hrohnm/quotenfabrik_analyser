@@ -42,7 +42,7 @@ raw.football_data_files (
 ## Schema `core`
 
 ```sql
-core.leagues   (id int pk, name text, country text)                        -- 78 = Bundesliga
+core.leagues   (id int pk, name text, country text, flag_url text)         -- 78 = Bundesliga; Flagge seit Migration 0013
 core.seasons   (league_id int, year int, start_date date, end_date date, pk (league_id, year))
 core.teams     (id int pk, name text, code text, logo_url text)
 core.team_aliases (source text, alias text, team_id int fk, pk (source, alias))  -- source = 'football_data'

@@ -416,3 +416,78 @@ export type ContextAbsence = {
   regular: boolean;
 };
 export type TeamContext = { prev: NeighbourMatch | null; next: NeighbourMatch | null; absences: ContextAbsence[] };
+
+export type TeamSplit = {
+  played: number;
+  won?: number;
+  drawn?: number;
+  lost?: number;
+  points_per_game?: number;
+  gf_per_game?: number;
+  ga_per_game?: number;
+  over_1_5?: number | null;
+  over_2_5?: number | null;
+  over_3_5?: number | null;
+  btts?: number | null;
+  clean_sheet?: number | null;
+  failed_to_score?: number | null;
+  ht_lead?: number | null;
+  first_half_goals?: number | null;
+  second_half_goals?: number | null;
+};
+export type Streak = { key: string; label: string; length: number };
+export type ExpectedPoints = { matches: number; points: number; expected: number; diff_per_game: number };
+export type TeamCompetition = {
+  league: { id: number; name: string; logo: string; flag: string | null; cup: boolean };
+  played: number;
+  rank: number | null;
+  points: number | null;
+  teams: number | null;
+  group: string | null;
+};
+export type TeamOverview = {
+  team: Team;
+  season: number;
+  seasons: number[];
+  competitions: TeamCompetition[];
+  venue: { id: number; name: string; city: string | null; image: string } | null;
+  coach: { id: number | null; name: string; photo: string | null } | null;
+  form: { fixture_id: number; result: "S" | "U" | "N"; score: [number, number]; home: boolean; opponent: Team | null; league_id: number }[];
+  totals: TeamSplit;
+  streaks: Streak[];
+  expected_points: ExpectedPoints | null;
+};
+export type TeamSeasonStats = {
+  season: number;
+  competition: number | null;
+  splits: { total: TeamSplit; home: TeamSplit; away: TeamSplit } | null;
+  segments?: { label: string; scored: number; conceded: number; matches: number }[];
+  streaks?: Streak[];
+  match_stats?: { league: { id: number; name: string | null }; rows: { key: string; label: string; team: number; against: number | null; league: number | null; matches: number }[] };
+  expected_points?: ExpectedPoints | null;
+};
+export type SquadPlayer = {
+  player_id: number;
+  name: string;
+  photo: string;
+  position: "G" | "D" | "M" | "F" | null;
+  number: number | null;
+  apps: number;
+  starts: number;
+  minutes: number;
+  goals: number;
+  assists: number;
+  yellow: number;
+  red: number;
+  rating: number | null;
+  shots: number;
+  key_passes: number;
+  status: { type: "missing" | "doubtful"; reason: string } | null;
+};
+export type TeamSquad = {
+  season: number;
+  players: SquadPlayer[];
+  common_xi: { formation: string | null; matches: number; players: { player_id: number; name: string; number: number | null; pos: string | null; starts: number; photo: string }[] } | null;
+  rotation: { avg_changes: number | null; matches: number } | null;
+};
+export type SearchResult = { teams: (Team & { league_id: number | null; active: boolean })[] };

@@ -6,6 +6,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { getMeta } from "@/lib/api";
 import { leagueLogo } from "@/lib/media";
 import { Logo } from "./Logo";
+import { SearchBox } from "./SearchBox";
 
 const LINKS = [
   { href: "/spieltage", label: "Spieltage" },
@@ -44,6 +45,7 @@ export function Nav() {
           })}
         </nav>
         <span className="ml-auto flex shrink-0 items-center gap-3 text-xs text-slate-400">
+          <SearchBox />
           {leagues.length > 0 && <Suspense fallback={null}><LeagueMenu leagues={leagues} /></Suspense>}
           <span className="hidden whitespace-nowrap lg:inline">Modell dc-v1</span>
         </span>

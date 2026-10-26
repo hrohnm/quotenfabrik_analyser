@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TeamLink } from "@/components/TeamLink";
 import { Logo } from "@/components/Logo";
 import { Card, TeamLogo } from "@/components/ui";
 import { dateShort, num } from "@/lib/format";
@@ -45,7 +46,7 @@ function TeamCard({ team, form }: { team: Team; form: TeamForm }) {
   const f = form.form;
   const tone = f.signal === "high" ? "text-emerald-700" : f.signal === "low" ? "text-rose-700" : "text-slate-900";
   return (
-    <Card title={<span className="flex items-center gap-2"><TeamLogo team={team} size={18} />{team.name}</span>}>
+    <Card title={<span className="flex items-center gap-2"><TeamLogo team={team} size={18} /><TeamLink id={team.id}>{team.name}</TeamLink></span>}>
       <div className="mb-3 grid grid-cols-3 gap-2 text-center">
         <div className="rounded-lg bg-slate-50 p-2">
           <div className="text-[11px] uppercase tracking-wide text-slate-500">Letzte {f.matches}</div>

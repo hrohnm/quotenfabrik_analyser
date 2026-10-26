@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TeamLink } from "@/components/TeamLink";
 import { useEffect, useState } from "react";
 import { Card, TeamLogo } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -103,7 +104,7 @@ function Table({ rows, league, highlight }: { rows: TableRow[]; league: LeagueOv
                 <td className="max-w-0 px-2 py-1.5">
                   <span className="flex min-w-0 items-center gap-2">
                     {team && <TeamLogo team={team} size={16} />}
-                    <span className="truncate">{team?.name ?? r.team_id}</span>
+                    <TeamLink id={r.team_id} className="truncate">{team?.name ?? r.team_id}</TeamLink>
                   </span>
                 </td>
                 <td className="px-1.5 py-1.5 text-right">{r.played}</td>

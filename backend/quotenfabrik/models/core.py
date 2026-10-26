@@ -33,6 +33,7 @@ class League(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
     name: Mapped[str] = mapped_column(Text)
     country: Mapped[str | None] = mapped_column(Text)
+    flag_url: Mapped[str | None] = mapped_column(Text)
 
 
 class Team(Base):

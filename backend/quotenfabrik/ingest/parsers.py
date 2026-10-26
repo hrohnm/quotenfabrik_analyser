@@ -56,7 +56,12 @@ def parse_fixture(item: dict[str, Any], now: datetime) -> dict[str, Any]:
     status = fx["status"]["short"]
     finished = status in FINISHED_STATUSES
     return {
-        "league": {"id": league["id"], "name": league["name"], "country": league.get("country")},
+        "league": {
+            "id": league["id"],
+            "name": league["name"],
+            "country": league.get("country"),
+            "flag_url": league.get("flag"),
+        },
         "teams": [
             {"id": t["id"], "name": t["name"], "logo_url": t.get("logo")}
             for t in (teams["home"], teams["away"])
