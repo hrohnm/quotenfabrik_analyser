@@ -155,8 +155,8 @@ def situations(base: pd.DataFrame, features: pd.DataFrame) -> pd.DataFrame:
     data = pd.DataFrame(rows).merge(features, on=["fixture_id", "team_id"], how="left")
     groups = {
         "alle Ligaspiele": data,
-        "Europapokal ≤ 4 Tage danach": data[data["next_cup"] == 1],
-        "Europapokal ≤ 4 Tage davor": data[data["prev_cup"] == 1],
+        "Europapokalspiel folgt in ≤ 4 Tagen": data[data["next_cup"] == 1],
+        "Europapokalspiel ≤ 4 Tage zuvor": data[data["prev_cup"] == 1],
         "höchstens 3,5 Tage Pause": data[data["short_rest"] == 1],
         "mind. 2 Stammspieler fehlen": data[data["miss_starters"] >= 2],
         "Topscorer fehlt (≥ 25 % der Tore + Vorlagen)": data[data["miss_attack"] >= 0.25],
