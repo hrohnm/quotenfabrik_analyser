@@ -490,7 +490,10 @@ export type TeamSquad = {
   common_xi: { formation: string | null; matches: number; players: { player_id: number; name: string; number: number | null; pos: string | null; starts: number; photo: string }[] } | null;
   rotation: { avg_changes: number | null; matches: number } | null;
 };
-export type SearchResult = { teams: (Team & { league_id: number | null; active: boolean })[] };
+export type SearchResult = {
+  teams: (Team & { league_id: number | null; active: boolean })[];
+  players: { id: number; name: string; photo: string; team: Team | null }[];
+};
 
 export type CompetitionLeague = { id: number; name: string; country: string | null; flag: string | null; logo: string; cup: boolean };
 export type LeagueFigures = NonNullable<LeagueOverview["figures"]>;
@@ -548,4 +551,72 @@ export type CompetitionPlayers = {
   season: number;
   rankings: Partial<Record<"goals" | "assists" | "points" | "goals_per_90" | "points_per_90" | "rating" | "cards", RankedPlayer[]>> & { min_minutes?: number };
   teams: Record<number, Team>;
+};
+
+export type PlayerSummary = {
+  apps: number;
+  starts?: number;
+  minutes?: number;
+  rating?: number | null;
+  goals?: number;
+  assists?: number;
+  shots_total?: number;
+  shots_on?: number;
+  key_passes?: number;
+  yellow?: number;
+  red?: number;
+  penalties_scored?: number;
+  penalties_missed?: number;
+  per90?: { goals: number; assists: number; shots: number; key_passes: number };
+  conversion?: number | null;
+  minutes_per_goal?: number | null;
+};
+export type PlayerOverview = {
+  player: { id: number; name: string; photo: string };
+  team_id: number;
+  number: number | null;
+  position: "G" | "D" | "M" | "F" | null;
+  status: { type: "missing" | "doubtful"; reason: string } | null;
+  next: { fixture_id: number; kickoff: string; league_id: number; home: boolean; opponent_id: number; p_anytime: number | null; p_first: number | null } | null;
+  season: number;
+  seasons: number[];
+  summary: PlayerSummary;
+  team_share: { goals: number | null; assists: number | null; shots: number | null; minutes: number | null } | null;
+  competitions: { league_id: number; apps: number; starts: number; minutes: number; goals: number; assists: number; rating: number | null }[];
+  career: { season: number; team_id: number; apps: number; minutes: number; goals: number; assists: number; rating: number | null }[];
+  penalties: { scored: number; missed: number; taker: boolean };
+  teams: Record<number, Team>;
+  leagues: Record<number, { id: number; name: string; logo: string }>;
+};
+export type PlayerMatch = {
+  fixture_id: number;
+  kickoff: string;
+  league_id: number;
+  home: boolean;
+  opponent_id: number;
+  score: [number, number] | null;
+  starter: boolean | null;
+  minutes: number | null;
+  goals: number | null;
+  assists: number | null;
+  shots: number | null;
+  shots_on: number | null;
+  yellow: number | null;
+  red: number | null;
+  rating: number | null;
+  p_anytime: number | null;
+  p_first: number | null;
+};
+export type PlayerMatches = {
+  season: number;
+  matches: PlayerMatch[];
+  scoring: { matches: number; expected: number; actual: number; series: { fixture_id: number; expected: number; actual: number }[] } | null;
+  teams: Record<number, Team>;
+  leagues: Record<number, { id: number; name: string; logo: string }>;
+};
+export type PlayerAbsences = {
+  absences: { fixture_id: number; kickoff: string; league_id: number; type: "missing" | "doubtful"; reason: string; opponent_id: number }[];
+  summary: { missed: number; doubtful: number; reasons: { reason: string; matches: number }[] };
+  teams: Record<number, Team>;
+  leagues: Record<number, { id: number; name: string; logo: string }>;
 };

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlayerLink } from "@/components/PlayerLink";
 import { TeamLink } from "@/components/TeamLink";
 import { Logo } from "@/components/Logo";
 import { Card, TeamLogo } from "@/components/ui";
@@ -87,7 +88,7 @@ function AbsenceChip({ a }: { a: ContextAbsence }) {
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${tone}`} title={`${a.reason_label} · ${role}${attack}`}>
       {a.type === "doubtful" && <span aria-hidden>?</span>}
-      {a.name ?? "?"}
+      <PlayerLink id={a.player_id}>{a.name ?? "?"}</PlayerLink>
       <span className="opacity-60">{a.reason_label}</span>
     </span>
   );

@@ -169,7 +169,7 @@ pytest && ruff check . && ruff format --check .
   Erklärung je Tipp (`pick_explain.py`), Tabelle/Torjäger/Ligazahlen (`league_table.py`),
   Termine/Ausfälle/Rotation je Team und Spiel (`availability.py`, Nachweis `availability_eval.py`),
   Saisonstatistik einer Mannschaft für die Teamseite (`team_stats.py`), eines Wettbewerbs für die Wettbewerbsseite
-  (`competition_stats.py`)
+  (`competition_stats.py`), eines Spielers für die Spielerseite (`player_stats.py`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
 - `quotenfabrik/day_freeze.py` – fixiert Tipps und Tageskombis eines Tages (`analytics.frozen_runs`, `analytics.day_combos`);
   der fixierte Lauf hat in `api.data.CHOSEN_RUNS_SQL` Vorrang vor neueren Prognosen
@@ -177,8 +177,8 @@ pytest && ruff check . && ruff format --check .
 - `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)
 - `quotenfabrik/pipeline.py` – Import-Schritte je Liga (CLI und Jobs); `jobs.py` – Hintergrund-Jobs (`app.jobs`,
   Prozess `qf jobs run <id>`); `backup.py` – Backups; `reports.py` – Berichtspfade je Liga
-- `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, league, teams, competitions, explorer, stats, bets, admin = Einstellungsseite), Labels in `api/labels.py`
-- `frontend-private/` – Next.js App Router (`src/app/spieltage`, `tipps`, `wetten`, `spiel/[id]`, `team/[id]`, `wettbewerb/[id]`, `explorer`, `auswertung`, `einstellungen`)
+- `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, league, teams, competitions, players, explorer, stats, bets, admin = Einstellungsseite), Labels in `api/labels.py`
+- `frontend-private/` – Next.js App Router (`src/app/spieltage`, `tipps`, `wetten`, `spiel/[id]`, `team/[id]`, `wettbewerb/[id]`, `spieler/[id]`, `explorer`, `auswertung`, `einstellungen`)
 - `.devcontainer/` – GitHub Codespaces: App-Container + PostgreSQL, Seed beim ersten Start, startet API und Frontend
 - `docker-compose.yml` + `docker/` – kompletter Server-Stack (db mit Seed, api, cron, frontend, caddy mit HTTPS und Passwort),
   z. B. über den Hostinger Docker Manager; `deploy/` – dasselbe ohne Docker (systemd, nginx, Crontab, `update.sh`);

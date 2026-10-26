@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PlayerLink } from "@/components/PlayerLink";
 import { useEffect, useState } from "react";
 import { Card, TeamLogo } from "@/components/ui";
 import { StandingsTable } from "@/components/StandingsTable";
@@ -91,7 +92,7 @@ function PlayerCard({ title, players, league, highlight, kind, compact = false }
               <li key={p.player_id} className={`flex items-center gap-2 rounded px-1 ${side === "home" ? "bg-emerald-50" : side === "away" ? "bg-sky-50" : ""}`}>
                 <span className="w-5 text-right text-xs tabular-nums text-slate-400">{p.rank}.</span>
                 {!compact && team && <TeamLogo team={team} size={16} />}
-                <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                <PlayerLink id={p.player_id} className="min-w-0 flex-1 truncate">{p.name}</PlayerLink>
                 <span className="text-xs tabular-nums text-slate-400" title={kind === "goals" ? "Vorlagen" : "Tore"}>
                   {kind === "goals" ? `${p.assists} Vorl.` : `${p.goals} Tore`}
                 </span>

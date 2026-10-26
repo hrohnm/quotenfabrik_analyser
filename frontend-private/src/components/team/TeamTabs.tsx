@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PlayerLink } from "@/components/PlayerLink";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { OutcomeBadge, Card, TeamLogo } from "@/components/ui";
@@ -378,7 +379,7 @@ function Squad({ data }: { data: TeamOverview }) {
             {squad.common_xi.players.map((p) => (
               <div key={p.player_id} className="flex w-20 flex-col items-center gap-1 text-center">
                 <Logo src={p.photo} alt={p.name} size={44} shape="round" />
-                <span className="w-full truncate text-xs font-medium">{p.name}</span>
+                <PlayerLink id={p.player_id} className="w-full truncate text-xs font-medium">{p.name}</PlayerLink>
                 <span className="text-[11px] text-slate-400">{p.starts}/{squad.common_xi!.matches} Startelf</span>
               </div>
             ))}
@@ -426,7 +427,7 @@ function PlayerRow({ p }: { p: SquadPlayer }) {
         <span className="flex items-center gap-2">
           <Logo src={p.photo} alt={p.name} size={28} shape="round" />
           <span className="w-6 text-right text-xs text-slate-400">{p.number ?? ""}</span>
-          <span className="truncate font-medium">{p.name}</span>
+          <PlayerLink id={p.player_id} className="truncate font-medium">{p.name}</PlayerLink>
           {p.status && (
             <span className={`rounded px-1.5 text-[10px] font-semibold ${p.status.type === "missing" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-800"}`} title={p.status.reason}>
               {p.status.type === "missing" ? "fehlt" : "fraglich"}

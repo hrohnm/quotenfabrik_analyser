@@ -1,4 +1,5 @@
 import { Card, TeamLogo } from "@/components/ui";
+import { PlayerLink } from "@/components/PlayerLink";
 import { TeamLink } from "@/components/TeamLink";
 import { dateShort } from "@/lib/format";
 import type { Absence, FixtureDetail, LineupPlayer, Team, TeamLineup } from "@/lib/types";
@@ -158,7 +159,7 @@ function AbsenceList({ missing }: { missing: Absence[] }) {
             <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${questionable ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-700"}`}>
               {questionable ? "fraglich" : "fehlt"}
             </span>
-            <span className="text-slate-800">{a.name ?? "?"}</span>
+            <PlayerLink id={a.player_id} className="text-slate-800">{a.name ?? "?"}</PlayerLink>
             <span className="text-slate-400">{reasonLabel(a.reason)}</span>
           </li>
         );
@@ -187,7 +188,7 @@ function TeamCard({ team, lineup, predicted }: { team: Team; lineup: TeamLineup;
               <li key={p.player_id} className="flex items-center gap-2">
                 <span className="w-5 text-right tabular-nums text-slate-400">{p.number ?? ""}</span>
                 <span className="w-6 text-[10px] text-slate-400">{POS_LABEL[p.pos ?? ""] ?? ""}</span>
-                <span className="truncate text-slate-800">{p.name}</span>
+                <PlayerLink id={p.player_id} className="truncate text-slate-800">{p.name}</PlayerLink>
                 {p.questionable && <span className="rounded bg-amber-100 px-1 text-[10px] text-amber-800">fraglich</span>}
                 {p.absent && <span className="rounded bg-rose-100 px-1 text-[10px] text-rose-700">gemeldet fehlend</span>}
               </li>
@@ -202,7 +203,7 @@ function TeamCard({ team, lineup, predicted }: { team: Team; lineup: TeamLineup;
                 <li key={p.player_id} className="flex items-center gap-2">
                   <span className="w-5 text-right tabular-nums text-slate-400">{p.number ?? ""}</span>
                   <span className="w-6 text-[10px] text-slate-400">{POS_LABEL[p.pos ?? ""] ?? ""}</span>
-                  <span className="truncate text-slate-600">{p.name}</span>
+                  <PlayerLink id={p.player_id} className="truncate text-slate-600">{p.name}</PlayerLink>
                 </li>
               ))}
             </ul>

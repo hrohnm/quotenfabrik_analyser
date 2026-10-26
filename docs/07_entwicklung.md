@@ -118,7 +118,10 @@ Installation: `docs/13_deployment_vps.md`):
 | `GET /api/competitions/{id}/table?season=&group=` | Tabelle gesamt, Heim, Auswärts, 1./2. Halbzeit, letzte 5, erwartete Punkte laut Modell, Tabellenplatz je Spieltag |
 | `GET /api/competitions/{id}/stats?season=` | Ligazahlen mit den 3 Vorsaisons, Tore nach Spielminute, Halbzeiten, Karten/Ecken/Fouls pro Spiel, Elfmeter, Eigentore, Teams im Vergleich (Schüsse, xG, Verwertung, …) |
 | `GET /api/competitions/{id}/players?season=` | Spieler-Ranglisten: Tore, Vorlagen, Scorerpunkte, pro 90 Minuten, Note, Karten |
-| `GET /api/search?q=` | Suche nach Mannschaften der angezeigten Wettbewerbe (Kopfzeile) |
+| `GET /api/players/{id}?season=` | Spielerseite: Mannschaft, Rückennummer, Position, Ausfall-Status, nächstes Spiel mit Torschützen-Prognose, Saisonwerte (gesamt, pro 90 Minuten, je Wettbewerb, Anteil an der Mannschaft), Saisons, Elfmeter |
+| `GET /api/players/{id}/matches?season=` | Einsätze der Saison mit Minuten, Toren, Vorlagen, Schüssen, Karten, Note und Prognose „trifft“ vor dem Spiel; Prognose gegen Ergebnis (kumuliert) |
+| `GET /api/players/{id}/absences` | Gemeldete Ausfälle (ab 2021) mit Grund und Zusammenfassung |
+| `GET /api/search?q=` | Suche nach Mannschaften der angezeigten Wettbewerbe und Spielern (Einsätze in den letzten 2 Jahren), Kopfzeile |
 | `GET /api/fixtures/{id}/league` | Liga-Details der Saison des Spiels: Tabelle (gesamt, Heim, Auswärts, Stand vor dem Spiel; Pokale: Liga- bzw. Gruppenphase), Torjäger, Vorlagen, Torschützen beider Teams, Ligazahlen |
 | `GET /api/bets[?all=true]`, `POST /api/bets`, `PATCH` / `DELETE /api/bets/{id}` | Wetten des aktuellen Auswertungszeitraums (`all`: auch frühere; rechnet offene Wetten vorher ab) mit Auswertung und Bankroll / erfassen / Status, Einsatz, Quote, Auszahlung (`payout`, `payout_auto`) korrigieren / löschen |
 | `POST /api/bankroll`, `DELETE /api/bankroll/{id}`, `POST /api/bets/reset` | Bankroll-Buchung (Startkapital, Einzahlung, Auszahlung) / löschen / Auswertung zurücksetzen (neuer Zeitraum, optional Startkapital und alte Wetten löschen) |
