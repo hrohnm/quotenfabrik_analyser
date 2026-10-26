@@ -7,7 +7,8 @@ import { TeamLink } from "@/components/TeamLink";
 import { Card, TeamLogo } from "@/components/ui";
 import { api } from "@/lib/api";
 import { dateShort, num, pct, seasonLabel } from "@/lib/format";
-import type { PlayerAbsences, PlayerMatches, PlayerOverview } from "@/lib/types";
+import type { BetsSummary, PlayerAbsences, PlayerMatches, PlayerOverview } from "@/lib/types";
+import { BetsCard } from "@/components/BettingReport";
 
 const TABS = [
   { key: "uebersicht", label: "Übersicht" },
@@ -287,6 +288,7 @@ function Scoring({ data, matches }: { data: PlayerOverview; matches: PlayerMatch
         <Card title="Elfmeter">
           <p className="text-sm text-slate-600">{data.penalties.scored} verwandelt, {data.penalties.missed} verschossen (alle Spiele in der Datenbank){data.penalties.taker ? " · hat in den letzten 12 Monaten Elfmeter geschossen." : "."}</p>
         </Card>
+        <PlayerBets playerId={data.player.id} />
       </div>
       {sc && sc.series.length > 1 && (
         <Card title="Spiele mit Tor: erwartet und tatsächlich (kumuliert)">
@@ -321,6 +323,16 @@ function ScoringChart({ series }: { series: { expected: number; actual: number }
       <text x={W - R} y={H - 4} fontSize={10} textAnchor="end" fill="#94a3b8">{series.length} Spiele</text>
     </svg>
   );
+}
+
+function PlayerBets({ playerId }: { playerId: number }) {
+  const [bets, setBets] = useState<BetsSummary | null>(null);
+  useEffect(() => {
+    let current = true;
+    api<BetsSummary>(`/players/${playerId}/bets`).then((b) => current && setBets(b)).catch(() => current && setBets(null));
+    return () => { current = false; };
+  }, [playerId]);
+  return bets ? <BetsCard bets={bets} title="Eigene Torschützen-Wetten" /> : null;
 }
 
 // --------------------------------------------------------------------------- absences

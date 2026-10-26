@@ -47,7 +47,7 @@ def session(engine):
                 " core.fixture_team_stats, core.fixtures, core.players, core.venues, core.teams,"
                 " core.leagues, core.bet_types, core.bookmakers, raw.api_responses,"
                 " core.odds_history, core.oddspapi_fixtures, core.oddspapi_markets,"
-                " core.oddspapi_players, raw.oddspapi_responses, analytics.model_runs, analytics.day_combos,"
+                " core.oddspapi_players, raw.oddspapi_responses, analytics.model_runs, analytics.day_combos, app.bets,"
                 " raw.football_data_files cascade"
             )
         )

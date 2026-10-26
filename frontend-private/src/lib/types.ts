@@ -620,3 +620,39 @@ export type PlayerAbsences = {
   teams: Record<number, Team>;
   leagues: Record<number, { id: number; name: string; logo: string }>;
 };
+
+export type BetsSummary = {
+  bets: number;
+  open: number;
+  won: number;
+  lost: number;
+  stake: number;
+  profit: number;
+  roi: number | null;
+  legs: number;
+  legs_won: number;
+  legs_settled: number;
+  recent: { id: number; placed_at: string; label: string; odds: number; stake: number; status: string; payout: number | null }[];
+};
+export type BettingReport = {
+  season: number;
+  model: {
+    fixtures: number;
+    groups: { group: string; label: string; n: number; hit_rate: number; expected: number }[];
+    markets: { market: string; line: number | null; label: string; n: number; hit_rate: number; expected: number; most_picked: string }[];
+    calibration: { bin: string; n: number; predicted: number; observed: number }[];
+  };
+  picks: {
+    profile: string;
+    label: string;
+    singles: { n: number; hit_rate: number | null; expected: number | null };
+    combo: { n: number; hit_rate?: number; expected_naive?: number };
+    markets: { label: string; n: number; hit_rate: number | null; expected: number | null }[];
+  }[];
+  bets: BetsSummary;
+  market: {
+    selections: number;
+    fixtures?: number;
+    groups: { group: string; label: string; n: number; payback: number | null; above_pinnacle: number | null; edge_share: number; value_bets: number; value_roi: number | null }[];
+  };
+};
