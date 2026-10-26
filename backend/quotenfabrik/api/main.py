@@ -1,5 +1,8 @@
 """FastAPI application (REST API for the private frontend)."""
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -18,7 +21,14 @@ from quotenfabrik.api.routers import (
 )
 from quotenfabrik.db import get_engine
 
-app = FastAPI(title="Quotenfabrik Analyser", version="0.2.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    stats.warm_caches()
+    yield
+
+
+app = FastAPI(title="Quotenfabrik Analyser", version="0.2.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],

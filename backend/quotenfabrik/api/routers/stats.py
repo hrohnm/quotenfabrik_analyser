@@ -1,5 +1,6 @@
 """Evaluation page: hit rates of the model per league, season and market."""
 
+import logging
 import threading
 import time
 
@@ -13,6 +14,7 @@ from quotenfabrik.api.data import chosen_runs_cte, df
 from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, PICK_SETS, SELECTION_LABELS, pick_label
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
+log = logging.getLogger(__name__)
 
 _cache: dict = {}
 _lock = threading.Lock()
@@ -217,28 +219,63 @@ def _settled_picks(league_id: int) -> pd.DataFrame:
 
 
 _track_cache: dict = {}
+_track_refreshing = threading.Event()
+TRACK_TTL_S = 1800
+
+
+def _load_track_records() -> dict[tuple, dict]:
+    data = df(
+        f"""with runs as ({chosen_runs_cte("and f.league_id = any(:leagues)")})
+            select k.profile, k.market, k.selection, k.line::float as line, count(*) as n,
+                   avg(p.outcome::int)::float as hit_rate, avg(k.probability)::float as expected
+            from analytics.picks k
+            join runs on runs.model_run_id = k.model_run_id and runs.fixture_id = k.fixture_id
+            join analytics.predictions p on p.id = k.prediction_id
+            where p.outcome is not null
+            group by 1, 2, 3, 4""",
+        leagues=list(app_config.shown_league_ids()),
+    )  # fmt: skip
+    return {
+        (r.profile, r.market, r.selection, None if pd.isna(r.line) else float(r.line)):
+            {"n": int(r.n), "hit_rate": float(r.hit_rate), "expected": float(r.expected)}
+        for r in data.itertuples()
+    }  # fmt: skip
+
+
+def _refresh_track_records() -> None:
+    try:
+        out = _load_track_records()
+        with _lock:
+            _track_cache["all"] = (time.time(), out)
+    except Exception:  # noqa: BLE001 - a failed refresh keeps the old value
+        log.exception("pick track records refresh failed")
+    finally:
+        _track_refreshing.clear()
 
 
 def pick_track_records() -> dict[tuple, dict]:
-    """Past hit rate per (profile, market, selection, line) over the shown leagues (for the pick hover card)."""
+    """Past hit rate per (profile, market, selection, line) over the shown leagues (for the pick hover card).
+    One SQL aggregate, cached; once stale the old value is served while a thread refreshes it."""
     with _lock:
         hit = _track_cache.get("all")
-        if hit and time.time() - hit[0] < CACHE_TTL_S:
-            return hit[1]
-    frames = [f for f in (_settled_picks(lg) for lg in app_config.shown_league_ids()) if not f.empty]
-    out: dict[tuple, dict] = {}
-    if frames:
-        data = pd.concat(frames, ignore_index=True)
-        data["line"] = data["line"].fillna(-1.0)
-        agg = data.groupby(["profile", "market", "selection", "line"]).agg(
-            n=("outcome", "size"), hit_rate=("outcome", "mean"), expected=("probability", "mean")
-        )
-        for (profile, market, selection, line), r in agg.iterrows():
-            key = (profile, market, selection, None if line == -1.0 else float(line))
-            out[key] = {"n": int(r.n), "hit_rate": float(r.hit_rate), "expected": float(r.expected)}
-    with _lock:
-        _track_cache["all"] = (time.time(), out)
-    return out
+    if hit is None:
+        _refresh_track_records_once()
+        with _lock:
+            return _track_cache.get("all", (0, {}))[1]
+    if time.time() - hit[0] > TRACK_TTL_S and not _track_refreshing.is_set():
+        _track_refreshing.set()
+        threading.Thread(target=_refresh_track_records, daemon=True).start()
+    return hit[1]
+
+
+def _refresh_track_records_once() -> None:
+    _track_refreshing.set()
+    _refresh_track_records()
+
+
+def warm_caches() -> None:
+    """Fill the slow caches in the background at API start (first Spieltage request stays fast)."""
+    threading.Thread(target=_refresh_track_records_once, daemon=True).start()
 
 
 @router.get("/picks")
