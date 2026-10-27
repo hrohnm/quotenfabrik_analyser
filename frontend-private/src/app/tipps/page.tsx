@@ -13,6 +13,8 @@ import { leagueLogo } from "@/lib/media";
 import { DayCombos } from "@/components/bets/DayCombos";
 import { BetDialog, type BetDraft } from "@/components/bets/BetDialog";
 import { ClvView } from "@/components/picks/ClvView";
+import { DecisionSheet } from "@/components/decisions/DecisionSheet";
+import { DecisionStatsView } from "@/components/decisions/DecisionStatsView";
 
 export default function TipsPage() {
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -23,6 +25,7 @@ export default function TipsPage() {
   const [day, setDay] = useState<string | null>(null);
   const [fixtures, setFixtures] = useState<Fixture[] | null>(null);
   const [stats, setStats] = useState<PickStats | null>(null);
+  const [mode, setMode] = useState<"tipps" | "schein">("tipps");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -107,17 +110,34 @@ export default function TipsPage() {
       {day && <DayCombos day={day} />}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Tipps pro Spiel</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">{mode === "tipps" ? "Tipps pro Spiel" : "Tippschein: 6 Entscheidungen pro Spiel"}</h2>
+          <Segmented options={[{ key: "tipps", label: "3 Tipps" }, { key: "schein", label: "Tippschein" }]} value={mode} onChange={(v) => setMode(v as "tipps" | "schein")} />
+        </div>
+        {mode === "schein" && (
+          <p className="-mt-1 max-w-3xl text-sm text-slate-500">
+            Sieger, Über 1,5 Tore, Über 2,5 Tore, Beide treffen, Tor in der 1. und in der 2. Halbzeit – jeweils die Seite, die das Modell für wahrscheinlicher hält.
+          </p>
+        )}
         {fixtures === null ? (
           <Card><p className="text-sm text-slate-400">Tipps werden geladen …</p></Card>
         ) : fixtures.length === 0 ? (
           <Card><p className="text-sm text-slate-500">An diesem Tag gibt es keine Spiele mit Prognose.</p></Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{fixtures.map((f) => <FixturePicks key={f.id} f={f} />)}</div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {fixtures.map((f) => (mode === "tipps" ? <FixturePicks key={f.id} f={f} /> : <FixtureSheet key={f.id} f={f} />))}
+          </div>
         )}
       </section>
 
-      <section className="space-y-3">
+      {mode === "schein" && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Tippschein-Auswertung (rückwirkend, nur Daten vor dem Spieltag)</h2>
+          <DecisionStatsView league={league} />
+        </section>
+      )}
+
+      {mode === "tipps" && <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="text-lg font-semibold">Trefferquote (rückwirkend, nur Daten vor dem Spieltag)</h2>
           <Select label="Saison" value={season} onChange={setSeason}>
@@ -126,7 +146,7 @@ export default function TipsPage() {
           </Select>
         </div>
         {stats && <StatsView stats={stats} />}
-      </section>
+      </section>}
 
       <section className="space-y-3">
         <div>
@@ -159,21 +179,36 @@ function picksDraft(f: Fixture): BetDraft {
   };
 }
 
+function FixtureHeader({ f }: { f: Fixture }) {
+  return (
+    <Link href={`/spiel/${f.id}`} className="mb-3 flex items-center justify-between gap-2 hover:opacity-80">
+      <div className="min-w-0 space-y-1">
+        <div className="flex items-center gap-2 text-sm font-medium"><TeamLogo team={f.home} size={18} /><span className="truncate">{f.home.name}</span></div>
+        <div className="flex items-center gap-2 text-sm font-medium"><TeamLogo team={f.away} size={18} /><span className="truncate">{f.away.name}</span></div>
+      </div>
+      <div className="flex shrink-0 flex-col items-end text-right text-xs text-slate-500">
+        <Logo src={f.league?.logo ?? leagueLogo(f.league_id)} alt={f.league?.name ?? "Liga"} size={16} className="mb-1" />
+        {f.finished ? <span className="text-lg font-semibold tabular-nums text-slate-900">{f.score.ft[0]}:{f.score.ft[1]}</span> : <span>{weekday(f.kickoff.slice(0, 10))} {dateShort(f.kickoff)}</span>}
+        <div>{f.finished ? dateShort(f.kickoff) : `${time(f.kickoff)} Uhr`}</div>
+      </div>
+    </Link>
+  );
+}
+
+function FixtureSheet({ f }: { f: Fixture }) {
+  return (
+    <Card>
+      <FixtureHeader f={f} />
+      <DecisionSheet decisions={f.prediction?.decisions ?? []} home={f.home} away={f.away} finished={f.finished} />
+    </Card>
+  );
+}
+
 function FixturePicks({ f }: { f: Fixture }) {
   const [draft, setDraft] = useState<BetDraft | null>(null);
   return (
     <Card>
-      <Link href={`/spiel/${f.id}`} className="mb-3 flex items-center justify-between gap-2 hover:opacity-80">
-        <div className="min-w-0 space-y-1">
-          <div className="flex items-center gap-2 text-sm font-medium"><TeamLogo team={f.home} size={18} /><span className="truncate">{f.home.name}</span></div>
-          <div className="flex items-center gap-2 text-sm font-medium"><TeamLogo team={f.away} size={18} /><span className="truncate">{f.away.name}</span></div>
-        </div>
-        <div className="flex shrink-0 flex-col items-end text-right text-xs text-slate-500">
-          <Logo src={f.league?.logo ?? leagueLogo(f.league_id)} alt={f.league?.name ?? "Liga"} size={16} className="mb-1" />
-          {f.finished ? <span className="text-lg font-semibold tabular-nums text-slate-900">{f.score.ft[0]}:{f.score.ft[1]}</span> : <span>{weekday(f.kickoff.slice(0, 10))} {dateShort(f.kickoff)}</span>}
-          <div>{f.finished ? dateShort(f.kickoff) : `${time(f.kickoff)} Uhr`}</div>
-        </div>
-      </Link>
+      <FixtureHeader f={f} />
       <PickList picks={f.picks ?? []} combo={f.pick_combo} finished={f.finished} reasons={false} />
       {!f.finished && (f.picks?.length ?? 0) > 0 && (
         <button type="button" onClick={() => setDraft(picksDraft(f))} className="mt-3 text-xs text-emerald-700 hover:underline">Als Kombi-Wette erfassen</button>

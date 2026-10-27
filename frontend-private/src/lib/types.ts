@@ -1,5 +1,35 @@
 export type Team = { id: number; name: string; logo?: string | null };
 
+/** One of the six fixed decisions per fixture (Tippschein): the more likely selection with Betano odds. */
+export type Decision = BookPrices & {
+  key: "winner" | "o15" | "o25" | "btts" | "goal_1h" | "goal_2h";
+  label: string;
+  market: string;
+  line: number | null;
+  pick: string;
+  pick_label: string;
+  probability: number;
+  hit: boolean | null;
+};
+
+export type DecisionRate = { n: number; hit_rate: number | null; expected: number | null };
+export type DecisionStats = {
+  fixtures: number;
+  total?: DecisionRate;
+  decisions?: (DecisionRate & {
+    key: string;
+    label: string;
+    picked: Record<string, number>;
+    reference: { n: number; hit_rate: number; model: number } | null;
+    betano: { n: number; odds: number; hit_rate: number; roi: number; edge: number } | null;
+    confidence: (DecisionRate & { bin: string })[];
+  })[];
+  correct_per_fixture?: Record<string, number>;
+  mean_correct?: number | null;
+  seasons?: (DecisionRate & { season: number } & Record<string, number | null>)[];
+  betano?: { n: number; odds: number; hit_rate: number; roi: number; edge: number } | null;
+};
+
 export type FixtureSummary = {
   source: "forecast" | "backtest";
   probabilities: Partial<Record<"home" | "draw" | "away" | "over25" | "btts", number>>;
@@ -8,6 +38,7 @@ export type FixtureSummary = {
   /** Betano 1X2 odds with Pinnacle and model edge (OddsPapi, last price before kickoff) */
   betano?: Partial<Record<"home" | "draw" | "away", BookPrices>>;
   pick_1x2_hit?: boolean | null;
+  decisions?: Decision[];
 };
 
 export type League = { id: number; name: string; logo?: string | null };
@@ -188,6 +219,7 @@ export type FixtureDetail = {
   scorers: Scorer[];
   patterns: Pattern[];
   picks: Record<string, Pick[]>;
+  decisions?: Decision[];
   pick_combos?: Record<string, PickCombo>;
   stats: { home: Record<string, TeamStats>; away: Record<string, TeamStats> };
   goals: { minute: number; extra_minute: number | null; team_id: number; player_id: number | null; player_name: string; detail: string; comments: string | null }[];

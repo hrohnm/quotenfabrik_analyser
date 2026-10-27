@@ -173,6 +173,28 @@ Quoten über dem fairen Preis und dann nur knapp (Ø +0,8 %, CLV ≈ 0) – die 
 Hauptmärkten abgeleitet. Die Marge unterscheidet sich stark: ≈ 4–7 % (1X2, Doppelte Chance, Ü/U, Team-Tore) bis
 ≈ 10–17 % (Halbzeit-Ergebnis, Handicap, torreichste Halbzeit, exakte Toranzahl).
 
+### Tippschein: 6 Entscheidungen pro Spiel (`analytics/decisions.py`)
+
+Für jedes Spiel sechs feste Entscheidungen, jeweils die Seite, die das Modell für wahrscheinlicher hält: Sieger
+(Heim / Unentschieden / Gast), Über 1,5 Tore, Über 2,5 Tore, Beide treffen, Tor in der 1. und in der 2. Halbzeit.
+Auswertung (`/api/stats/decisions`, Tipps-Seite → „Tippschein“): Trefferquote gegen die Erwartung des Modells, gegen
+„immer das Ergebnis, das in den Vorsaisons am häufigsten war“ (walk-forward) und zur letzten Betano-Quote.
+
+**Backtest (27.10.2026, 1. + 2. Bundesliga, 5.634 Spiele):**
+
+| Entscheidung | Modell tippt | getroffen | immer häufigstes | Vorsprung |
+|---|---|--:|--:|--:|
+| Sieger | Heim 72 %, Gast 28 %, nie Remis | 48,3 % | 43,5 % (Heim) | +5,3 Pkt. |
+| Über 1,5 Tore | immer Ja | 81,5 % | 81,9 % | 0 |
+| Über 2,5 Tore | Ja 83 % | 58,1 % | 60,0 % (Ja) | −1,4 Pkt. |
+| Beide treffen | Ja 95 % | 58,1 % | 59,1 % (Ja) | −0,5 Pkt. |
+| Tor 1. Halbzeit | immer Ja | 74,1 % | 74,3 % | 0 |
+| Tor 2. Halbzeit | immer Ja | 82,6 % | 82,9 % | 0 |
+
+Im Schnitt 4,0 von 6 richtig, alle 6 in 18 % der Spiele. Echten Mehrwert hat nur die Sieger-Entscheidung; bei den
+Ja/Nein-Fragen liegt die Modell-Wahrscheinlichkeit fast immer auf derselben Seite der 50 % wie der Ligaschnitt, der
+Tippschein entspricht dort „immer Ja“. Zur Betano-Quote sind alle Entscheidungen zusammen leicht negativ (−2,4 %).
+
 ### Kombi aus den Tipps eines Spiels (Bet Builder, `analytics/same_game.py`)
 
 Die 3 Tipps eines Spiels hängen zusammen („Lazio trifft“ und „Lazio oder Remis“ treffen meist gemeinsam). Das Produkt
