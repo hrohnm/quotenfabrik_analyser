@@ -75,7 +75,7 @@ export function BetDialog({ draft, onClose, onSaved }: { draft: BetDraft; onClos
             <p className="mt-2 text-xs text-slate-500">
               {draft.realOdds
                 ? <>Vorbelegt mit der aktuellen Betano-Quote {odd(draft.odds)} (Produkt der Einzelquoten) – vor der Abgabe auf dem Wettschein prüfen.</>
-                : <>Vorbelegt mit der geschätzten Quote {odd(draft.odds)} – bitte die tatsächliche Quote eintragen.</>}
+                : <>Vorbelegt mit der geschätzten Quote {odd(draft.odds)}{draft.source === "tipps" ? " (Bet Builder: Betano-Einzelquoten bereinigt um den Zusammenhang der Tipps)" : ""} – bitte die tatsächliche Quote vom Wettschein eintragen.</>}
               {draft.probability != null && <> Modell-Chance {pct(draft.probability)}{ev != null && <>, erwarteter Gewinn {ev.toFixed(2).replace(".", ",")} €</>}.</>}
             </p>
             <label className="mt-3 block text-xs font-medium text-slate-500">

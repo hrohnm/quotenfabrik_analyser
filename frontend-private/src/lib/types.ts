@@ -44,6 +44,20 @@ export type Pick = BookPrices & {
   clv?: number | null;
 };
 
+/** Same-game combo of the picks of a fixture: joint probability from the model (the picks are correlated) and
+ * the estimated Betano Bet Builder odds. */
+export type PickCombo = {
+  /** product of the single probabilities (ignores the correlation) */
+  naive: number;
+  probability: number | null;
+  /** joint / product on the model's goal grid (> 1: the picks tend to come true together) */
+  factor: number | null;
+  fair_odd: number | null;
+  betano_product: number | null;
+  /** estimate: product of the Betano single odds ÷ factor */
+  builder_odds: number | null;
+};
+
 /** Closing line value of a set of picks (``/stats/clv``). */
 export type ClvRow = {
   key: string | number;
@@ -116,6 +130,7 @@ export type Fixture = {
   score: { ft: [number | null, number | null]; ht: [number | null, number | null] };
   prediction?: FixtureSummary | null;
   picks?: Pick[];
+  pick_combo?: PickCombo | null;
 };
 
 export type Day = { date: string; fixtures: number; finished: number };
@@ -171,6 +186,7 @@ export type FixtureDetail = {
   scorers: Scorer[];
   patterns: Pattern[];
   picks: Record<string, Pick[]>;
+  pick_combos?: Record<string, PickCombo>;
   stats: { home: Record<string, TeamStats>; away: Record<string, TeamStats> };
   goals: { minute: number; extra_minute: number | null; team_id: number; player_id: number | null; player_name: string; detail: string; comments: string | null }[];
   /** match events for the timeline (goals with the score after them, cards, substitutions, VAR) */

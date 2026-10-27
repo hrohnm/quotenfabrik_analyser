@@ -151,9 +151,10 @@ function picksDraft(f: Fixture): BetDraft {
   return {
     label: `${f.home.name} – ${f.away.name}: 3 Tipps`,
     source: "tipps",
-    odds: picks.reduce((o, p) => o * legOdds(p), 1),
-    realOdds: picks.every((p) => p.betano != null),
-    probability: null,  // the picks of one fixture are correlated: the product would understate the chance
+    // same-game combo: estimated Bet Builder odds and joint model chance (the picks are correlated)
+    odds: f.pick_combo?.builder_odds ?? picks.reduce((o, p) => o * legOdds(p), 1) / (f.pick_combo?.factor ?? 1),
+    realOdds: false,
+    probability: f.pick_combo?.probability ?? null,
     legs: picks.map((p) => ({ fixture_id: f.id, market: p.market, selection: p.selection, line: p.line, label: p.label, probability: p.probability, odds: Math.round(legOdds(p) * 100) / 100 })),
   };
 }
@@ -173,7 +174,7 @@ function FixturePicks({ f }: { f: Fixture }) {
           <div>{f.finished ? dateShort(f.kickoff) : `${time(f.kickoff)} Uhr`}</div>
         </div>
       </Link>
-      <PickList picks={f.picks ?? []} finished={f.finished} reasons={false} />
+      <PickList picks={f.picks ?? []} combo={f.pick_combo} finished={f.finished} reasons={false} />
       {!f.finished && (f.picks?.length ?? 0) > 0 && (
         <button type="button" onClick={() => setDraft(picksDraft(f))} className="mt-3 text-xs text-emerald-700 hover:underline">Als Kombi-Wette erfassen</button>
       )}
@@ -207,7 +208,8 @@ function StatsView({ stats }: { stats: PickStats }) {
           <div className="mt-2 flex justify-between text-xs text-slate-500"><span>0 von 3</span><span>1</span><span>2</span><span>3 von 3 = Kombi</span></div>
           <p className="mt-3 text-xs text-slate-500">
             Die Kombi trifft öfter als das Produkt der Einzelwahrscheinlichkeiten ({pct(d.combo.expected_naive ?? null, 0)}), weil die Tipps eines Spiels zusammenhängen.
-            Buchmacher preisen das bei Kombis innerhalb eines Spiels („Bet Builder“) ein.
+            Die Kombi-Chance je Spiel rechnet diesen Zusammenhang deshalb aus dem Modell ein (im Backtest kalibriert). Buchmacher preisen ihn im Bet Builder
+            ebenfalls ein – die Bet-Builder-Quote liegt darum unter dem Produkt der Einzelquoten.
           </p>
         </Card>
         <Card title="Nach Tipp-Rang und Pattern-Begründung">

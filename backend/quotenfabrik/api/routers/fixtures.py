@@ -10,7 +10,16 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from quotenfabrik import app_config
-from quotenfabrik.analytics import availability, bookmaker_odds, form, lineups, pick_explain, preview, style
+from quotenfabrik.analytics import (
+    availability,
+    bookmaker_odds,
+    form,
+    lineups,
+    pick_explain,
+    preview,
+    same_game,
+    style,
+)
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.picks import default_profile, profiles
 from quotenfabrik.api.data import chosen_runs_cte, df, model_data, style_data, team_names
@@ -194,6 +203,39 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
     return out
 
 
+def _pick_combos(picks: dict[int, dict[str, list[dict]]]) -> dict[int, dict[str, dict]]:
+    """Same-game combo of the picks per fixture and profile: joint probability from the half models
+    (correlated picks) and the estimated Betano Bet Builder odds."""
+    multi = [f for f, by_profile in picks.items() if any(len(p) > 1 for p in by_profile.values())]
+    if not multi:
+        return {}
+    rows = df(
+        f"""with runs as ({chosen_runs_cte("and p.fixture_id = any(:ids)")})
+            select p.fixture_id, p.market, p.selection, p.line::float as line, p.probability
+            from analytics.predictions p
+            join runs on runs.model_run_id = p.model_run_id and runs.fixture_id = p.fixture_id
+            where p.fixture_id = any(:ids) and p.market = any(:markets) and p.selection = 'under'
+              and p.line = 0.5""",
+        ids=multi, markets=[k[0] for k in same_game.HALF_KEYS],
+    )  # fmt: skip
+    probs: dict[int, dict[tuple, float]] = {}
+    for r in rows.itertuples():
+        probs.setdefault(int(r.fixture_id), {})[(r.market, r.selection, r.line)] = float(r.probability)
+    out: dict[int, dict[str, dict]] = {}
+    for fixture_id in multi:
+        lambdas = same_game.half_lambdas(probs.get(fixture_id, {}))
+        for profile, legs in picks[fixture_id].items():
+            if len(legs) < 2:
+                continue
+            factor = None if lambdas is None else same_game.correlation_factor(
+                lambdas, [(p["market"], p["selection"], p["line"]) for p in legs]
+            )  # fmt: skip
+            out.setdefault(fixture_id, {})[profile] = same_game.combo(
+                [p["probability"] for p in legs], factor, [p["betano"] for p in legs]
+            )
+    return out
+
+
 def _pick_contexts(names: dict[int, tuple[str, str]]) -> dict[int, pick_explain.FixtureContext]:
     """1X2 probabilities and expected goals per team (from P(team scores)) of the chosen run per fixture."""
     rows = df(
@@ -352,10 +394,12 @@ def fixtures(
     summaries = _summaries([i["id"] for i in items])
     profile = profile or default_profile()
     picks = _picks(items, profile)
+    combos = _pick_combos(picks)
     first_legs = _first_legs(items)
     for item in items:
         item["prediction"] = summaries.get(item["id"])
         item["picks"] = picks.get(item["id"], {}).get(profile, [])
+        item["pick_combo"] = combos.get(item["id"], {}).get(profile)
         item["first_leg"] = first_legs.get(item["id"])
     return items
 
@@ -441,7 +485,8 @@ def fixture_detail(fixture_id: int) -> dict:
         "patterns": _patterns(r, forms),
         "form": forms,
         "style": _styles(r),
-        "picks": _picks([fixture]).get(fixture_id, {}),
+        "picks": (fixture_picks := _picks([fixture])).get(fixture_id, {}),
+        "pick_combos": _pick_combos(fixture_picks).get(fixture_id, {}),
         "odds": {"betano_at": max(betano_at) if betano_at else None, "closing": fixture["finished"]},
         "stats": _stats(fixture_id, fixture),
         "goals": _goals(fixture_id),
