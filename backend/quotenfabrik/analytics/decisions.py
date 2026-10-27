@@ -41,16 +41,33 @@ def _key_of(market: str, line) -> str | None:
     return None
 
 
-def decide(preds: pd.DataFrame) -> pd.DataFrame:
+def decide(
+    preds: pd.DataFrame, stacked: pd.DataFrame | None = None, min_confidence: float | None = None
+) -> pd.DataFrame:
     """``preds``: fixture_id, market, selection, line, probability (+ outcome, any extra columns) of the
-    chosen run. Returns one row per fixture and decision with the more likely selection (``decision``,
-    ``pick``, ``pick_label``, ``probability``, ``hit`` if settled)."""
+    chosen run; ``stacked``: decision model (fixture_id, decision, probabilities {selection: p}, confidence).
+    Returns one row per fixture and decision with the more likely selection (``decision``, ``pick``,
+    ``pick_label``, ``probability``, ``model_probability`` = goal model, ``confidence``, ``tipped`` =
+    confidence ≥ ``min_confidence``, ``hit`` if settled)."""
     p = preds.copy()
     p["decision"] = [_key_of(m, ln) for m, ln in zip(p["market"], p["line"], strict=True)]
     p = p[p["decision"].notna()]
     p = p[[s in dict(BY_KEY[k].options) for k, s in zip(p["decision"], p["selection"], strict=True)]]
     if p.empty:
-        return p.assign(pick=[], pick_label=[], hit=[])
+        return p.assign(pick=[], pick_label=[], hit=[], confidence=[], tipped=[], model_probability=[])
+    p["model_probability"] = p["probability"]
+    p["confidence"] = np.nan
+    if stacked is not None and not stacked.empty:
+        cols = [stacked[c] for c in ("fixture_id", "decision", "probabilities", "confidence")]
+        probs = {(int(f), k): (d, c) for f, k, d, c in zip(*cols, strict=True)}
+        new_p, conf = [], []
+        for f, k, sel, prob in zip(
+            p["fixture_id"], p["decision"], p["selection"], p["probability"], strict=True
+        ):
+            hit = probs.get((int(f), k))
+            new_p.append(float(hit[0].get(sel, prob)) if hit else prob)
+            conf.append(np.nan if hit is None or hit[1] is None else float(hit[1]))
+        p["probability"], p["confidence"] = new_p, conf
     best = p.loc[p.groupby(["fixture_id", "decision"])["probability"].idxmax()].copy()
     best["pick"] = best["selection"]
     best["pick_label"] = [
@@ -65,6 +82,8 @@ def decide(preds: pd.DataFrame) -> pd.DataFrame:
         best["actual"] = [
             actual.get((f, k)) for f, k in zip(best["fixture_id"], best["decision"], strict=True)
         ]
+    threshold = 0 if min_confidence is None else min_confidence
+    best["tipped"] = [None if pd.isna(c) else bool(c >= threshold) for c in best["confidence"]]
     order = {d.key: i for i, d in enumerate(DECISIONS)}
     best["order"] = best["decision"].map(order)
     return best.sort_values(["fixture_id", "order"]).drop(columns="order").reset_index(drop=True)
@@ -96,6 +115,39 @@ def _betano(rows: pd.DataFrame) -> dict | None:
         "roi": float(profit.mean()),
         "edge": float((b["probability"] * b["betano"] - 1).mean()),
     }
+
+
+CURVE = (0, 30, 50, 60, 70, 80, 90)
+
+
+def _with_confidence(rows: pd.DataFrame) -> pd.DataFrame:
+    return rows.dropna(subset=["confidence"]) if "confidence" in rows else rows.iloc[0:0]
+
+
+def _tipped(rows: pd.DataFrame) -> dict | None:
+    """Decisions with a confidence: share tipped, hit rate of the tips and of "always most frequent" on the
+    same fixtures."""
+    c = _with_confidence(rows)
+    if c.empty:
+        return None
+    t = c[c["tipped"].eq(True)]
+    ref = t["reference"].dropna() if "reference" in t else pd.Series(dtype=object)
+    rate = {k: v for k, v in _rate(t).items() if k != "n"}
+    return {"n": int(len(t)), "share": float(len(t) / len(c)), **rate,
+            "reference": float(ref.astype(bool).mean()) if len(ref) else None}  # fmt: skip
+
+
+def _curve(rows: pd.DataFrame) -> list[dict]:
+    """Hit rate by minimum confidence (decisions with a confidence)."""
+    c = _with_confidence(rows)
+    out = []
+    for t in CURVE:
+        g = c[c["confidence"] >= t]
+        if len(g):
+            ref = g["reference"].dropna() if "reference" in g else pd.Series(dtype=object)
+            out.append({"min_confidence": t, "share": float(len(g) / len(c)), **_rate(g),
+                        "reference": float(ref.astype(bool).mean()) if len(ref) else None})  # fmt: skip
+    return out
 
 
 def reference_hits(rows: pd.DataFrame) -> pd.Series:
@@ -135,6 +187,8 @@ def evaluate(rows: pd.DataFrame) -> dict:
                 }
             )
         entry["betano"] = _betano(g)
+        entry["tipped"] = _tipped(g)
+        entry["curve"] = _curve(g)
         cut = pd.cut(g["probability"], CONFIDENCE_BINS, include_lowest=True)
         entry["confidence"] = [
             {"bin": f"{b.left * 100:.0f}–{b.right * 100:.0f} %", **_rate(x)}
@@ -152,9 +206,14 @@ def evaluate(rows: pd.DataFrame) -> dict:
         for season, g in settled.groupby("season"):
             by_key = {d.key: _rate(g[g["decision"] == d.key])["hit_rate"] for d in DECISIONS}
             seasons.append({"season": int(season), **_rate(g), **by_key})
+    tipped = settled[settled["tipped"].eq(True)] if "tipped" in settled else settled.iloc[0:0]
+    per_tip = tipped.groupby("fixture_id")["hit"].agg(["sum", "size"])
     return {
         "fixtures": int(settled["fixture_id"].nunique()),
         "total": _rate(settled),
+        "tipped": _tipped(settled),
+        "tips_per_fixture": float(per_tip["size"].mean()) if len(per_tip) else None,
+        "all_tips_right": float((per_tip["sum"] == per_tip["size"]).mean()) if len(per_tip) else None,
         "decisions": out_decisions,
         "correct_per_fixture": distribution,
         "mean_correct": float(full["sum"].mean()) if len(full) else None,

@@ -136,3 +136,29 @@ class DayCombo(Base):
     probability: Mapped[float] = mapped_column(Float)
     real_odds: Mapped[bool] = mapped_column(Boolean)
     legs: Mapped[list] = mapped_column(JSONB)
+
+
+class DecisionModel(Base):
+    """Fitted Tippschein decision model per decision (coefficients, scaling, confidence table, metrics)."""
+
+    __tablename__ = "decision_models"
+    __table_args__ = ANALYTICS
+
+    decision: Mapped[str] = mapped_column(Text, primary_key=True)
+    fitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    payload: Mapped[dict] = mapped_column(JSONB)
+
+
+class DecisionProb(Base):
+    """Tippschein: probability per selection and confidence (0-100) of one decision for a prediction run."""
+
+    __tablename__ = "decision_probs"
+    __table_args__ = ANALYTICS
+
+    model_run_id: Mapped[int] = mapped_column(
+        ForeignKey("analytics.model_runs.id", ondelete="CASCADE"), primary_key=True
+    )
+    fixture_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    decision: Mapped[str] = mapped_column(Text, primary_key=True)
+    probabilities: Mapped[dict] = mapped_column(JSONB)
+    confidence: Mapped[float | None] = mapped_column(Float)

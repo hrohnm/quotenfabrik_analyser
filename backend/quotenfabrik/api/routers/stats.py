@@ -9,7 +9,7 @@ import pandas as pd
 from fastapi import APIRouter, Query
 
 from quotenfabrik import app_config
-from quotenfabrik.analytics import bookmaker_odds, clv, decisions
+from quotenfabrik.analytics import bookmaker_odds, clv, decision_runs, decisions
 from quotenfabrik.analytics.picks import default_profile, evaluate_picks, profiles
 from quotenfabrik.api.data import chosen_runs_cte, df, engine
 from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, PICK_SETS, SELECTION_LABELS, pick_label
@@ -297,7 +297,8 @@ def _load_decisions(leagues: list[int]) -> dict:
             where p.market in ('1x2', 'ou_ft', 'btts', 'ou_1h', 'ou_2h') and p.outcome is not null""",
         leagues=leagues,
     )  # fmt: skip
-    rows = decisions.decide(data)
+    model = decision_runs.stacked(engine(), "and f.league_id = any(:leagues)", leagues=leagues)
+    rows = decisions.decide(data, model, app_config.get("decisions.min_confidence"))
     if rows.empty:
         return {"fixtures": 0}
     with_odds = df("select distinct fixture_id from core.oddspapi_fixtures where fixture_id = any(:ids)",

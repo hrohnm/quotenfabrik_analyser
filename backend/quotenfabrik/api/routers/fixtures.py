@@ -14,6 +14,7 @@ from quotenfabrik import app_config
 from quotenfabrik.analytics import (
     availability,
     bookmaker_odds,
+    decision_runs,
     decisions,
     form,
     lineups,
@@ -218,14 +219,20 @@ def _decisions(rows: pd.DataFrame) -> dict[int, list[dict]]:
     """Tippschein per fixture: the six decisions (more likely selection) with Betano odds and the result."""
     if rows.empty:
         return {}
-    sheet = decisions.decide(rows.assign(line=rows["line"].astype(float)))
-    prices = _bookmaker_prices([int(f) for f in sheet["fixture_id"].unique()])
+    ids = [int(f) for f in rows["fixture_id"].unique()]
+    model = decision_runs.stacked(get_engine(), "and p.fixture_id = any(:ids)", ids=ids)
+    sheet = decisions.decide(
+        rows.assign(line=rows["line"].astype(float)), model, app_config.get("decisions.min_confidence")
+    )
+    prices = _bookmaker_prices(ids)
     out: dict[int, list[dict]] = {}
     for r in sheet.itertuples():
         line = None if pd.isna(r.line) else float(r.line)
         out.setdefault(int(r.fixture_id), []).append(
             {"key": r.decision, "label": decisions.BY_KEY[r.decision].label, "market": r.market, "line": line,
              "pick": r.pick, "pick_label": r.pick_label, "probability": float(r.probability),
+             "model_probability": float(r.model_probability),
+             "confidence": None if pd.isna(r.confidence) else round(float(r.confidence)), "tipped": None if r.tipped is None or pd.isna(r.tipped) else bool(r.tipped),
              "hit": None if pd.isna(r.outcome) else bool(r.outcome),
              **_prices(prices, int(r.fixture_id), r.market, line, r.pick, float(r.probability))}
         )  # fmt: skip

@@ -64,6 +64,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/17_form.md` | Automatisch erzeugt: Form-Pattern (Punkte über/unter Modell-Erwartung) gegen das nächste Spiel (`qf model form-eval`) |
 | `docs/16_tageskombis.md` | Automatisch erzeugt: Backtest der Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance, Quote 5–10, `qf combos report`) |
 | `docs/23_clv.md` | Automatisch erzeugt: Closing Line Value der Tipps (Betano-Quote beim Tipp vs. fairer Pinnacle-Schlusspreis, `qf value clv`) |
+| `docs/24_tippschein.md` | Automatisch erzeugt: Tippschein-Entscheidungsmodell (alle Informationen) und Trefferquote nach Konfidenz (`qf model decisions`) |
 | `docs/11_betano_nebenmaerkte.md` | Automatisch erzeugt: Betano-Nebenmärkte gegen faire Preise aus Pinnacle (`mkt-v1`, Phase 3) |
 
 ## Harte Regeln
@@ -142,6 +143,7 @@ qf model backtest && qf model settle          # rückwirkende Prognosen / Ergebn
 qf value backtest                             # Prognosen gegen historische Quoten → docs/10_quoten_backtest.md
 qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md
 qf value clv                                  # CLV der Tipps (Quote beim Tipp vs. Schlusspreis) → docs/23_clv.md
+qf model decisions [--apply]                  # Tippschein-Entscheidungsmodell + Konfidenz → docs/24_tippschein.md
 qf picks build && qf picks report             # 3 Tipps pro Spiel speichern / Trefferquote → docs/12_tipps.md
 qf picks freeze                               # Tipps + Tageskombis des Tages fixieren (Cron nach der Prognose)
 qf combos report                              # Tageskombis im Backtest → docs/16_tageskombis.md
@@ -166,7 +168,9 @@ pytest && ruff check . && ruff format --check .
   Betano-/Pinnacle-Preise je Spiel und Auswahl (`bookmaker_odds.py`, für API und Tageskombis), marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
   (`betano_value.py`), Closing Line Value der Tipps (`clv.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`),
   gemeinsame Chance und geschätzte Bet-Builder-Quote der Tipps eines Spiels (`same_game.py`),
-  Tippschein mit 6 Entscheidungen je Spiel und Auswertung (`decisions.py`), Tageskombis (`combos.py`),
+  Tippschein mit 6 Entscheidungen je Spiel und Auswertung (`decisions.py`), Entscheidungsmodell mit allen
+  Informationen und Konfidenz (`decision_features.py`, `decision_model.py`, `decision_runs.py`; Tabellen
+  `analytics.decision_models`, `analytics.decision_probs`), Tageskombis (`combos.py`),
   Form und letzte Spiele aller Wettbewerbe (`form.py`), Spielstil-Profile (`style.py`, Nachweis `style_eval.py`),
   Einschätzung in Textform je Spiel (`preview.py`, regelbasiert aus den Detaildaten),
   voraussichtliche Startelf bis zur bestätigten Aufstellung (`lineups.py`, Nachweis `docs/21_aufstellung.md`),

@@ -8,11 +8,20 @@ export type Decision = BookPrices & {
   line: number | null;
   pick: string;
   pick_label: string;
+  /** decision model (goal model plus form, style, schedule, absences, patterns) */
   probability: number;
+  /** goal model alone */
+  model_probability?: number;
+  /** 0-100: more confident than this share of past fixtures (null without decision model) */
+  confidence?: number | null;
+  /** false = "kein Tipp" (confidence below the minimum from the settings) */
+  tipped?: boolean | null;
   hit: boolean | null;
 };
 
 export type DecisionRate = { n: number; hit_rate: number | null; expected: number | null };
+export type DecisionTipped = { n: number; share: number; hit_rate: number | null; expected: number | null; reference: number | null };
+export type DecisionCurve = DecisionRate & { min_confidence: number; share: number; reference: number | null };
 export type DecisionStats = {
   fixtures: number;
   total?: DecisionRate;
@@ -23,7 +32,12 @@ export type DecisionStats = {
     reference: { n: number; hit_rate: number; model: number } | null;
     betano: { n: number; odds: number; hit_rate: number; roi: number; edge: number } | null;
     confidence: (DecisionRate & { bin: string })[];
+    tipped: DecisionTipped | null;
+    curve: DecisionCurve[];
   })[];
+  tipped?: DecisionTipped | null;
+  tips_per_fixture?: number | null;
+  all_tips_right?: number | null;
   correct_per_fixture?: Record<string, number>;
   mean_correct?: number | null;
   seasons?: (DecisionRate & { season: number } & Record<string, number | null>)[];
