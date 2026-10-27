@@ -116,7 +116,9 @@ export default function TipsPage() {
         </div>
         {mode === "schein" && (
           <p className="-mt-1 max-w-3xl text-sm text-slate-500">
-            Sieger, Über 1,5 Tore, Über 2,5 Tore, Beide treffen, Tor in der 1. und in der 2. Halbzeit – jeweils die Seite, die das Modell für wahrscheinlicher hält.
+            Sieger, Über 1,5 Tore, Über 2,5 Tore, Beide treffen, Tor in der 1. und in der 2. Halbzeit – jeweils die wahrscheinlichere Seite laut
+            Entscheidungsmodell (Tor-Modell plus Form, Spielstil, Termine, Ausfälle und Historie). Die Konfidenz (0–100) zeigt, wie sicher die
+            Entscheidung im Vergleich zu früheren Spielen ist; unter der Mindest-Konfidenz (Einstellungen) steht „kein Tipp“.
           </p>
         )}
         {fixtures === null ? (

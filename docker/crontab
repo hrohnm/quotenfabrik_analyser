@@ -15,7 +15,10 @@
 15 5 * * *      qf ingest results
 # Ergebnisse abrechnen, Prognosen + Tipps für die nächsten 10 Tage; danach Tipps und Tageskombis des Tages fixieren
 # (der erste Lauf des Tages fixiert sie, spätere Läufe ergänzen nur neue Spiele)
-0 6,12,18 * * * qf model settle && qf model forecast && qf picks freeze
+# (Tippschein: Entscheidungsmodell auf die neuen Prognosen anwenden, bevor der Tag fixiert wird)
+0 6,12,18 * * * qf model settle && qf model forecast && qf model decisions --apply && qf picks freeze
+# Tippschein-Entscheidungsmodell neu trainieren (walk-forward, alle Informationen) + Bericht, montags
+40 3 * * 1      qf model decisions
 # Spielernamen für Torschützen-Märkte an Spieltagen (Fr/Sa/So, je 1 OddsPapi-Request)
 0 10 * * 5,6,0  qf oddspapi players
 # Nächtliches Backup (Volume qf_backups, Anzahl: Einstellung "Backups behalten")

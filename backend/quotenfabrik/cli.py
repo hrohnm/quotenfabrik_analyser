@@ -21,6 +21,7 @@ from quotenfabrik.reports import (
     CLV_REPORT,
     COMBO_REPORT,
     CUP_REPORT,
+    DECISIONS_REPORT,
     FORM_REPORT,
     JOINT_REPORT,
     LINEUP_REPORT,
@@ -557,6 +558,24 @@ def model_cup_eval(
     )  # fmt: skip
     report.write_text(text, encoding="utf-8")
     typer.echo(f"Bericht: {report}")
+
+
+@model_app.command("decisions")
+def model_decisions(
+    apply: bool = typer.Option(False, "--apply", help="nur neue Prognosen mit den gespeicherten Modellen"),
+    report: Path = typer.Option(DECISIONS_REPORT, help="Markdown-Bericht"),
+) -> None:
+    """Tippschein: Entscheidungsmodell mit allen Informationen trainieren (walk-forward), Bericht schreiben;
+    mit --apply nur kommende Spiele neu bewerten (nach der Prognose)."""
+    from quotenfabrik.analytics import decision_runs
+
+    engine = get_engine()
+    if apply:
+        typer.echo(f"Tippschein: {decision_runs.apply_new(engine)} neue Spiele bewertet")
+        return
+    result = decision_runs.fit(engine)
+    report.write_text(decision_runs.report(result), encoding="utf-8")
+    typer.echo(f"Tippschein: {result.get('fixtures', 0)} Spiele · Bericht: {report}")
 
 
 @model_app.command("forecast")

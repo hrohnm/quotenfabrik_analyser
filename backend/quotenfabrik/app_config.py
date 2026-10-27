@@ -54,6 +54,9 @@ SETTINGS: list[SettingDef] = [
     *_profile("mutig", "Mutig", 0.45, 0.72, 1.0),
     SettingDef("picks.default_profile", "Tipps – Allgemein", "Standardprofil", "Profil auf Spieltagsübersicht und "
                "Tipps-Seite.", "choice", "ausgewogen", choices=tuple(PROFILE_KEYS)),
+    SettingDef("decisions.min_confidence", "Tippschein", "Mindest-Konfidenz", "Eine Entscheidung wird nur getippt, "
+               "wenn die Konfidenz (0–100: sicherer als dieser Anteil früherer Spiele) mindestens diesen Wert erreicht; "
+               "sonst „kein Tipp“. 0 = immer tippen.", "int", 50, 0, 95),
     SettingDef("combos.target_min", "Tageskombis", "Zielquote ab", "Kombis werden aufgefüllt, bis die geschätzte "
                "Quote diesen Wert erreicht.", "float", 5.0, 1.5, 100),
     SettingDef("combos.target_max", "Tageskombis", "Zielquote bis", "Tipps, die darüber hinausführen, werden "

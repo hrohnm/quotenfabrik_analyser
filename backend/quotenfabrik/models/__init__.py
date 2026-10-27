@@ -2,6 +2,8 @@
 
 from quotenfabrik.models.analytics import (
     DayCombo,
+    DecisionModel,
+    DecisionProb,
     Evaluation,
     FrozenRun,
     ModelRun,
@@ -44,6 +46,8 @@ __all__ = [
     "Job",
     "DayCombo",
     "Evaluation",
+    "DecisionModel",
+    "DecisionProb",
     "FrozenRun",
     "ModelRun",
     "PatternResultRow",
