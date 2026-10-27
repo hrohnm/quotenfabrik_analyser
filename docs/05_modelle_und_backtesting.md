@@ -173,6 +173,23 @@ Quoten über dem fairen Preis und dann nur knapp (Ø +0,8 %, CLV ≈ 0) – die 
 Hauptmärkten abgeleitet. Die Marge unterscheidet sich stark: ≈ 4–7 % (1X2, Doppelte Chance, Ü/U, Team-Tore) bis
 ≈ 10–17 % (Halbzeit-Ergebnis, Handicap, torreichste Halbzeit, exakte Toranzahl).
 
+### Kombi aus den Tipps eines Spiels (Bet Builder, `analytics/same_game.py`)
+
+Die 3 Tipps eines Spiels hängen zusammen („Lazio trifft“ und „Lazio oder Remis“ treffen meist gemeinsam). Das Produkt
+der Einzelwahrscheinlichkeiten unterschätzt deshalb die Kombi, das Produkt der Betano-Einzelquoten überschätzt die
+Bet-Builder-Quote (Beispiel Sassuolo – Lazio: 1,18 × 1,35 × 1,19 = 1,90, Betano bot im Bet Builder 1,62).
+
+Die gemeinsame Chance kommt aus den Halbzeit-Modellen: Tore je Team und Halbzeit sind unabhängige Poisson-Größen, ihre
+Raten folgen exakt aus den gespeicherten P(Team trifft in der Halbzeit nicht). Auf diesem Raster (je 0–10 Tore) wird
+jeder Tipp-Markt ausgewertet; der **Faktor** = P(alle) / Produkt der Einzelchancen auf dem Raster wird auf die
+angezeigten Einzelwahrscheinlichkeiten angewendet (höchstens die kleinste davon). Die **geschätzte Bet-Builder-Quote**
+ist das Produkt der Betano-Einzelquoten ÷ Faktor (Betano preist den Zusammenhang ebenfalls ein; die echte Quote kann
+etwas abweichen und wird beim Erfassen der Wette eingetragen).
+
+**Backtest (27.10.2026, 16.902 abgerechnete Spiele × Profil, Kombi aus 3 Tipps):** getroffen 51,7 %, gemeinsame
+Modell-Chance Ø 52,9 %, Produkt der Einzelchancen Ø 44,1 %. Log-Loss 0,656 statt 0,677, Brier 0,232 statt 0,241, in
+allen drei Profilen besser; kalibriert in allen Bereichen (z. B. 50–60 %: erwartet 55,4 %, getroffen 54,8 %).
+
 ### Closing Line Value der Tipps (`qf value clv`)
 
 `analytics/clv.py` misst für jeden Tipp die Betano-Quote zu dem Zeitpunkt, an dem er gezeigt wurde (Live: Fixieren des

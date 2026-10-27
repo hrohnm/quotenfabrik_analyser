@@ -1,6 +1,6 @@
 import { OutcomeBadge, ProbabilityBar } from "@/components/ui";
-import { odd, pct } from "@/lib/format";
-import type { Pick } from "@/lib/types";
+import { num, odd, pct } from "@/lib/format";
+import type { Pick, PickCombo } from "@/lib/types";
 import { BetanoOdd } from "@/components/BetanoOdd";
 import { PickInfo } from "./PickInfo";
 
@@ -12,9 +12,10 @@ export function comboOutcome(picks: Pick[]): boolean | null {
 
 export const comboProbability = (picks: Pick[]) => picks.reduce((prod, p) => prod * p.probability, 1);
 
-export function PickList({ picks, finished, reasons = true }: { picks: Pick[]; finished: boolean; reasons?: boolean }) {
+type ListProps = { picks: Pick[]; finished: boolean; reasons?: boolean; combo?: PickCombo | null };
+
+export function PickList({ picks, finished, reasons = true, combo }: ListProps) {
   if (picks.length === 0) return <p className="text-sm text-slate-500">Keine Tipps in diesem Profil – kein Markt liegt im Wahrscheinlichkeitsbereich.</p>;
-  const combo = comboProbability(picks);
   return (
     <div>
       <ol className="space-y-3">
@@ -46,19 +47,43 @@ export function PickList({ picks, finished, reasons = true }: { picks: Pick[]; f
           </li>
         ))}
       </ol>
-      {picks.length > 1 && (
-        <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-          <span className="text-slate-600">Kombi aus {picks.length} Tipps</span>
-          <span className="flex items-center gap-3 tabular-nums">
-            <span title="Produkt der Einzelwahrscheinlichkeiten">rechnerisch {pct(combo, 0)}</span>
-            <span className="text-xs text-slate-400" title="faire Kombi-Quote">{odd(1 / combo)}</span>
-            {picks.every((p) => p.betano != null) && (
-              <span className="rounded bg-orange-50 px-1 text-xs font-medium text-orange-700" title="Produkt der Betano-Einzelquoten (als Bet Builder im selben Spiel meist niedriger)">
-                {odd(picks.reduce((o, p) => o * (p.betano ?? 1), 1))}
-              </span>
-            )}
-            {finished && <OutcomeBadge outcome={comboOutcome(picks)} small />}
+      {picks.length > 1 && <ComboRow picks={picks} combo={combo} finished={finished} />}
+    </div>
+  );
+}
+
+/** Same-game combo of the picks: joint model chance (correlated picks) and estimated Bet Builder odds. */
+function ComboRow({ picks, combo, finished }: { picks: Pick[]; combo?: PickCombo | null; finished: boolean }) {
+  const naive = combo?.naive ?? comboProbability(picks);
+  const p = combo?.probability ?? null;
+  const product = combo?.betano_product ?? (picks.every((x) => x.betano != null) ? picks.reduce((o, x) => o * (x.betano ?? 1), 1) : null);
+  const builder = combo?.builder_odds ?? null;
+  const factor = combo?.factor ?? null;
+  return (
+    <div className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-slate-600">Kombi aus {picks.length} Tipps <span className="text-xs text-slate-400">(Bet Builder)</span></span>
+        <span className="flex items-center gap-3 tabular-nums">
+          <span className="font-semibold" title={p != null ? `Modell-Chance, dass alle ${picks.length} Tipps zusammen treffen (die Tipps eines Spiels hängen zusammen; einzeln multipliziert ${pct(naive, 0)})` : "Produkt der Einzelwahrscheinlichkeiten"}>
+            {pct(p ?? naive, 0)}
           </span>
+          <span className="text-xs text-slate-400" title="faire Kombi-Quote laut Modell">{odd(combo?.fair_odd ?? 1 / naive)}</span>
+          {builder != null ? (
+            <span
+              className="rounded bg-orange-50 px-1 text-xs font-medium text-orange-700"
+              title={`Geschätzte Bet-Builder-Quote: Produkt der Betano-Einzelquoten (${odd(product)}) geteilt durch den Zusammenhang der Tipps laut Modell (Faktor ${num(factor, 2)}). Betano preist den Zusammenhang ebenfalls ein – die echte Quote auf dem Wettschein kann etwas abweichen.`}
+            >
+              ≈ {odd(builder)}
+            </span>
+          ) : product != null && (
+            <span className="rounded bg-orange-50 px-1 text-xs font-medium text-orange-700" title="Produkt der Betano-Einzelquoten (als Bet Builder im selben Spiel niedriger)">{odd(product)}</span>
+          )}
+          {finished && <OutcomeBadge outcome={comboOutcome(picks)} small />}
+        </span>
+      </div>
+      {p != null && (
+        <div className="mt-0.5 text-xs text-slate-400">
+          einzeln multipliziert {pct(naive, 0)}{product != null && builder != null && <> · Einzelquoten multipliziert {odd(product)}</>}
         </div>
       )}
     </div>
