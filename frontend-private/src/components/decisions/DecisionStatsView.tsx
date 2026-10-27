@@ -50,14 +50,16 @@ export function DecisionStatsView({ league }: { league?: string }) {
                 <th className="pb-2 text-right font-medium">Erwartet</th>
                 <th className="pb-2 text-right font-medium" title="Immer das Ergebnis, das in den Vorsaisons am häufigsten war – auf denselben Spielen">Immer häufigstes</th>
                 <th className="pb-2 text-right font-medium" title="Alle Spiele, ohne Konfidenz-Filter">Ohne Filter</th>
-                <th className="pb-2 font-medium pl-3">Modell tippt</th>
+                <th className="pb-2 pl-3 font-medium" title="In wie vielen Spielen das Modell welche Seite gewählt hat – keine Wahrscheinlichkeit">Gewählte Seite (Anteil der Spiele)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {data.decisions.map((d) => {
                 const total = Object.values(d.picked).reduce((a, b) => a + b, 0) || 1;
                 const t = d.tipped;
-                const lead = t?.hit_rate != null && t.reference != null ? t.hit_rate - t.reference : null;
+                // without decision model (no confidence yet): all decisions count, reference over all fixtures
+                const reference = t?.reference ?? d.reference?.hit_rate ?? null;
+                const lead = t ? (t.hit_rate != null && t.reference != null ? t.hit_rate - t.reference : null) : d.reference ? d.reference.model - d.reference.hit_rate : null;
                 return (
                   <tr key={d.key}>
                     <td className="py-1.5 pr-2">{d.label}</td>
@@ -65,7 +67,7 @@ export function DecisionStatsView({ league }: { league?: string }) {
                     <td className="py-1.5 text-right font-semibold tabular-nums">{pct(t?.hit_rate ?? d.hit_rate)}</td>
                     <td className="py-1.5 text-right tabular-nums text-slate-500">{pct(t?.expected ?? d.expected)}</td>
                     <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-slate-500">
-                      {pct(t?.reference ?? null)}
+                      {pct(reference)}
                       {lead != null && Math.abs(lead) >= 0.005 && <span className={`ml-1 text-xs ${lead > 0 ? "text-emerald-700" : "text-rose-700"}`}>({lead > 0 ? "+" : "−"}{Math.abs(lead * 100).toFixed(1).replace(".", ",")})</span>}
                     </td>
                     <td className="py-1.5 text-right tabular-nums text-slate-500">{pct(d.hit_rate)}</td>
@@ -78,8 +80,15 @@ export function DecisionStatsView({ league }: { league?: string }) {
             </tbody>
           </table>
         </div>
+        {data.decisions.every((d) => !d.tipped) && (
+          <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Noch kein Entscheidungsmodell trainiert: Es gibt keine Konfidenz, daher wird jede Entscheidung getippt. Einmalig <code>qf model decisions</code>{" "}
+            ausführen (danach läuft es montags per Cron).
+          </p>
+        )}
         <p className="mt-3 text-xs text-slate-500">
-          Getippt wird nur ab der Mindest-Konfidenz (Einstellungen → Tippschein). Bei „Ja“-lastigen Entscheidungen (Über 1,5, Tor in einer Halbzeit) entspricht der
+          „Gewählte Seite“ ist der Anteil der Spiele, nicht die Sicherheit: Über 1,5 Tore und ein Tor je Halbzeit fallen so häufig (in der Bundesliga rund 74–83 %
+          der Spiele), dass das Modell selbst im torärmsten Duell noch über 50 % für „Ja“ sieht – „Nein“ wird deshalb praktisch nie gewählt. Getippt wird nur ab der Mindest-Konfidenz (Einstellungen → Tippschein). Bei „Ja“-lastigen Entscheidungen (Über 1,5, Tor in einer Halbzeit) entspricht der
           Tipp fast immer „immer Ja“ – die Konfidenz wählt dort die Spiele aus, in denen „Ja“ besonders wahrscheinlich ist.
         </p>
       </Card>
