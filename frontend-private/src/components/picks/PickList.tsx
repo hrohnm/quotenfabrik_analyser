@@ -1,5 +1,5 @@
 import { OutcomeBadge, ProbabilityBar } from "@/components/ui";
-import { num, odd, pct } from "@/lib/format";
+import { odd, pct, signedPct } from "@/lib/format";
 import type { Pick, PickCombo } from "@/lib/types";
 import { BetanoOdd } from "@/components/BetanoOdd";
 import { PickInfo } from "./PickInfo";
@@ -58,7 +58,6 @@ function ComboRow({ picks, combo, finished }: { picks: Pick[]; combo?: PickCombo
   const p = combo?.probability ?? null;
   const product = combo?.betano_product ?? (picks.every((x) => x.betano != null) ? picks.reduce((o, x) => o * (x.betano ?? 1), 1) : null);
   const builder = combo?.builder_odds ?? null;
-  const factor = combo?.factor ?? null;
   return (
     <div className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm">
       <div className="flex items-center justify-between gap-2">
@@ -71,7 +70,7 @@ function ComboRow({ picks, combo, finished }: { picks: Pick[]; combo?: PickCombo
           {builder != null ? (
             <span
               className="rounded bg-orange-50 px-1 text-xs font-medium text-orange-700"
-              title={`Geschätzte Bet-Builder-Quote: Produkt der Betano-Einzelquoten (${odd(product)}) geteilt durch den Zusammenhang der Tipps laut Modell (Faktor ${num(factor, 2)}). Betano preist den Zusammenhang ebenfalls ein – die echte Quote auf dem Wettschein kann etwas abweichen.`}
+              title={`Geschätzte Bet-Builder-Quote: die Betano-Einzelquoten so verbunden, wie Betano es im Bet Builder tut (Torverteilung an Betanos eigene Quoten angepasst). Einzelquoten multipliziert ${odd(product)}. Die echte Quote auf dem Wettschein kann leicht abweichen.`}
             >
               ≈ {odd(builder)}
             </span>
@@ -84,6 +83,9 @@ function ComboRow({ picks, combo, finished }: { picks: Pick[]; combo?: PickCombo
       {p != null && (
         <div className="mt-0.5 text-xs text-slate-400">
           einzeln multipliziert {pct(naive, 0)}{product != null && builder != null && <> · Einzelquoten multipliziert {odd(product)}</>}
+          {combo?.edge != null && (
+            <> · <span className={combo.edge > 0 ? "text-emerald-700" : ""} title="Modell-Chance × geschätzte Bet-Builder-Quote − 1">Modell-EV {signedPct(combo.edge)}</span></>
+          )}
         </div>
       )}
     </div>

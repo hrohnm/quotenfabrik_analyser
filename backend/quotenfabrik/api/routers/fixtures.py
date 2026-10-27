@@ -1,6 +1,7 @@
 """Matchday overview and fixture detail."""
 
 import dataclasses
+import functools
 import math
 import threading
 import time
@@ -203,6 +204,12 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
     return out
 
 
+@functools.lru_cache(maxsize=4096)
+def _combo_cached(probabilities: tuple, factor, betano: tuple, legs: tuple, lambdas) -> dict:
+    """The Bet Builder estimate fits the goal grid to the Betano odds: cached per legs and prices."""
+    return same_game.combo(list(probabilities), factor, list(betano), list(legs), lambdas)
+
+
 def _pick_combos(picks: dict[int, dict[str, list[dict]]]) -> dict[int, dict[str, dict]]:
     """Same-game combo of the picks per fixture and profile: joint probability from the half models
     (correlated picks) and the estimated Betano Bet Builder odds."""
@@ -227,11 +234,14 @@ def _pick_combos(picks: dict[int, dict[str, list[dict]]]) -> dict[int, dict[str,
         for profile, legs in picks[fixture_id].items():
             if len(legs) < 2:
                 continue
-            factor = None if lambdas is None else same_game.correlation_factor(
-                lambdas, [(p["market"], p["selection"], p["line"]) for p in legs]
-            )  # fmt: skip
-            out.setdefault(fixture_id, {})[profile] = same_game.combo(
-                [p["probability"] for p in legs], factor, [p["betano"] for p in legs]
+            keys = [(p["market"], p["selection"], p["line"]) for p in legs]
+            factor = None if lambdas is None else same_game.correlation_factor(lambdas, keys)
+            out.setdefault(fixture_id, {})[profile] = _combo_cached(
+                tuple(p["probability"] for p in legs),
+                factor,
+                tuple(p["betano"] for p in legs),
+                tuple(keys),
+                lambdas,
             )
     return out
 

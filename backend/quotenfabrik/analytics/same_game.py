@@ -9,16 +9,25 @@ The joint chance comes from the half models: goals per team and half are indepen
 half). On that grid every pick market is evaluated; the ratio joint / product of the grid marginals
 (correlation factor) is applied to the stored single probabilities, so the combo stays consistent with the
 probabilities shown.
+
+Bet Builder odds: Betano joins its own single prices the same way. The four half rates are fitted to the
+probabilities implied by the Betano odds of the legs (1 / odds, margin included; close to the model rates
+where the legs leave room), and the Bet Builder odds are the product of the Betano odds ÷ the correlation
+factor on that grid. Checked against real Bet Builder prices (Sassuolo – Lazio 1.62 vs. 1.62,
+Großaspach – Augsburg 1.28 vs. 1.28, Essen – Leipzig 1.42 vs. 1.42, Hamburg – Frankfurt 2.82 vs. 2.67).
 """
 
 import math
 from collections.abc import Iterable, Mapping
 
 import numpy as np
+from scipy.optimize import minimize
 from scipy.stats import poisson
 
 MAX_GOALS = 10  # per team and half; P(more) is negligible
 # stored predictions that give the four half rates: P(no goal) = exp(-λ)
+DEFAULT_LAMBDAS = (0.55, 0.45, 0.7, 0.6)  # prior when the half rates of the model are missing
+FIT_PRIOR_WEIGHT = 0.0005  # pull towards the model rates (the legs determine fewer than four rates)
 HALF_KEYS = (("ou_home_1h", "under", 0.5), ("ou_away_1h", "under", 0.5),
              ("ou_home_2h", "under", 0.5), ("ou_away_2h", "under", 0.5))  # fmt: skip
 
@@ -77,15 +86,69 @@ def correlation_factor(
     return joint / math.prod(singles)
 
 
-def combo(probabilities: list[float], factor: float | None, betano: list[float | None] | None = None) -> dict:
-    """Same-game combo of picks: naive product, joint probability (product × factor, at most the smallest
-    single probability), fair odds and the estimated Bet Builder odds (product of the Betano single odds ÷
-    factor: Betano prices the correlation in as well)."""
+_LOG_FACT = np.array([math.lgamma(k + 1) for k in _K])
+
+
+def _pmfs(lambdas: Iterable[float]) -> list[np.ndarray]:
+    return [np.exp(_K * math.log(lam) - lam - _LOG_FACT) for lam in lambdas]
+
+
+def _grid_probability(mask: np.ndarray, pmf: list[np.ndarray]) -> float:
+    """Sum of the grid probabilities inside ``mask`` (contracted axis by axis)."""
+    return float(pmf[0] @ (mask @ pmf[3] @ pmf[2] @ pmf[1]))
+
+
+def fit_lambdas(
+    legs: list[tuple[str, str, float | None]], targets: list[float], prior: Iterable[float] | None = None
+) -> tuple[float, ...] | None:
+    """Half rates whose grid gives the ``targets`` for the ``legs`` (least squares, weak pull to
+    ``prior``)."""
+    masks = [_mask(m, s, None if line is None else float(line)) for m, s, line in legs]
+    if any(m is None for m in masks):
+        return None
+    floats = [m.astype(float) for m in masks]
+    x0 = np.log(np.asarray(tuple(prior) if prior is not None else DEFAULT_LAMBDAS, dtype=float))
+
+    def loss(x: np.ndarray) -> float:
+        pmf = _pmfs(np.exp(x))
+        err = sum((_grid_probability(m, pmf) - t) ** 2 for m, t in zip(floats, targets, strict=True))
+        return err + FIT_PRIOR_WEIGHT * float(np.sum((x - x0) ** 2))
+
+    res = minimize(loss, x0, method="L-BFGS-B", bounds=[(math.log(0.02), math.log(5.0))] * 4)
+    return tuple(float(v) for v in np.exp(res.x))
+
+
+def builder_odds(
+    legs: list[tuple[str, str, float | None]], betano: list[float], prior: Iterable[float] | None = None
+) -> float | None:
+    """Estimated Betano Bet Builder odds: product of the single odds ÷ correlation factor on the grid fitted
+    to Betano's own implied probabilities."""
+    lambdas = fit_lambdas(legs, [1 / o for o in betano], prior)
+    factor = None if lambdas is None else correlation_factor(lambdas, legs)
+    if not factor:
+        return None
+    return max(math.prod(betano) / factor, 1.01)
+
+
+def combo(
+    probabilities: list[float],
+    factor: float | None,
+    betano: list[float | None] | None = None,
+    legs: list[tuple[str, str, float | None]] | None = None,
+    lambdas: Iterable[float] | None = None,
+) -> dict:
+    """Same-game combo of picks: naive product, joint probability (product × model factor, at most the
+    smallest single probability), fair odds and the estimated Bet Builder odds (:func:`builder_odds`; without
+    ``legs`` the product of the Betano odds ÷ model factor)."""
     naive = math.prod(probabilities)
     joint = None if factor is None else min(naive * factor, min(probabilities))
     odds = betano or []
     product = math.prod(odds) if odds and all(o is not None for o in odds) else None
-    builder = None if product is None or factor is None else max(product / factor, 1.01)
+    builder = None
+    if product is not None and legs is not None:
+        builder = builder_odds(legs, odds, lambdas)
+    elif product is not None and factor is not None:
+        builder = max(product / factor, 1.01)
     return {
         "naive": naive,
         "probability": joint,
@@ -93,4 +156,5 @@ def combo(probabilities: list[float], factor: float | None, betano: list[float |
         "fair_odd": None if not joint else 1 / joint,
         "betano_product": product,
         "builder_odds": None if builder is None else round(builder, 2),
+        "edge": None if builder is None or joint is None else joint * round(builder, 2) - 1,
     }
