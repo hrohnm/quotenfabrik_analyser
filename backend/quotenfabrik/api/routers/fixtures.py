@@ -14,6 +14,7 @@ from quotenfabrik import app_config
 from quotenfabrik.analytics import (
     availability,
     bookmaker_odds,
+    decisions,
     form,
     lineups,
     pick_explain,
@@ -122,9 +123,10 @@ def _summaries(fixture_ids: list[int]) -> dict[int, dict]:
         f"""with runs as ({chosen_runs_cte("and p.fixture_id = any(:ids)")})
             select p.fixture_id, p.market, p.selection, p.line, p.probability, p.outcome, runs.kind
             from analytics.predictions p join runs on runs.model_run_id = p.model_run_id and runs.fixture_id = p.fixture_id
-            where p.market in ('1x2', 'ou_ft', 'btts') and p.fixture_id = any(:ids)""",
+            where p.market in ('1x2', 'ou_ft', 'btts', 'ou_1h', 'ou_2h') and p.fixture_id = any(:ids)""",
         ids=fixture_ids,
     )
+    sheets = _decisions(rows)
     out: dict[int, dict] = {}
     for r in rows.itertuples():
         key = SUMMARY_KEYS.get((r.market, r.selection, None if pd.isna(r.line) else float(r.line)))
@@ -138,6 +140,8 @@ def _summaries(fixture_ids: list[int]) -> dict[int, dict]:
             pick = max(("home", "draw", "away"), key=lambda k: p[k])
             entry["pick_1x2"] = pick
             entry["pick_1x2_hit"] = entry["outcomes"].get(pick)
+    for fixture_id, entry in out.items():
+        entry["decisions"] = sheets.get(fixture_id, [])
     # Betano 1X2 odds (OddsPapi, last price before kickoff) with the model's edge
     prices = _bookmaker_prices(list(out)) if out else {}
     for fixture_id, entry in out.items():
@@ -208,6 +212,24 @@ def _picks(fixtures: list[dict], profile: str | None = None) -> dict[int, dict[s
 def _combo_cached(probabilities: tuple, factor, betano: tuple, legs: tuple, lambdas) -> dict:
     """The Bet Builder estimate fits the goal grid to the Betano odds: cached per legs and prices."""
     return same_game.combo(list(probabilities), factor, list(betano), list(legs), lambdas)
+
+
+def _decisions(rows: pd.DataFrame) -> dict[int, list[dict]]:
+    """Tippschein per fixture: the six decisions (more likely selection) with Betano odds and the result."""
+    if rows.empty:
+        return {}
+    sheet = decisions.decide(rows.assign(line=rows["line"].astype(float)))
+    prices = _bookmaker_prices([int(f) for f in sheet["fixture_id"].unique()])
+    out: dict[int, list[dict]] = {}
+    for r in sheet.itertuples():
+        line = None if pd.isna(r.line) else float(r.line)
+        out.setdefault(int(r.fixture_id), []).append(
+            {"key": r.decision, "label": decisions.BY_KEY[r.decision].label, "market": r.market, "line": line,
+             "pick": r.pick, "pick_label": r.pick_label, "probability": float(r.probability),
+             "hit": None if pd.isna(r.outcome) else bool(r.outcome),
+             **_prices(prices, int(r.fixture_id), r.market, line, r.pick, float(r.probability))}
+        )  # fmt: skip
+    return out
 
 
 def _pick_combos(picks: dict[int, dict[str, list[dict]]]) -> dict[int, dict[str, dict]]:
@@ -495,6 +517,9 @@ def fixture_detail(fixture_id: int) -> dict:
         "patterns": _patterns(r, forms),
         "form": forms,
         "style": _styles(r),
+        "decisions": _decisions(
+            preds[~preds["market"].str.startswith("scorer")].assign(fixture_id=fixture_id)
+        ).get(fixture_id, []),
         "picks": (fixture_picks := _picks([fixture])).get(fixture_id, {}),
         "pick_combos": _pick_combos(fixture_picks).get(fixture_id, {}),
         "odds": {"betano_at": max(betano_at) if betano_at else None, "closing": fixture["finished"]},

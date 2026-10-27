@@ -165,7 +165,8 @@ pytest && ruff check . && ruff format --check .
   Value-Rechnung (`value.py`: Margenentfernung, EV, Kelly, CLV), Quoten-Backtest (`odds_backtest.py`),
   Betano-/Pinnacle-Preise je Spiel und Auswahl (`bookmaker_odds.py`, für API und Tageskombis), marktbasiertes Modell `mkt-v1` (`market_model.py`: faire Preise aller Märkte aus Pinnacle) und Betano-Abgleich
   (`betano_value.py`), Closing Line Value der Tipps (`clv.py`), 3 Tipps pro Spiel (`picks.py`, Tabelle `analytics.picks`),
-  gemeinsame Chance und geschätzte Bet-Builder-Quote der Tipps eines Spiels (`same_game.py`), Tageskombis (`combos.py`),
+  gemeinsame Chance und geschätzte Bet-Builder-Quote der Tipps eines Spiels (`same_game.py`),
+  Tippschein mit 6 Entscheidungen je Spiel und Auswertung (`decisions.py`), Tageskombis (`combos.py`),
   Form und letzte Spiele aller Wettbewerbe (`form.py`), Spielstil-Profile (`style.py`, Nachweis `style_eval.py`),
   Einschätzung in Textform je Spiel (`preview.py`, regelbasiert aus den Detaildaten),
   voraussichtliche Startelf bis zur bestätigten Aufstellung (`lineups.py`, Nachweis `docs/21_aufstellung.md`),

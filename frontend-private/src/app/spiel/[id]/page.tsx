@@ -7,6 +7,8 @@ import { ContextCard } from "@/components/match/ContextCard";
 import { PreviewCard } from "@/components/match/PreviewCard";
 import { Summary } from "@/components/match/Summary";
 import { PicksCard } from "@/components/picks/PicksCard";
+import { DecisionSheet } from "@/components/decisions/DecisionSheet";
+import { Card } from "@/components/ui";
 import type { FixtureDetail, PickStats } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +46,11 @@ export default async function FixturePage({ params }: { params: Promise<{ id: st
         {meta?.pick_profiles?.length ? (
           <PicksCard picks={data.picks ?? {}} combos={data.pick_combos} profiles={meta.pick_profiles} stats={stats?.profiles ?? null} finished={f.finished} />
         ) : null}
+        {(data.decisions?.length ?? 0) > 0 && (
+          <Card title="Tippschein: 6 Entscheidungen">
+            <DecisionSheet decisions={data.decisions ?? []} home={f.home} away={f.away} finished={f.finished} />
+          </Card>
+        )}
         <Summary data={data} />
       </section>
       <section className="space-y-3">

@@ -9,7 +9,7 @@ import pandas as pd
 from fastapi import APIRouter, Query
 
 from quotenfabrik import app_config
-from quotenfabrik.analytics import clv
+from quotenfabrik.analytics import bookmaker_odds, clv, decisions
 from quotenfabrik.analytics.picks import default_profile, evaluate_picks, profiles
 from quotenfabrik.api.data import chosen_runs_cte, df, engine
 from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, PICK_SETS, SELECTION_LABELS, pick_label
@@ -283,6 +283,49 @@ def warm_caches() -> None:
     """Fill the slow caches in the background at API start (first page requests stay fast)."""
     _track.refresh_async()
     _clv.refresh_async()
+    _decisions_for(list(app_config.shown_league_ids())).refresh_async()
+
+
+def _load_decisions(leagues: list[int]) -> dict:
+    data = df(
+        f"""with runs as ({chosen_runs_cte("and f.league_id = any(:leagues)")})
+            select p.fixture_id, f.season, f.league_id, p.market, p.selection, p.line::float as line,
+                   p.probability, p.outcome
+            from analytics.predictions p
+            join runs on runs.model_run_id = p.model_run_id and runs.fixture_id = p.fixture_id
+            join core.fixtures f on f.id = p.fixture_id
+            where p.market in ('1x2', 'ou_ft', 'btts', 'ou_1h', 'ou_2h') and p.outcome is not null""",
+        leagues=leagues,
+    )  # fmt: skip
+    rows = decisions.decide(data)
+    if rows.empty:
+        return {"fixtures": 0}
+    with_odds = df("select distinct fixture_id from core.oddspapi_fixtures where fixture_id = any(:ids)",
+                   ids=[int(f) for f in rows["fixture_id"].unique()])["fixture_id"].tolist()  # fmt: skip
+    if with_odds:
+        odds = bookmaker_odds.odds_table(engine(), with_odds).dropna(subset=["betano"])
+        odds = odds[["fixture_id", "market", "line", "selection", "betano"]].astype({"line": float})
+        rows = rows.merge(odds.rename(columns={"selection": "pick"}), on=["fixture_id", "market", "line", "pick"],
+                          how="left")  # fmt: skip
+    return decisions.evaluate(rows)
+
+
+_decision_cache: dict[tuple, _Background] = {}
+
+
+@router.get("/decisions")
+def decision_stats(league: int | None = None) -> dict:
+    """Tippschein (six decisions per fixture): hit rates against the model and a naive reference."""
+    leagues = [league] if league else list(app_config.shown_league_ids())
+    return _decisions_for(leagues).get() or {"fixtures": 0}
+
+
+def _decisions_for(leagues: list[int]) -> _Background:
+    key = tuple(leagues)
+    with _lock:
+        if key not in _decision_cache:
+            _decision_cache[key] = _Background(f"decisions {key}", lambda: _load_decisions(leagues))
+        return _decision_cache[key]
 
 
 @router.get("/clv")
