@@ -54,8 +54,10 @@ export type PickCombo = {
   factor: number | null;
   fair_odd: number | null;
   betano_product: number | null;
-  /** estimate: product of the Betano single odds ÷ factor */
+  /** estimate: Betano single odds joined on a goal grid fitted to Betano's own prices */
   builder_odds: number | null;
+  /** model joint probability × estimated Bet Builder odds − 1 */
+  edge?: number | null;
 };
 
 /** Closing line value of a set of picks (``/stats/clv``). */

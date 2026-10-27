@@ -182,9 +182,22 @@ Bet-Builder-Quote (Beispiel Sassuolo – Lazio: 1,18 × 1,35 × 1,19 = 1,90, Bet
 Die gemeinsame Chance kommt aus den Halbzeit-Modellen: Tore je Team und Halbzeit sind unabhängige Poisson-Größen, ihre
 Raten folgen exakt aus den gespeicherten P(Team trifft in der Halbzeit nicht). Auf diesem Raster (je 0–10 Tore) wird
 jeder Tipp-Markt ausgewertet; der **Faktor** = P(alle) / Produkt der Einzelchancen auf dem Raster wird auf die
-angezeigten Einzelwahrscheinlichkeiten angewendet (höchstens die kleinste davon). Die **geschätzte Bet-Builder-Quote**
-ist das Produkt der Betano-Einzelquoten ÷ Faktor (Betano preist den Zusammenhang ebenfalls ein; die echte Quote kann
-etwas abweichen und wird beim Erfassen der Wette eingetragen).
+angezeigten Einzelwahrscheinlichkeiten angewendet (höchstens die kleinste davon).
+
+**Geschätzte Bet-Builder-Quote:** Betano verbindet seine eigenen Einzelpreise auf dieselbe Weise. Die vier
+Halbzeit-Torraten werden deshalb an die von den Betano-Einzelquoten implizierten Wahrscheinlichkeiten (1 / Quote, Marge
+inklusive) angepasst – nahe an den Modellraten, wo die Tipps Spielraum lassen –, und die Bet-Builder-Quote ist das
+Produkt der Einzelquoten ÷ Faktor auf diesem Raster. Die erste Version (Faktor des eigenen Modells) lag teils deutlich
+daneben, weil der Zusammenhang von der Höhe der Wahrscheinlichkeiten abhängt und Betano die Spiele anders einschätzt:
+
+| Spiel (27.10.2026) | Einzelquoten multipliziert | Betano Bet Builder | Schätzung neu | Schätzung alt |
+|---|--:|--:|--:|--:|
+| Sassuolo – Lazio | 1,90 | 1,62 | 1,62 | 1,49 |
+| Großaspach – Augsburg | 1,38 | 1,28 | 1,28 | 1,24 |
+| Rot-Weiß Essen – Leipzig | 1,64 | 1,42 | 1,42 | 1,18 |
+| Hamburg – Frankfurt | 5,64 | 2,67 | 2,82 | 3,71 |
+
+Modell-EV der Kombi = gemeinsame Modell-Chance × geschätzte Bet-Builder-Quote − 1 (Anzeige je Spiel).
 
 **Backtest (27.10.2026, 16.902 abgerechnete Spiele × Profil, Kombi aus 3 Tipps):** getroffen 51,7 %, gemeinsame
 Modell-Chance Ø 52,9 %, Produkt der Einzelchancen Ø 44,1 %. Log-Loss 0,656 statt 0,677, Brier 0,232 statt 0,241, in
