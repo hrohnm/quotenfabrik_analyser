@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { CompetitionBadge, CountryFlag } from "@/components/CompetitionBadge";
+import { groupByCountry, isCup, isInternational, type LeagueInfo } from "@/lib/leagues";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { getMeta } from "@/lib/api";
@@ -19,7 +21,7 @@ const LINKS = [
 
 export function Nav() {
   const pathname = usePathname();
-  const [leagues, setLeagues] = useState<{ id: number; name: string; country?: string }[]>([]);
+  const [leagues, setLeagues] = useState<LeagueInfo[]>([]);
   const [menu, setMenu] = useState(false);
   useEffect(() => { getMeta().then((m) => setLeagues(m.leagues)).catch(() => setLeagues([])); }, []);
   useEffect(() => setMenu(false), [pathname]);
@@ -76,18 +78,24 @@ export function Nav() {
           {leagues.length > 0 && (
             <>
               <div className="mb-1.5 mt-4 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Wettbewerbe</div>
-              <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
-                {leagues.map((l) => (
-                  <Link
-                    key={l.id}
-                    href={`/wettbewerb/${l.id}`}
-                    className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${pathname === `/wettbewerb/${l.id}` ? "bg-slate-100 font-semibold" : "hover:bg-slate-50"}`}
-                  >
-                    <Logo src={leagueLogo(l.id)} alt={l.name} size={20} />
-                    <span className="truncate">{l.name}</span>
-                  </Link>
-                ))}
-              </div>
+              {groupByCountry(leagues).map((g) => (
+                <div key={g.key} className="mb-2">
+                  <div className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-slate-500"><CountryFlag src={g.flag} label={g.label} />{g.label}</div>
+                  <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+                    {g.leagues.map((l) => (
+                      <Link
+                        key={l.id}
+                        href={`/wettbewerb/${l.id}`}
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${pathname === `/wettbewerb/${l.id}` ? "bg-slate-100 font-semibold" : "hover:bg-slate-50"}`}
+                      >
+                        <Logo src={leagueLogo(l.id)} alt={l.name} size={20} />
+                        <span className="min-w-0 flex-1 truncate">{l.name}</span>
+                        {isCup(l) && <CompetitionBadge cup international={isInternational(l)} />}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </>
           )}
         </div>
@@ -97,7 +105,7 @@ export function Nav() {
 }
 
 /** Dropdown of the shown leagues: opens the matchday overview filtered to one league. */
-function LeagueMenu({ leagues }: { leagues: { id: number; name: string; country?: string }[] }) {
+function LeagueMenu({ leagues }: { leagues: LeagueInfo[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -143,20 +151,29 @@ function LeagueMenu({ leagues }: { leagues: { id: number; name: string; country?
         </svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-1.5 max-h-[70vh] w-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-lg ring-1 ring-black/5">
+        <div className="absolute right-0 top-full z-30 mt-1.5 max-h-[70vh] w-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-lg ring-1 ring-black/5">
           <Link href="/spieltage" className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50 ${!current ? "font-semibold text-slate-900" : "text-slate-700"}`}>
             <span className="grid h-5 w-5 place-items-center rounded bg-slate-100 text-[10px] text-slate-500">∑</span>Alle Ligen
           </Link>
           <div className="my-1 border-t border-slate-100" />
-          {leagues.map((l) => (
-            <Link
-              key={l.id}
-              href={`/wettbewerb/${l.id}`}
-              className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50 ${String(l.id) === active ? "bg-slate-100 font-semibold text-slate-900" : "text-slate-700"}`}
-            >
-              <Logo src={leagueLogo(l.id)} alt={l.name} size={20} />
-              <span className="min-w-0 flex-1 truncate">{l.name}</span>
-            </Link>
+          {groupByCountry(leagues).map((g) => (
+            <div key={g.key} className="pb-1">
+              <div className="sticky top-0 z-10 flex items-center gap-1.5 bg-white/95 px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 backdrop-blur">
+                <CountryFlag src={g.flag} label={g.label} />
+                {g.label}
+              </div>
+              {g.leagues.map((l) => (
+                <Link
+                  key={l.id}
+                  href={`/wettbewerb/${l.id}`}
+                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50 ${String(l.id) === active ? "bg-slate-100 font-semibold text-slate-900" : "text-slate-700"}`}
+                >
+                  <Logo src={leagueLogo(l.id)} alt={l.name} size={20} />
+                  <span className="min-w-0 flex-1 truncate">{l.name}</span>
+                  {isCup(l) && <CompetitionBadge cup international={isInternational(l)} />}
+                </Link>
+              ))}
+            </div>
           ))}
         </div>
       )}

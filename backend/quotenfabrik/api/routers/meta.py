@@ -5,7 +5,7 @@ from fastapi import APIRouter
 
 from quotenfabrik import app_config
 from quotenfabrik.analytics.picks import default_profile, profiles
-from quotenfabrik.api.data import df, records
+from quotenfabrik.api.data import competition_types, df, records
 from quotenfabrik.api.labels import GROUP_LABELS, MARKET_LABELS, SELECTION_LABELS, league_logo
 
 router = APIRouter(prefix="/api", tags=["meta"])
@@ -17,7 +17,7 @@ _markets_cache: tuple | None = None  # (latest backtest run id, markets)
 @router.get("/meta")
 def meta() -> dict:
     leagues = df(
-        "select id, name, country from core.leagues where id = any(:ids) order by id",
+        "select id, name, country, flag_url as flag from core.leagues where id = any(:ids) order by id",
         ids=app_config.shown_league_ids(),
     )
     seasons = df(
@@ -92,5 +92,6 @@ def _league_list(rows: list[dict]) -> list[dict]:
         )
         cup = app_config.is_cup(r["id"])
         name = name.removeprefix("UEFA ") if cup else name
-        out.append({**r, "name": name, "logo": league_logo(r["id"]), "cup": cup})
+        kind = competition_types().get(r["id"], "league")
+        out.append({**r, "name": name, "logo": league_logo(r["id"]), "cup": cup, "type": kind})
     return out

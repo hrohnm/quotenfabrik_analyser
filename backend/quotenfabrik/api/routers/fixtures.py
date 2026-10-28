@@ -25,7 +25,7 @@ from quotenfabrik.analytics import (
 )
 from quotenfabrik.analytics.patterns import PatternContext, compute_patterns
 from quotenfabrik.analytics.picks import default_profile, profiles
-from quotenfabrik.api.data import chosen_runs_cte, df, model_data, style_data, team_names
+from quotenfabrik.api.data import chosen_runs_cte, competition_types, df, model_data, style_data, team_names
 from quotenfabrik.api.labels import (
     GROUP_LABELS,
     MARKET_LABELS,
@@ -77,7 +77,12 @@ def _fixture_dict(r) -> dict:
     return {
         "id": int(r.id),
         "league_id": int(r.league_id),
-        "league": {"id": int(r.league_id), "name": r.league_name, "logo": league_logo(int(r.league_id))},
+        "league": {
+            "id": int(r.league_id),
+            "name": r.league_name,
+            "logo": league_logo(int(r.league_id)),
+            "type": competition_types().get(int(r.league_id), "league"),
+        },  # fmt: skip
         "season": int(r.season),
         "round": r.round,
         "round_label": round_label(r.round),

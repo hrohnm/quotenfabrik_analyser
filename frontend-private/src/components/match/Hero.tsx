@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { CompetitionBadge } from "@/components/CompetitionBadge";
 import { TeamLink } from "@/components/TeamLink";
 import { SourceBadge, TeamLogo } from "@/components/ui";
 import { dateLong, seasonLabel, time } from "@/lib/format";
@@ -21,6 +22,7 @@ export function Hero({ data }: { data: FixtureDetail }) {
         <div className="flex items-center gap-2">
           <Logo src={league.logo ?? leagueLogo(league.id)} alt={league.name} size={20} />
           <Link href={`/wettbewerb/${league.id}`} className="font-medium text-slate-700 hover:underline">{league.name}</Link>
+          <CompetitionBadge cup={!!f.cup || f.league?.type === "cup"} international={!!f.cup} />
           <span>· Saison {seasonLabel(f.season)}{f.round_label ? ` · ${f.round_label}` : f.matchday ? ` · ${f.matchday}. Spieltag` : ""}</span>
         </div>
         <div className="flex items-center gap-2">
