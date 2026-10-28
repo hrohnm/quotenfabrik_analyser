@@ -52,6 +52,9 @@ def test_job_definitions_and_estimate():
     assert jobs.steps_for("add_league", {})[0] == "football_data"
     assert "backup_data" in jobs.steps_for("add_league", {})
     assert jobs.steps_for("picks", {}) == ["picks"]
+    assert jobs.steps_for("odds_backfill", {}) == ["oddspapi_backfill", "backup_data"]
+    assert jobs.steps_for("refit", {}) == ["decisions", "value_reports"]
+    assert all(s in jobs.STEP_LABELS for kind in ("odds_backfill", "refit") for s in jobs.steps_for(kind, {}))
     est = jobs.estimate_requests([2023, 2024], matches_per_season=306)
     assert (
         est["fixtures"] == 2
@@ -245,3 +248,34 @@ def test_odds_job_steps():
         "oddspapi_history",
         "backup_data",
     ]
+
+
+def test_odds_history_backfill_loads_in_batches_with_progress(monkeypatch):
+    from datetime import UTC, datetime
+
+    from quotenfabrik import pipeline
+    from quotenfabrik.ingest import oddspapi
+
+    fixtures = list(range(45))
+    seen = {}
+    monkeypatch.setattr(app_config, "oddspapi_tournament_for", lambda league_id: 35)
+    monkeypatch.setattr(oddspapi, "tracked_market_ids", lambda session: [1])
+
+    def needing(session, tournament, limit=None, since=None):
+        seen["since"] = since
+        return fixtures
+
+    batches = []
+
+    def sync(session, client, part, books):
+        batches.append(len(part))
+        return {"fixtures": len(part), "final": len(part), "rows": 10 * len(part), "not_found": 0}
+
+    monkeypatch.setattr(oddspapi, "fixtures_needing_history", needing)
+    monkeypatch.setattr(oddspapi, "sync_history", sync)
+    lines = []
+    since = datetime(2026, 1, 1, tzinfo=UTC)
+    msg = pipeline.oddspapi_history(None, None, 78, log=lines.append, since=since, batch=20)
+    assert seen["since"] == since and batches == [20, 20, 5]
+    assert lines[0].startswith("45 Spiele") and lines[1].startswith("20/45 Spiele") and len(lines) == 3
+    assert msg.startswith("45 Verläufe") and "450 Preisänderungen" in msg

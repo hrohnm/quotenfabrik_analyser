@@ -11,7 +11,7 @@ export type Backup = { name: string; size: number; created_at: string };
 export type JobStep = { name: string; label: string; status: "pending" | "running" | "done" | "skipped" | "failed"; message: string | null; log: string[] };
 export type Job = {
   id: number;
-  kind: "add_league" | "add_ratings" | "odds" | "models" | "picks" | "backup";
+  kind: "add_league" | "add_ratings" | "odds" | "odds_backfill" | "refit" | "models" | "picks" | "backup";
   params: Record<string, unknown>;
   status: "queued" | "running" | "done" | "failed";
   steps: JobStep[];
@@ -71,3 +71,32 @@ export type SettingField = {
 };
 
 export type Estimate = { seasons: [number, number] | null; total: number; fixtures: number; details: number; half_stats: number; injuries: number };
+
+export type OddsArchiveLeague = {
+  id: number;
+  name: string;
+  country: string | null;
+  tournament: number | null;
+  finished: number;
+  linked: number;
+  with_betano: number;
+  with_pinnacle: number;
+  to_load: number;
+  no_data: number;
+  upcoming: number;
+  upcoming_linked: number;
+  upcoming_betano: number;
+  soon_missing: number;
+  new_since_fit: number;
+  last_sync: string | null;
+  warnings: string[];
+};
+export type OddsArchive = {
+  since: string;
+  history_days: number;
+  leagues: OddsArchiveLeague[];
+  backfill: { fixtures: number; minutes: number; megabytes: number };
+  model_fitted_at: string | null;
+  new_since_fit: number;
+  computed_at?: string;
+};

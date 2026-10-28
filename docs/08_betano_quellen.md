@@ -120,3 +120,16 @@ ergänzt werden kann, ohne das Datenmodell zu ändern (Buchmacher-ID + Markt-Map
 - **Exakte Tore Heim/Gast** (`exactscore-team1/2`): Die Betano-Preise widersprechen über den ganzen Verlauf Betanos
   eigenen Team-Tore-Quoten (z. B. „4+“ zu 16,5, während Über 3,5 bei 1,44 steht). Vermutlich sind die Auswahlen bei
   OddsPapi falsch beschriftet. Der Markt wird in `qf value betano` nicht verwendet.
+
+
+## Quotenarchiv überwachen und nachladen (Einstellungsseite)
+
+Die Karte „Quotenarchiv“ zeigt je Liga seit 01/2026: beendete Spiele mit Betano- und Pinnacle-Verlauf, noch nicht
+geladene Verläufe, Spiele ohne Daten bei OddsPapi, kommende Spiele mit Quote und den letzten Abruf. Warnungen: Spiele in
+den nächsten 48 Stunden ohne Betano-Quote, kein Abruf seit über 6 Stunden, kommende Spiele nicht verknüpft.
+
+„Alle nachladen“ startet den Job `odds_backfill`: alle fehlenden Verläufe seit 01/2026 über den kostenlosen Endpunkt
+`/historical-odds` (5 s pro Spiel, gemeinsame Sperre mit dem Cron, Fortschritt im Job-Log; ein Abbruch setzt beim nächsten
+Lauf fort). Pro Spiel kommen etwa 2,3 MB in die Datenbank (Rohantwort ~0,6 MB gzip + ~1,7 MB Preisverlauf, gemessen
+10/2026) – die Karte schätzt Dauer und Speicher vorab. Danach „Jetzt neu rechnen“ (Job `refit`): Tippschein-Modell und
+die Berichte zu CLV und Value-Tipps.

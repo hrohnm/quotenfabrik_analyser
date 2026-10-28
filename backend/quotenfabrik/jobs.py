@@ -32,7 +32,10 @@ from quotenfabrik.db import get_engine
 from quotenfabrik.models import Job
 
 ACTIVE = ("queued", "running")
-OPTIONAL_STEPS = {"reports"}  # a failure is shown but does not stop the job (the final backup still runs)
+OPTIONAL_STEPS = {
+    "reports",
+    "value_reports",
+}  # a failure is shown but does not stop the job (the final backup still runs)
 LOG_DIR = Path("/tmp")
 MAX_LOG_LINES = 40
 
@@ -59,6 +62,9 @@ STEP_LABELS = {
     "results": "API-Football: Ergebnisse (1 Request pro Saison und Liga, Europapokal mit Spieldetails)",
     "oddspapi_fixtures": "OddsPapi-Spielplan (1 Request)",
     "oddspapi_history": "Betano/Pinnacle-Quotenverläufe (kostenlos)",
+    "oddspapi_backfill": "Betano/Pinnacle-Quotenverläufe seit 01/2026 nachladen (kostenlos, 5 s pro Spiel)",
+    "decisions": "Tippschein-Entscheidungsmodell neu trainieren",
+    "value_reports": "Berichte CLV und Value-Tipps",
     "backup_data": "Backup der abgerufenen Daten",
     "backtest": "Rückwirkende Prognosen + Tipps",
     "forecast": "Prognosen kommender Spiele + Tipps",
@@ -74,6 +80,10 @@ def steps_for(kind: str, params: dict) -> list[str]:
                 "backup_data", "backtest", "forecast", "reports", "backup"]  # fmt: skip
     if kind == "odds":
         return ["oddspapi_fixtures", "oddspapi_history", "backup_data"]
+    if kind == "odds_backfill":
+        return ["oddspapi_backfill", "backup_data"]
+    if kind == "refit":
+        return ["decisions", "value_reports"]
     if kind == "add_ratings":
         return ["results", "backup_data", "backtest", "forecast"]
     if kind == "models":
@@ -285,6 +295,44 @@ def _handlers() -> dict[str, Handler]:
             return _oddspapi(partial(pipeline.oddspapi_history, retry_empty=True), params, log)
         return _oddspapi(pipeline.oddspapi_history, params, log)
 
+    def oddspapi_backfill(params, log):
+        """All leagues (or one) from January 2026; leagues without OddsPapi tournament are skipped."""
+        from quotenfabrik.ingest.oddspapi import HISTORY_SINCE
+
+        ids = [params["league_id"]] if params.get("league_id") else app_config.league_ids()
+        out = []
+        for league_id in ids:
+            if not app_config.oddspapi_tournament_for(league_id):
+                continue
+            name = app_config.league(league_id).name
+            log(f"{name}: wird geladen")
+            msg = _oddspapi(partial(pipeline.oddspapi_history, since=HISTORY_SINCE),
+                            {"league_id": league_id}, lambda line, n=name: log(f"{n}: {line}"))  # fmt: skip
+            out.append(f"{name}: {msg}")
+            log(f"{name}: {msg}")
+        if not out:
+            raise StepSkipped("keine Liga mit OddsPapi-Turnier")
+        return " · ".join(out)
+
+    def decisions(params, log):
+        from quotenfabrik.analytics import decision_runs
+        from quotenfabrik.reports import DECISIONS_REPORT
+
+        log("Merkmale aller Spiele werden berechnet (einige Minuten)")
+        result = decision_runs.fit(engine)
+        DECISIONS_REPORT.write_text(decision_runs.report(result), encoding="utf-8")
+        return f"{result.get('fixtures', 0)} Spiele, Modelle gespeichert"
+
+    def value_reports(params, log):
+        from quotenfabrik.analytics import clv, value_tips
+        from quotenfabrik.reports import CLV_REPORT, VALUE_REPORT
+
+        leagues = app_config.shown_league_ids()
+        CLV_REPORT.write_text(clv.report(clv.run(engine, leagues)), encoding="utf-8")
+        result = value_tips.backtest(engine, leagues, app_config.value_settings())
+        VALUE_REPORT.write_text(value_tips.report(result, value_tips.live_record(engine)), encoding="utf-8")
+        return f"Value-Backtest: {result.get('result', {}).get('n', 0)} Tipps"
+
     def backup_step(reason):
         def step(params, log):
             path = backup.create_backup(reason)
@@ -347,6 +395,9 @@ def _handlers() -> dict[str, Handler]:
         "results": results,
         "oddspapi_fixtures": oddspapi_fixtures,
         "oddspapi_history": oddspapi_history,
+        "oddspapi_backfill": oddspapi_backfill,
+        "decisions": decisions,
+        "value_reports": value_reports,
         "backup_data": backup_step("nach_import"),
         "backtest": backtest,
         "forecast": forecast,

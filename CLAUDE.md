@@ -186,6 +186,9 @@ pytest && ruff check . && ruff format --check .
   der fixierte Lauf hat in `api.data.CHOSEN_RUNS_SQL` Vorrang vor neueren Prognosen
 - `quotenfabrik/api/betting_report.py` – „Wetten & Modell“ für Wettbewerb und Mannschaft (Modell- und Tipp-Trefferquoten,
   Betano gegen Pinnacle und Modell, eigene Wetten)
+- `quotenfabrik/odds_archive.py` – Status des Betano/Pinnacle-Quotenarchivs je Liga (Abdeckung seit 01/2026, Lücken,
+  Nachlade-Schätzung) für die Einstellungsseite; Jobs `odds_backfill` (alle Verläufe seit 01/2026 nachladen) und `refit`
+  (Tippschein-Modell + CLV-/Value-Berichte)
 - `quotenfabrik/bets.py` – Wett-Tracking (`app.bets`, `app.bet_legs`): Abrechnung aus Ergebnissen, Auswertung
 - `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)
 - `quotenfabrik/pipeline.py` – Import-Schritte je Liga (CLI und Jobs); `jobs.py` – Hintergrund-Jobs (`app.jobs`,
