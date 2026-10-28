@@ -172,6 +172,11 @@ def oddspapi_fixtures(
     return f"Turnier {tournament}: {count} Spiele, {r.aliases_total} Teams gemappt, {r.linked} verknüpft"
 
 
+def _minutes(fixtures: int) -> str:
+    m = fixtures * 5 // 60 + 1  # 5 s per fixture
+    return f"{m} Minute" if m == 1 else f"{m} Minuten"
+
+
 def oddspapi_history(
     session: Session,
     client: OddsPapiClient,
@@ -179,10 +184,14 @@ def oddspapi_history(
     limit: int | None = None,
     log: Log = _noop,
     retry_empty: bool = False,
+    since: datetime | None = None,
+    batch: int = 20,
 ) -> str:
     """Betano/Pinnacle price histories of all open fixtures (free, 5 s per fixture).
 
-    ``retry_empty`` also fetches finished fixtures again that have no stored price yet.
+    ``retry_empty`` also fetches finished fixtures again that have no stored price yet; ``since`` overrides
+    the setting ``oddspapi.history_days`` (backfill: everything from January 2026). Progress is logged per
+    batch.
     """
     tournament = app_config.oddspapi_tournament_for(league_id)
     if not tournament:
@@ -195,11 +204,18 @@ def oddspapi_history(
     if not oddspapi.tracked_market_ids(session):
         log("Marktkatalog fehlt, wird geladen (1 Request)")
         oddspapi.sync_markets(session, client)
-    since = datetime.now(UTC) - timedelta(days=app_config.get("oddspapi.history_days"))
+    since = since or datetime.now(UTC) - timedelta(days=app_config.get("oddspapi.history_days"))
     fixtures = oddspapi.fixtures_needing_history(session, tournament, limit=limit, since=since)
-    log(f"{len(fixtures)} Spiele, ca. {len(fixtures) * 5 // 60 + 1} Minuten")
-    stats = oddspapi.sync_history(session, client, fixtures, get_settings().oddspapi_bookmakers)
+    log(f"{len(fixtures)} Spiele, ca. {_minutes(len(fixtures))}")
+    total = {"fixtures": 0, "final": 0, "rows": 0, "not_found": 0}
+    books = get_settings().oddspapi_bookmakers
+    for i in range(0, len(fixtures), batch):
+        stats = oddspapi.sync_history(session, client, fixtures[i : i + batch], books)
+        total = {k: total[k] + stats[k] for k in total}
+        left = len(fixtures) - total["fixtures"]
+        if left:
+            log(f"{total['fixtures']}/{len(fixtures)} Spiele, noch ca. {_minutes(left)}")
     return (
-        f"{stats['fixtures']} Verläufe ({stats['final']} abgeschlossen, {stats['not_found']} ohne Daten), "
-        f"{stats['rows']} Preisänderungen"
+        f"{total['fixtures']} Verläufe ({total['final']} abgeschlossen, {total['not_found']} ohne Daten), "
+        f"{total['rows']} Preisänderungen"
     )

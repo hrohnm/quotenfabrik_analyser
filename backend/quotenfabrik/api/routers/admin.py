@@ -6,6 +6,7 @@ adding a league: the import job). Everything else (status, tournaments, football
 
 import json
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -94,6 +95,29 @@ def status() -> dict:
         "settings_reserve": {"api": app_config.get("api.quota_reserve"),
                              "oddspapi": app_config.get("oddspapi.request_reserve")},
     }  # fmt: skip
+
+
+def _archive_status() -> dict:
+    from quotenfabrik import odds_archive as archive
+
+    return {**archive.status(get_engine()), "computed_at": datetime.now(UTC).isoformat()}
+
+
+_archive = None
+
+
+@router.get("/odds-archive")
+def odds_archive(fresh: bool = False) -> dict:
+    """Betano/Pinnacle odds archive per league: coverage, backfill estimate, warnings (computed in the
+    background, a few minutes cached; ``fresh`` recomputes now)."""
+    global _archive
+    from quotenfabrik.api.routers.stats import _Background
+
+    if _archive is None:
+        _archive = _Background("odds archive", _archive_status, ttl=300)
+    if fresh:
+        _archive.value = (time.time(), _archive_status())
+    return _archive.get() or {}
 
 
 # --------------------------------------------------------------------------- settings
@@ -390,8 +414,14 @@ def start_job(body: JobRequest) -> dict:
         if not lg.oddspapi_tournament:
             raise HTTPException(409, "Für diese Liga ist kein OddsPapi-Turnier hinterlegt")
         return _start("odds", {"league_id": lg.id, "retry_empty": True})
-    if body.kind not in {"models", "picks", "backup"}:
-        raise HTTPException(422, "Erlaubt: add_league, add_ratings, odds, models, picks, backup")
+    if body.kind == "odds_backfill":
+        if body.league_id is not None and app_config.oddspapi_tournament_for(body.league_id) is None:
+            raise HTTPException(409, "Für diese Liga ist kein OddsPapi-Turnier hinterlegt")
+        return _start("odds_backfill", {"league_id": body.league_id} if body.league_id else {})
+    if body.kind not in {"models", "picks", "backup", "refit"}:
+        raise HTTPException(
+            422, "Erlaubt: add_league, add_ratings, odds, odds_backfill, models, picks, backup, refit"
+        )
     return _start(body.kind, {})
 
 

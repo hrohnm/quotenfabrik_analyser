@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, apiSend } from "@/lib/api";
 import { JobsCard } from "@/components/settings/JobsCard";
 import { LeaguesCard } from "@/components/settings/LeaguesCard";
+import { OddsArchiveCard } from "@/components/settings/OddsArchiveCard";
 import { RatingsLeaguesCard } from "@/components/settings/RatingsLeaguesCard";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import { StatusCard } from "@/components/settings/StatusCard";
@@ -72,10 +73,11 @@ export default function SettingsPage() {
 
       <JobsCard
         jobs={jobs}
-        onRetry={(j) => (j.kind === "add_ratings" ? startJob("add_ratings", undefined, j.params.league_ids as number[]) : startJob(j.kind === "odds" ? "odds" : "add_league", Number(j.params.league_id)))}
+        onRetry={(j) => (j.kind === "add_ratings" ? startJob("add_ratings", undefined, j.params.league_ids as number[]) : j.kind === "odds_backfill" ? startJob("odds_backfill", j.params.league_id ? Number(j.params.league_id) : undefined) : startJob(j.kind === "odds" ? "odds" : "add_league", Number(j.params.league_id)))}
       />
       <StatusCard status={status} onBackup={() => startJob("backup")} busy={jobRunning} />
       <LeaguesCard leagues={leagues} status={status} jobRunning={jobRunning} onChanged={loadAll} onReload={(id) => startJob("add_league", id)} onReloadOdds={(id) => startJob("odds", id)} onError={setError} />
+      <OddsArchiveCard jobRunning={jobRunning} onStart={(kind, id) => startJob(kind, id)} />
       <RatingsLeaguesCard
         leagues={leagues.filter((l) => l.kind === "ratings" || l.kind === "cup")}
         status={status}

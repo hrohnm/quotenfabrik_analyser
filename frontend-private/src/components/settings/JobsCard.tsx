@@ -8,6 +8,8 @@ const KIND_LABELS: Record<Job["kind"], string> = {
   add_league: "Liga hinzufügen",
   add_ratings: "Stärke-Ligen importieren",
   odds: "Betano-Quoten neu laden",
+  odds_backfill: "Quotenverläufe seit 01/2026 nachladen",
+  refit: "Tippschein-Modell und Value-Berichte neu rechnen",
   models: "Modelle neu berechnen",
   picks: "Tipps neu berechnen",
   backup: "Backup",
@@ -56,7 +58,7 @@ function JobView({ job, open, busy, onRetry }: { job: Job; open: boolean; busy: 
               </li>
             );
           })}
-          {job.status === "failed" && (job.kind === "add_league" || job.kind === "add_ratings" || job.kind === "odds") && onRetry && (
+          {job.status === "failed" && (job.kind === "add_league" || job.kind === "add_ratings" || job.kind === "odds" || job.kind === "odds_backfill") && onRetry && (
             <li>
               <button type="button" disabled={busy} onClick={() => onRetry(job)} className="rounded-md bg-slate-900 px-3 py-1 text-xs text-white disabled:opacity-40" title={busy ? "Es läuft bereits ein Hintergrund-Job" : undefined}>
                 Erneut ausführen (lädt nur Fehlendes nach)
