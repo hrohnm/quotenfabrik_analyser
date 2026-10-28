@@ -17,8 +17,9 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 
+from quotenfabrik.json_utils import json_safe
 from quotenfabrik.models.base import Base
 
 ANALYTICS = {"schema": "analytics"}
@@ -35,6 +36,12 @@ class ModelRun(Base):
     as_of: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     params: Mapped[dict] = mapped_column(JSONB)
     summary: Mapped[dict | None] = mapped_column(JSONB)
+
+    @validates("params", "summary")
+    def _finite(self, key: str, value):
+        """No NaN/inf in JSONB (PostgreSQL rejects them): e.g. metrics of an empty sample become ``None``."""
+        return json_safe(value)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
