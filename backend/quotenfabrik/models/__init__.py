@@ -10,6 +10,7 @@ from quotenfabrik.models.analytics import (
     PatternResultRow,
     Pick,
     Prediction,
+    ValueTip,
 )
 from quotenfabrik.models.app import AppLeague, AppSetting, BankrollTransaction, Bet, BetLeg, Job
 from quotenfabrik.models.base import Base
@@ -53,6 +54,7 @@ __all__ = [
     "PatternResultRow",
     "Pick",
     "Prediction",
+    "ValueTip",
     "ApiResponse",
     "Base",
     "BetType",

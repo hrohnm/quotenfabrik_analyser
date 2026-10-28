@@ -18,6 +18,7 @@ from quotenfabrik.api.routers import (
     players,
     stats,
     teams,
+    value,
 )
 from quotenfabrik.db import get_engine
 
@@ -46,6 +47,7 @@ for router in (
     stats.router,
     admin.router,
     bets.router,
+    value.router,
 ):
     app.include_router(router)
 

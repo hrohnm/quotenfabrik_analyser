@@ -48,4 +48,6 @@ def freeze_day(engine: Engine, day: date, now: datetime | None = None) -> dict:
                                      real_odds=c["real_odds"], legs=c["legs"]))  # fmt: skip
                 stored += 1
         session.commit()
-    return {"fixtures": len(runs), "combos": stored}
+    from quotenfabrik.analytics import value_tips
+
+    return {"fixtures": len(runs), "combos": stored, "value_tips": value_tips.freeze(engine, day, now)}

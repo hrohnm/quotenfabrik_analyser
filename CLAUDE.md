@@ -65,6 +65,7 @@ Das öffentliche Frontend spricht **nie** direkt mit der DB oder den Datenquelle
 | `docs/16_tageskombis.md` | Automatisch erzeugt: Backtest der Tageskombis (Tore Über, Team-Tore Über, Doppelte Chance, Quote 5–10, `qf combos report`) |
 | `docs/23_clv.md` | Automatisch erzeugt: Closing Line Value der Tipps (Betano-Quote beim Tipp vs. fairer Pinnacle-Schlusspreis, `qf value clv`) |
 | `docs/24_tippschein.md` | Automatisch erzeugt: Tippschein-Entscheidungsmodell (alle Informationen) und Trefferquote nach Konfidenz (`qf model decisions`) |
+| `docs/25_value_tipps.md` | Automatisch erzeugt: Value-Tipps (Mischung Modell/Pinnacle gegen Betano) im Backtest und live (`qf value tips`) |
 | `docs/11_betano_nebenmaerkte.md` | Automatisch erzeugt: Betano-Nebenmärkte gegen faire Preise aus Pinnacle (`mkt-v1`, Phase 3) |
 
 ## Harte Regeln
@@ -144,6 +145,7 @@ qf value backtest                             # Prognosen gegen historische Quot
 qf value betano                               # Betano-Nebenmärkte vs. faire Preise → docs/11_betano_nebenmaerkte.md
 qf value clv                                  # CLV der Tipps (Quote beim Tipp vs. Schlusspreis) → docs/23_clv.md
 qf model decisions [--apply]                  # Tippschein-Entscheidungsmodell + Konfidenz → docs/24_tippschein.md
+qf value tips                                 # Value-Tipps im Backtest + Live-Bilanz → docs/25_value_tipps.md
 qf picks build && qf picks report             # 3 Tipps pro Spiel speichern / Trefferquote → docs/12_tipps.md
 qf picks freeze                               # Tipps + Tageskombis des Tages fixieren (Cron nach der Prognose)
 qf combos report                              # Tageskombis im Backtest → docs/16_tageskombis.md
@@ -170,7 +172,8 @@ pytest && ruff check . && ruff format --check .
   gemeinsame Chance und geschätzte Bet-Builder-Quote der Tipps eines Spiels (`same_game.py`),
   Tippschein mit 6 Entscheidungen je Spiel und Auswertung (`decisions.py`), Entscheidungsmodell mit allen
   Informationen und Konfidenz (`decision_features.py`, `decision_model.py`, `decision_runs.py`; Tabellen
-  `analytics.decision_models`, `analytics.decision_probs`), Tageskombis (`combos.py`),
+  `analytics.decision_models`, `analytics.decision_probs`), Value-Tipps als eigener Bereich (`value_tips.py`:
+  Mischung Modell/Pinnacle gegen Betano, täglich fixiert in `analytics.value_tips`), Tageskombis (`combos.py`),
   Form und letzte Spiele aller Wettbewerbe (`form.py`), Spielstil-Profile (`style.py`, Nachweis `style_eval.py`),
   Einschätzung in Textform je Spiel (`preview.py`, regelbasiert aus den Detaildaten),
   voraussichtliche Startelf bis zur bestätigten Aufstellung (`lineups.py`, Nachweis `docs/21_aufstellung.md`),
@@ -179,7 +182,7 @@ pytest && ruff check . && ruff format --check .
   Saisonstatistik einer Mannschaft für die Teamseite (`team_stats.py`), eines Wettbewerbs für die Wettbewerbsseite
   (`competition_stats.py`), eines Spielers für die Spielerseite (`player_stats.py`)
   (Details: `docs/05_modelle_und_backtesting.md`, Ergebnisse: `docs/09_modell_evaluation.md`)
-- `quotenfabrik/day_freeze.py` – fixiert Tipps und Tageskombis eines Tages (`analytics.frozen_runs`, `analytics.day_combos`);
+- `quotenfabrik/day_freeze.py` – fixiert Tipps, Tageskombis und Value-Tipps eines Tages (`analytics.frozen_runs`, `analytics.day_combos`);
   der fixierte Lauf hat in `api.data.CHOSEN_RUNS_SQL` Vorrang vor neueren Prognosen
 - `quotenfabrik/api/betting_report.py` – „Wetten & Modell“ für Wettbewerb und Mannschaft (Modell- und Tipp-Trefferquoten,
   Betano gegen Pinnacle und Modell, eigene Wetten)
@@ -187,8 +190,9 @@ pytest && ruff check . && ruff format --check .
 - `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)
 - `quotenfabrik/pipeline.py` – Import-Schritte je Liga (CLI und Jobs); `jobs.py` – Hintergrund-Jobs (`app.jobs`,
   Prozess `qf jobs run <id>`); `backup.py` – Backups; `reports.py` – Berichtspfade je Liga
-- `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, league, teams, competitions, players, explorer, stats, bets, admin = Einstellungsseite), Labels in `api/labels.py`
-- `frontend-private/` – Next.js App Router (`src/app/spieltage`, `tipps`, `wetten`, `spiel/[id]`, `team/[id]`, `wettbewerb/[id]`, `spieler/[id]`, `explorer`, `auswertung`, `einstellungen`)
+- `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, league, teams, competitions, players, explorer, stats, value, bets, admin = Einstellungsseite), Labels in `api/labels.py`
+- `frontend-private/` – Wettschein über alle Seiten (`components/bets/BetSlip.tsx`, im Browser gespeichert);
+  Next.js App Router (`src/app/spieltage`, `tipps`, `value`, `wetten`, `spiel/[id]`, `team/[id]`, `wettbewerb/[id]`, `spieler/[id]`, `explorer`, `auswertung`, `einstellungen`)
 - `.devcontainer/` – GitHub Codespaces: App-Container + PostgreSQL, Seed beim ersten Start, startet API und Frontend
 - `docker-compose.yml` + `docker/` – kompletter Server-Stack (db mit Seed, api, cron, frontend, caddy mit HTTPS und Passwort),
   z. B. über den Hostinger Docker Manager; `deploy/` – dasselbe ohne Docker (systemd, nginx, Crontab, `update.sh`);

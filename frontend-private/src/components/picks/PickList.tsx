@@ -1,6 +1,7 @@
 import { OutcomeBadge, ProbabilityBar } from "@/components/ui";
 import { odd, pct, signedPct } from "@/lib/format";
-import type { Pick, PickCombo } from "@/lib/types";
+import type { Pick, PickCombo, Team } from "@/lib/types";
+import { AddToSlip } from "@/components/bets/BetSlip";
 import { BetanoOdd } from "@/components/BetanoOdd";
 import { PickInfo } from "./PickInfo";
 
@@ -12,9 +13,11 @@ export function comboOutcome(picks: Pick[]): boolean | null {
 
 export const comboProbability = (picks: Pick[]) => picks.reduce((prod, p) => prod * p.probability, 1);
 
-type ListProps = { picks: Pick[]; finished: boolean; reasons?: boolean; combo?: PickCombo | null };
+/** Fixture of the picks: with it, open picks get a "+" for the bet slip. */
+export type SlipFixture = { id: number; home: Team; away: Team; kickoff: string };
+type ListProps = { picks: Pick[]; finished: boolean; reasons?: boolean; combo?: PickCombo | null; fixture?: SlipFixture };
 
-export function PickList({ picks, finished, reasons = true, combo }: ListProps) {
+export function PickList({ picks, finished, reasons = true, combo, fixture }: ListProps) {
   if (picks.length === 0) return <p className="text-sm text-slate-500">Keine Tipps in diesem Profil – kein Markt liegt im Wahrscheinlichkeitsbereich.</p>;
   return (
     <div>
@@ -32,6 +35,11 @@ export function PickList({ picks, finished, reasons = true, combo }: ListProps) 
                   <span className="w-10 text-right text-xs text-slate-400" title="faire Quote">{odd(p.fair_odd)}</span>
                   <span className="w-11 text-right"><BetanoOdd prices={p} /></span>
                   {finished && <OutcomeBadge outcome={p.outcome} small />}
+                  {fixture && !finished && (
+                    <AddToSlip leg={{ fixture_id: fixture.id, market: p.market, selection: p.selection, line: p.line, label: p.label,
+                      match: `${fixture.home.name} – ${fixture.away.name}`, kickoff: fixture.kickoff, probability: p.probability,
+                      odds: p.betano ?? null, origin: "tipps" }} />
+                  )}
                 </span>
               </div>
               <div className="mt-1"><ProbabilityBar value={p.probability} /></div>

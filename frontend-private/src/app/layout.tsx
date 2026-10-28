@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
+import { BetSlipProvider } from "@/components/bets/BetSlip";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,8 +12,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="de">
       <body className="min-h-screen antialiased">
-        <Nav />
-        <main className="mx-auto max-w-7xl px-4 pb-16 pt-6">{children}</main>
+        <BetSlipProvider>
+          <Nav />
+          <main className="mx-auto max-w-7xl px-4 pb-16 pt-6">{children}</main>
+        </BetSlipProvider>
       </body>
     </html>
   );

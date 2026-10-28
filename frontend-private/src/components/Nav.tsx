@@ -13,6 +13,7 @@ import { SearchBox } from "./SearchBox";
 const LINKS = [
   { href: "/spieltage", label: "Spieltage" },
   { href: "/tipps", label: "Tipps" },
+  { href: "/value", label: "Value-Tipps" },
   { href: "/wetten", label: "Wetten" },
   { href: "/explorer", label: "Daten-Explorer" },
   { href: "/auswertung", label: "Auswertung" },

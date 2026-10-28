@@ -252,6 +252,21 @@ Frontend auf der Tipps-Seite (`/api/stats/clv`, 1 h Cache) und je Tipp im Popove
 Tipps liegen aber nach Betano-Marge unter dem fairen Schlusspreis → für Gewinn braucht es zusätzlich einen
 Value-Filter (nächster Schritt: Value-Profil mit Backtest).
 
+### Value-Tipps (`analytics/value_tips.py`, Seite „Value-Tipps“)
+
+Eigener Bereich neben den 3 Tipps pro Spiel: Auswahlen der üblichen Märkte (x,5-Linien), bei denen
+Wahrscheinlichkeit × Betano-Quote − 1 ≥ `value.min_edge` (Standard 2 %), Wahrscheinlichkeit ≥ 30 %, Quote ≤ 4,
+höchstens 2 je Spiel. Unsere Wahrscheinlichkeit kommt aus dem Tippschein-Entscheidungsmodell (sonst Tor-Modell). Auf
+den Spielen mit Betano-Verlauf ist **Pinnacle ohne Marge genauer als unser Modell** (Log-Loss 0,6109 gegen 0,6169),
+deshalb wird gemischt (`value.model_weight`, Standard 25 % Modell, 75 % Pinnacle; Auswahlen ohne vollständigen
+Pinnacle-Markt entfallen). Je stärker das eigene Modell gewichtet wird, desto negativer der CLV (100 % Modell:
+−5,6 %) – Abweichungen vom Markt sind meist Modellfehler.
+
+**Backtest (28.10.2026, 180 Spiele, 04–10/2026):** 40 Value-Tipps, Ø Quote 2,24, Treffer 52,5 % (erwartet
+49,6 %), Rendite +10,4 % mit 95-%-Intervall −27 % bis +48 % (kein Nachweis), CLV +0,5 %, Quote fiel danach bei 57 %.
+Die gezeigten Value-Tipps werden mit `qf picks freeze` täglich fixiert (`analytics.value_tips`), daraus entsteht die
+Live-Bilanz. Bericht: `docs/25_value_tipps.md`.
+
 ### Paper-Trading
 Ab Inbetriebnahme werden alle Value-Signale automatisch als „Papierwetten“ in `analytics.value_bets` protokolliert
 (mit Quote zum Signalzeitpunkt, Schlussquote, Ergebnis). So entsteht ein ehrlicher Live-Track-Record je Markt.

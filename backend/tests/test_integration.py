@@ -294,6 +294,7 @@ def test_frozen_run_stays_chosen_after_a_new_forecast(session, engine, monkeypat
     assert day_freeze.freeze_day(engine, day, now=kickoff - timedelta(hours=7)) == {
         "fixtures": 1,
         "combos": 0,
+        "value_tips": 0,  # no Betano prices in the test data
     }
     noon = forecast(kickoff - timedelta(hours=2), 0.6)
     session.commit()
