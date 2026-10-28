@@ -195,8 +195,9 @@ def binary_metrics(results: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def multiclass_metrics(results: pd.DataFrame, market: str) -> dict[str, float]:
-    """Multi-class log loss and ranked probability score for 1x2-type markets (H/D/A)."""
+def multiclass_metrics(results: pd.DataFrame, market: str) -> dict[str, float | None]:
+    """Multi-class log loss and ranked probability score for 1x2-type markets (H/D/A); ``None`` without
+    fixtures."""
     r = results[results["market"] == market].pivot_table(
         index="fixture_id",
         columns="selection",
@@ -204,8 +205,11 @@ def multiclass_metrics(results: pd.DataFrame, market: str) -> dict[str, float]:
         aggfunc="first",
     )
     order = ["H", "D", "A"]
-    y = r["outcome"][order].to_numpy(float)
     out = {"n": len(r)}
+    if r.empty or any((col, sel) not in r.columns for col in ("outcome", "p_model") for sel in order):
+        # no fixtures of this market (e.g. no half-time scores): metrics unknown, never NaN
+        return out | {f"{m}_{name}": None for m in ("logloss", "rps") for name in ("model", "base", "naive")}
+    y = r["outcome"][order].to_numpy(float)
     for name in ("model", "base", "naive"):
         p = r[f"p_{name}"][order].to_numpy(float)
         p = p / p.sum(axis=1, keepdims=True)

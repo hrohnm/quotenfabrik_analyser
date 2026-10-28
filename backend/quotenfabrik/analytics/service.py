@@ -228,6 +228,12 @@ def _num(v):
     return float(v)
 
 
+def _mean(values) -> float | None:
+    """Mean of a sample, ``None`` for an empty one (never NaN: it ends up in JSONB and in the report)."""
+    a = np.asarray(values, dtype=float)
+    return float(a.mean()) if a.size else None
+
+
 def _per_season(results: pd.DataFrame) -> pd.DataFrame:
     key = results[
         (results["market"] == "ou_ft") & (results["line"] == 2.5) & (results["selection"] == "over")
@@ -240,22 +246,31 @@ def _per_season(results: pd.DataFrame) -> pd.DataFrame:
         rows.append(
             {"season": season, "matches": m["n"], "rps_model": m["rps_model"], "rps_base": m["rps_base"],
              "rps_naive": m["rps_naive"],
-             "brier_o25_model": float(np.mean((k["p_model"] - y) ** 2)),
-             "brier_o25_base": float(np.mean((k["p_base"] - y) ** 2))}
+             "brier_o25_model": _mean((k["p_model"].to_numpy(float) - y) ** 2),
+             "brier_o25_base": _mean((k["p_base"].to_numpy(float) - y) ** 2)}
         )  # fmt: skip
     return pd.DataFrame(rows)
 
 
+SCORER_CALIBRATION_COLUMNS = ["bin", "n", "predicted", "observed"]
+
+
 def _scorer_summary(scorers: pd.DataFrame) -> dict:
-    k = scorers[scorers["known"] & scorers["p_model"].notna() & scorers["p_base"].notna()]
+    """Log loss and Brier of the goalscorer model against the position base rate; ``n = 0`` and metrics
+    ``None`` when there are no usable goalscorer data (e.g. a league or cup without lineups)."""
+    needed = {"known", "p_model", "p_base", "outcome"}
+    if scorers.empty or not needed <= set(scorers.columns):
+        unknown = int((~scorers["known"].astype(bool)).sum()) if "known" in scorers else 0
+        empty = {"logloss": None, "brier": None}
+        return {"overall": {"n": 0, "unknown_players": unknown, "model": empty, "base": dict(empty)},
+                "calibration": pd.DataFrame(columns=SCORER_CALIBRATION_COLUMNS)}  # fmt: skip
+    known = scorers["known"].astype(bool)
+    k = scorers[known & scorers["p_model"].notna() & scorers["p_base"].notna()]
     y = k["outcome"].to_numpy(float)
 
     def metrics(p):
         p = np.clip(p, 1e-9, 1 - 1e-9)
-        return {
-            "logloss": float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))),
-            "brier": float(np.mean((p - y) ** 2)),
-        }
+        return {"logloss": _mean(-(y * np.log(p) + (1 - y) * np.log(1 - p))), "brier": _mean((p - y) ** 2)}
 
     bins = [0, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 1]
     calib = (
@@ -265,7 +280,7 @@ def _scorer_summary(scorers: pd.DataFrame) -> dict:
         .reset_index()
     )
     return {
-        "overall": {"n": int(len(k)), "unknown_players": int((~scorers["known"]).sum()),
+        "overall": {"n": int(len(k)), "unknown_players": int((~known).sum()),
                     "model": metrics(k["p_model"].to_numpy(float)), "base": metrics(k["p_base"].to_numpy(float))},
         "calibration": calib,
     }  # fmt: skip
@@ -289,12 +304,27 @@ MARKET_LABELS = {
 }  # fmt: skip
 
 
-def _pct(v: float) -> str:
-    return f"{v * 100:.1f} %"
+NO_DATA = "–"
 
 
-def _signed_pct(v: float) -> str:
-    return f"{v * 100:+.1f} %"
+def _pct(v: float | None) -> str:
+    return NO_DATA if v is None or pd.isna(v) else f"{v * 100:.1f} %"
+
+
+def _signed_pct(v: float | None) -> str:
+    return NO_DATA if v is None or pd.isna(v) else f"{v * 100:+.1f} %"
+
+
+def _f(v: float | None, digits: int = 4) -> str:
+    """Number for the report; "–" for a metric without data."""
+    return NO_DATA if v is None or pd.isna(v) else f"{v:.{digits}f}"
+
+
+def _skill(model: float | None, base: float | None) -> str:
+    """1 − model / base as signed percent ("–" without data)."""
+    if model is None or base is None or pd.isna(model) or pd.isna(base) or base == 0:
+        return NO_DATA
+    return _signed_pct(1 - model / base)
 
 
 def render_report(
@@ -326,16 +356,12 @@ def render_report(
         "| Markt | Modell | Liga | Form | Bewertung |",
         "|---|---|---|---|---|",
     ]  # fmt: skip
-    m = multi["1x2"]
-    lines.append(
-        f"| 1X2 (RPS) | {m['rps_model']:.4f} | {m['rps_base']:.4f} | {m['rps_naive']:.4f} | "
-        f"{_signed_pct(1 - m['rps_model'] / m['rps_base'])} ggü. Liga |"
-    )
-    m = multi["ht_1x2"]
-    lines.append(
-        f"| Halbzeit-Ergebnis (RPS) | {m['rps_model']:.4f} | {m['rps_base']:.4f} | {m['rps_naive']:.4f} | "
-        f"{_signed_pct(1 - m['rps_model'] / m['rps_base'])} ggü. Liga |"
-    )
+    for key, label in (("1x2", "1X2 (RPS)"), ("ht_1x2", "Halbzeit-Ergebnis (RPS)")):
+        m = multi[key]
+        lines.append(
+            f"| {label} | {_f(m['rps_model'])} | {_f(m['rps_base'])} | {_f(m['rps_naive'])} | "
+            f"{_skill(m['rps_model'], m['rps_base'])} ggü. Liga |"
+        )
     for group in GROUP_TITLES:
         g = binary[(binary["group"] == group) & binary["selection"].isin(["over", "yes", "H", "home"])]
         if g.empty:
@@ -348,16 +374,16 @@ def render_report(
         )
     s = scorer_summary["overall"]
     lines.append(
-        f"| 5. Torschützen Anytime (Brier, {s['n']} Spieler-Einsätze) | {s['model']['brier']:.5f} | "
-        f"{s['base']['brier']:.5f} | – | Skill {_signed_pct(1 - s['model']['brier'] / s['base']['brier'])} ggü. Positions-Schnitt |"
+        f"| 5. Torschützen Anytime (Brier, {s['n']} Spieler-Einsätze) | {_f(s['model']['brier'], 5)} | "
+        f"{_f(s['base']['brier'], 5)} | – | Skill {_skill(s['model']['brier'], s['base']['brier'])} ggü. Positions-Schnitt |"
     )
     lines += ["", "## Saison für Saison (1X2-RPS und Über 2.5-Brier)", "",
               "| Saison | Spiele | RPS Modell | RPS Liga | RPS Form | Brier Ü2.5 Modell | Brier Ü2.5 Liga |",
               "|---|---|---|---|---|---|---|"]  # fmt: skip
     for r in per_season.itertuples(index=False):
         lines.append(
-            f"| {r.season}/{(r.season + 1) % 100:02d} | {r.matches} | {r.rps_model:.4f} | {r.rps_base:.4f} | {r.rps_naive:.4f} "
-            f"| {r.brier_o25_model:.4f} | {r.brier_o25_base:.4f} |"
+            f"| {r.season}/{(r.season + 1) % 100:02d} | {r.matches} | {_f(r.rps_model)} | {_f(r.rps_base)} "
+            f"| {_f(r.rps_naive)} | {_f(r.brier_o25_model)} | {_f(r.brier_o25_base)} |"
         )
 
     for group, title in GROUP_TITLES.items():
@@ -373,15 +399,20 @@ def render_report(
                 f"{_signed_pct(r.skill_vs_naive)} | {_pct(r.ece_model)} |"
             )
 
-    lines += ["", "## 5. Torschützen (Anytime, mit bekannter Aufstellung)", "",
-              f"{s['n']} Spieler-Einsätze (Feldspieler in Startelf oder auf der Bank), {s['unknown_players']} ohne Vorgeschichte "
-              "ausgelassen. Vergleichswert: Trefferquote nach Position und Startelf/Bank.", "",
-              "| | Log-Loss | Brier |", "|---|---|---|",
-              f"| Modell | {s['model']['logloss']:.4f} | {s['model']['brier']:.5f} |",
-              f"| Positions-Schnitt | {s['base']['logloss']:.4f} | {s['base']['brier']:.5f} |", "",
-              "Kalibrierung:", "", "| vorhergesagt (Klasse) | n | Ø vorhergesagt | eingetreten |", "|---|---|---|---|"]  # fmt: skip
-    for r in scorer_summary["calibration"].itertuples(index=False):
-        lines.append(f"| {r.bin} | {r.n} | {_pct(r.predicted)} | {_pct(r.observed)} |")
+    lines += ["", "## 5. Torschützen (Anytime, mit bekannter Aufstellung)", ""]
+    if not s["n"]:
+        lines += ["Keine Daten: In diesem Wettbewerb gibt es keine auswertbaren Torschützen-Prognosen (keine "
+                  f"Aufstellungen bzw. Spielerdaten; {s['unknown_players']} Spieler ohne Vorgeschichte).", ""]  # fmt: skip
+    else:
+        lines += [f"{s['n']} Spieler-Einsätze (Feldspieler in Startelf oder auf der Bank), {s['unknown_players']} ohne "
+                  "Vorgeschichte ausgelassen. Vergleichswert: Trefferquote nach Position und Startelf/Bank.", "",
+                  "| | Log-Loss | Brier |", "|---|---|---|",
+                  f"| Modell | {_f(s['model']['logloss'])} | {_f(s['model']['brier'], 5)} |",
+                  f"| Positions-Schnitt | {_f(s['base']['logloss'])} | {_f(s['base']['brier'], 5)} |", "",
+                  "Kalibrierung:", "", "| vorhergesagt (Klasse) | n | Ø vorhergesagt | eingetreten |",
+                  "|---|---|---|---|"]  # fmt: skip
+        for r in scorer_summary["calibration"].itertuples(index=False):
+            lines.append(f"| {r.bin} | {r.n} | {_pct(r.predicted)} | {_pct(r.observed)} |")
 
     lines += ["", "## Kalibrierung ausgewählter Märkte", ""]
     for market, selection, line, label in (("1x2", "H", None, "Heimsieg"), ("ou_ft", "over", 2.5, "Über 2.5"),

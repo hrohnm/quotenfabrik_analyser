@@ -3,8 +3,10 @@ import os
 from pathlib import Path
 
 import pytest
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from quotenfabrik.db import make_engine
 
 DATA = Path(__file__).parent / "data"
 BACKEND = Path(__file__).resolve().parents[1]
@@ -22,7 +24,7 @@ def engine():
     from alembic import command
     from alembic.config import Config
 
-    eng = create_engine(url)
+    eng = make_engine(url)
     with eng.begin() as conn:
         for schema in ("app", "analytics", "core", "raw"):
             conn.execute(text(f"drop schema if exists {schema} cascade"))

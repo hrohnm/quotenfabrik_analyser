@@ -7,12 +7,19 @@ from functools import lru_cache
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from quotenfabrik import json_utils
 from quotenfabrik.config import get_settings
+
+
+def make_engine(url: str) -> Engine:
+    """Engine whose JSON(B) serializer turns NaN/±inf into null (PostgreSQL rejects them) and accepts numpy
+    values, so a metric of an empty sample can never break an insert."""
+    return create_engine(url, pool_pre_ping=True, json_serializer=json_utils.dumps)
 
 
 @lru_cache
 def get_engine(url: str | None = None) -> Engine:
-    return create_engine(url or get_settings().database_url, pool_pre_ping=True)
+    return make_engine(url or get_settings().database_url)
 
 
 @contextmanager

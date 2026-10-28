@@ -191,6 +191,8 @@ pytest && ruff check . && ruff format --check .
   (Tippschein-Modell + CLV-/Value-Berichte)
 - `quotenfabrik/bets.py` – Wett-Tracking (`app.bets`, `app.bet_legs`): Abrechnung aus Ergebnissen, Auswertung
 - `quotenfabrik/app_config.py` – Einstellungen (Standard + `app.settings`) und Ligen (`app.leagues`, Fallback env)
+- `quotenfabrik/json_utils.py` – `json_safe` (NaN/±Inf → `None`, numpy → Python) für JSONB; als `json_serializer` der Engine
+  (`db.make_engine`) und in `ModelRun.params/summary` aktiv – PostgreSQL lehnt NaN in JSON ab
 - `quotenfabrik/pipeline.py` – Import-Schritte je Liga (CLI und Jobs); `jobs.py` – Hintergrund-Jobs (`app.jobs`,
   Prozess `qf jobs run <id>`); `backup.py` – Backups; `reports.py` – Berichtspfade je Liga
 - `quotenfabrik/api/` – FastAPI (`routers/`: meta, fixtures, league, teams, competitions, players, explorer, stats, value, bets, admin = Einstellungsseite), Labels in `api/labels.py`
