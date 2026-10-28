@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, getDays, getMeta } from "@/lib/api";
-import { addDays, berlinToday, dateLong, dateShort, odd, pct, signedPct, time, weekday } from "@/lib/format";
+import { addDays, berlinToday, dateLong, dateShort, num, odd, pct, signedPct, time, weekday } from "@/lib/format";
 import type { Day, Meta, ValueDay, ValueResult, ValueStats } from "@/lib/types";
 import { Card, OutcomeBadge, StatTile, TeamLogo } from "@/components/ui";
 import { Segmented } from "@/components/match/Segmented";
@@ -178,6 +178,7 @@ function ResultRow({ label, r }: { label: string; r: ValueResult | undefined }) 
 
 function ValueStatsView({ stats }: { stats: ValueStats }) {
   const b = stats.backtest;
+  if (b.error) return <Card><p className="text-sm text-rose-700">Backtest fehlgeschlagen: {b.error}</p></Card>;
   if (!b.candidates) return <Card><p className="text-sm text-slate-500">Noch keine Spiele mit Betano-Verlauf für einen Backtest.</p></Card>;
   const r = b.result;
   return (
@@ -186,7 +187,7 @@ function ValueStatsView({ stats }: { stats: ValueStats }) {
         <StatTile label="Backtest: Value-Tipps" value={`${r?.n ?? 0}`} hint={`${b.fixtures} Spiele mit Betano-Verlauf · ${b.from ? dateShort(b.from) : ""} – ${b.to ? dateShort(b.to) : ""}`} />
         <StatTile label="Rendite zur Quote" value={<span className={(r?.roi ?? 0) > 0 ? "text-emerald-700" : "text-rose-700"}>{signedPct(r?.roi ?? null)}</span>} hint={r?.roi_ci ? `95 %: ${signedPct(r.roi_ci[0])} bis ${signedPct(r.roi_ci[1])}` : undefined} />
         <StatTile label="CLV" value={<span className={(r?.clv ?? 0) > 0 ? "text-emerald-700" : "text-rose-700"}>{signedPct(r?.clv ?? null)}</span>} hint={`Quote fiel danach bei ${pct(r?.beat_close ?? null, 0)}`} />
-        <StatTile label="Live (fixiert)" value={`${stats.live.n} Tipps`} hint={stats.live.n ? `Rendite ${signedPct(stats.live.roi ?? null)} · Treffer ${pct(stats.live.hit_rate ?? null, 0)}` : "Bilanz entsteht ab jetzt"} />
+        <StatTile label="Live (fixiert)" value={`${stats.live.n} Tipps`} hint={stats.live.error ? `Fehler: ${stats.live.error}` : stats.live.n ? `Rendite ${signedPct(stats.live.roi ?? null)} · Treffer ${pct(stats.live.hit_rate ?? null, 0)}` : "Bilanz entsteht ab jetzt"} />
       </div>
       <Card title="Ergebnis">
         <div className="overflow-x-auto">
@@ -211,8 +212,8 @@ function ValueStatsView({ stats }: { stats: ValueStats }) {
         </div>
         {b.log_loss && (
           <p className="mt-3 text-xs text-slate-500">
-            Genauigkeit auf diesen Spielen (Log-Loss, kleiner = besser): Pinnacle {b.log_loss.market.toFixed(4).replace(".", ",")}, unser Modell {b.log_loss.model.toFixed(4).replace(".", ",")},
-            Mischung {b.log_loss.blend.toFixed(4).replace(".", ",")}. Ein Rendite-Intervall, das 0 einschließt, ist kein Nachweis; ein CLV über 0 spricht für echten Vorteil.
+            Genauigkeit auf diesen Spielen (Log-Loss, kleiner = besser): Pinnacle {num(b.log_loss.market, 4)}, unser Modell {num(b.log_loss.model, 4)},
+            Mischung {num(b.log_loss.blend, 4)}. Ein Rendite-Intervall, das 0 einschließt, ist kein Nachweis; ein CLV über 0 spricht für echten Vorteil.
             Einstellungen: Einstellungen → Value-Tipps · Bericht: docs/25_value_tipps.md.
           </p>
         )}

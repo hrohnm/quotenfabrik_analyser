@@ -52,3 +52,17 @@ def test_summarize_result_at_the_odds_taken():
 
 def test_summarize_without_settled_tips():
     assert vt.summarize(pd.DataFrame()) == {"n": 0, "fixtures": 0}
+
+
+def test_blend_drops_broken_probabilities_and_prices():
+    rows = _rows([(1, "1x2", "H", np.nan, 0.5, 2.1, 2.1, True), (2, "1x2", "H", 0.6, 0.5, np.inf, 2.1, True),
+                  (3, "1x2", "H", 0.6, 0.5, 1.0, 1.0, True), (4, "1x2", "H", 0.6, 0.5, 2.1, 2.1, True)])  # fmt: skip
+    b = vt.blend(rows, vt.ValueSettings())
+    assert list(b["fixture_id"]) == [4]
+
+
+def test_json_safe_replaces_nan_and_numpy_values():
+    from quotenfabrik.api.data import json_safe
+
+    out = json_safe({"a": float("nan"), "b": [np.float64(1.5), np.int64(2), float("inf")], "c": {"d": None}})
+    assert out == {"a": None, "b": [1.5, 2, None], "c": {"d": None}}

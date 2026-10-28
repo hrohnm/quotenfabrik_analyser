@@ -226,13 +226,16 @@ class _Background:
     def __init__(self, name: str, loader, ttl: float = 1800) -> None:
         self.name, self.loader, self.ttl = name, loader, ttl
         self.value: tuple[float, object] | None = None
+        self.error: str | None = None  # last failure (shown by endpoints that have no value yet)
         self.refreshing = threading.Lock()
 
     def _refresh(self) -> None:
         try:
             self.value = (time.time(), self.loader())
-        except Exception:  # noqa: BLE001 - a failed refresh keeps the old value
+            self.error = None
+        except Exception as exc:  # noqa: BLE001 - a failed refresh keeps the old value
             log.exception("%s refresh failed", self.name)
+            self.error = f"{type(exc).__name__}: {exc}"
         finally:
             self.refreshing.release()
 

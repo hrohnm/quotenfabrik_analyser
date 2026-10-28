@@ -110,6 +110,8 @@ def blend(rows: pd.DataFrame, s: ValueSettings) -> pd.DataFrame:
         return rows.assign(p_model=[], p_market=[], edge=[])
     m = rows.dropna(subset=["fair_taken"]).copy()
     m["p_model"] = m["probability"] if "p_model" not in m else m["p_model"]
+    finite = np.isfinite(m[["p_model", "fair_taken", "taken"]].astype(float)).all(axis=1)
+    m = m[finite & (m["taken"] > 1)]  # missing or broken prices / probabilities never become tips
     m["p_market"] = m["fair_taken"]
     m["probability"] = s.model_weight * m["p_model"] + (1 - s.model_weight) * m["p_market"]
     m["edge"] = m["probability"] * m["taken"] - 1
@@ -190,6 +192,8 @@ def backtest(engine: Engine, leagues: list[int], s: ValueSettings) -> dict:
     y = b["outcome"].dropna().astype(float)
 
     def log_loss(p):  # noqa: E306
+        if y.empty:
+            return None
         p = np.clip(p.loc[y.index], 1e-6, 1 - 1e-6)
         return float(-(y * np.log(p) + (1 - y) * np.log(1 - p)).mean())
 

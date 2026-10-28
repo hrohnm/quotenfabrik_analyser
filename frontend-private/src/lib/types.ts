@@ -783,6 +783,7 @@ export type ValueDay = {
 };
 export type ValueResult = {
   n: number;
+  error?: string | null;
   fixtures: number;
   odds?: number;
   hit_rate?: number;
@@ -797,10 +798,11 @@ export type ValueResult = {
 export type ValueStats = {
   backtest: {
     candidates: number;
+    error?: string | null;
     fixtures?: number;
     from?: string;
     to?: string;
-    log_loss?: { model: number; market: number; blend: number };
+    log_loss?: { model: number | null; market: number | null; blend: number | null };
     settings?: ValueSettingsT;
     result?: ValueResult;
     groups?: (ValueResult & { group: string; label: string })[];
