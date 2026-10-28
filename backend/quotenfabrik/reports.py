@@ -21,6 +21,7 @@ AVAILABILITY_REPORT = DOCS / "22_ausfaelle_und_belastung.md"
 CALIBRATION_REPORT = DOCS / "20_kalibrierung.md"
 CLV_REPORT = DOCS / "23_clv.md"
 DECISIONS_REPORT = DOCS / "24_tippschein.md"
+VALUE_REPORT = DOCS / "25_value_tipps.md"
 
 
 def report_path(path: Path | None, league_id: int) -> Path | None:

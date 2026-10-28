@@ -44,7 +44,7 @@ export default async function FixturePage({ params }: { params: Promise<{ id: st
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Auf einen Blick</h2>
         {meta?.pick_profiles?.length ? (
-          <PicksCard picks={data.picks ?? {}} combos={data.pick_combos} profiles={meta.pick_profiles} stats={stats?.profiles ?? null} finished={f.finished} />
+          <PicksCard picks={data.picks ?? {}} combos={data.pick_combos} fixture={f} profiles={meta.pick_profiles} stats={stats?.profiles ?? null} finished={f.finished} />
         ) : null}
         {(data.decisions?.length ?? 0) > 0 && (
           <Card title="Tippschein: 6 Entscheidungen">

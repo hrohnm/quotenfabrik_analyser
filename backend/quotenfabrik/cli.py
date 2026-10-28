@@ -29,6 +29,7 @@ from quotenfabrik.reports import (
     PICKS_REPORT,
     SHOTS_REPORT,
     STYLE_REPORT,
+    VALUE_REPORT,
     report_path,
 )
 from quotenfabrik.reports import EVALUATION_REPORT as DEFAULT_REPORT
@@ -669,6 +670,17 @@ def value_clv(report: Path = typer.Option(CLV_REPORT, help="Markdown-Bericht")) 
     total = result.get("total") or {}
     typer.echo(f"{result.get('picks', 0)} Tipps · CLV {total.get('clv')} · Abstand {total.get('delta')}")
     typer.echo(f"Bericht: {report}")
+
+
+@value_app.command("tips")
+def value_tips_report(report: Path = typer.Option(VALUE_REPORT, help="Markdown-Bericht")) -> None:
+    """Value-Tipps: Backtest (Betano-Quote beim Tipp, Mischung Modell/Pinnacle) und Live-Bilanz → Bericht."""
+    from quotenfabrik.analytics import value_tips
+
+    engine = get_engine()
+    result = value_tips.backtest(engine, app_config.shown_league_ids(), app_config.value_settings())
+    report.write_text(value_tips.report(result, value_tips.live_record(engine)), encoding="utf-8")
+    typer.echo(f"Value-Tipps: {result.get('result', {}).get('n', 0)} im Backtest · Bericht: {report}")
 
 
 # --------------------------------------------------------------------------- picks

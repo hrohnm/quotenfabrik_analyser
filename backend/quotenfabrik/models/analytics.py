@@ -162,3 +162,23 @@ class DecisionProb(Base):
     decision: Mapped[str] = mapped_column(Text, primary_key=True)
     probabilities: Mapped[dict] = mapped_column(JSONB)
     confidence: Mapped[float | None] = mapped_column(Float)
+
+
+class ValueTip(Base):
+    """Value tip as shown on its day (``qf picks freeze``): our and the market's probability, Betano odds."""
+
+    __tablename__ = "value_tips"
+    __table_args__ = ANALYTICS
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    day: Mapped[date] = mapped_column(Date, index=True)
+    fixture_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    market: Mapped[str] = mapped_column(Text)
+    selection: Mapped[str] = mapped_column(Text)
+    line: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    probability: Mapped[float] = mapped_column(Float)  # blend used for the edge
+    p_model: Mapped[float] = mapped_column(Float)
+    p_market: Mapped[float | None] = mapped_column(Float)
+    odds: Mapped[Decimal] = mapped_column(Numeric(8, 2))
+    edge: Mapped[float] = mapped_column(Float)
+    frozen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

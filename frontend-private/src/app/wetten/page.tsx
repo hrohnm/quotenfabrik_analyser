@@ -11,7 +11,7 @@ import { BankrollCard, ResetDialog, euro } from "@/components/bets/BankrollCard"
 
 const parseNum = (v: string) => Number(v.trim().replace(",", "."));
 
-const SOURCE_LABEL: Record<string, string> = { tageskombi: "Tageskombis", tipps: "3 Tipps pro Spiel", manuell: "Manuell" };
+const SOURCE_LABEL: Record<string, string> = { tageskombi: "Tageskombis", tipps: "3 Tipps pro Spiel", value: "Value-Tipps", wettschein: "Wettschein (gemischt)", manuell: "Manuell" };
 const STATUS_LABEL: Record<BetStatus, string> = { open: "offen", won: "gewonnen", lost: "verloren", void: "storniert" };
 const STATUS_CLASS: Record<BetStatus, string> = {
   open: "bg-slate-100 text-slate-600",

@@ -57,6 +57,17 @@ SETTINGS: list[SettingDef] = [
     SettingDef("decisions.min_confidence", "Tippschein", "Mindest-Konfidenz", "Eine Entscheidung wird nur getippt, "
                "wenn die Konfidenz (0–100: sicherer als dieser Anteil früherer Spiele) mindestens diesen Wert erreicht; "
                "sonst „kein Tipp“. 0 = immer tippen.", "int", 50, 0, 95),
+    SettingDef("value.model_weight", "Value-Tipps", "Gewicht unseres Modells", "Wahrscheinlichkeit = Gewicht × "
+               "Modell + Rest × Pinnacle ohne Marge. Pinnacle ist im Backtest genauer als das Modell allein; 0 = nur "
+               "Markt, 1 = nur Modell.", "float", 0.25, 0.0, 1.0, percent=True),
+    SettingDef("value.min_edge", "Value-Tipps", "Vorteil ab", "Wahrscheinlichkeit × Betano-Quote − 1 mindestens.",
+               "float", 0.02, 0.0, 0.5, percent=True),
+    SettingDef("value.min_p", "Value-Tipps", "Wahrscheinlichkeit ab", "Keine Außenseiter darunter.", "float", 0.3, 0.05,
+               0.9, percent=True),
+    SettingDef("value.max_odds", "Value-Tipps", "Quote bis", "Höhere Betano-Quoten werden nicht vorgeschlagen.",
+               "float", 4.0, 1.2, 20),
+    SettingDef("value.per_fixture", "Value-Tipps", "Tipps pro Spiel", "Höchstens so viele Value-Tipps je Spiel "
+               "(größter Vorteil zuerst).", "int", 2, 1, 10),
     SettingDef("combos.target_min", "Tageskombis", "Zielquote ab", "Kombis werden aufgefüllt, bis die geschätzte "
                "Quote diesen Wert erreicht.", "float", 5.0, 1.5, 100),
     SettingDef("combos.target_max", "Tageskombis", "Zielquote bis", "Tipps, die darüber hinausführen, werden "
@@ -219,6 +230,19 @@ def model_pool(engine, league_id: int):
             ratings = {lg.id for lg in ratings_leagues()}
             return load_leagues(engine, linked, all_rounds=ratings)
     return load_matches(engine, league_id)
+
+
+def value_settings():
+    """Settings of the value tips (configuration page)."""
+    from quotenfabrik.analytics.value_tips import ValueSettings
+
+    return ValueSettings(
+        model_weight=get("value.model_weight"),
+        min_edge=get("value.min_edge"),
+        min_p=get("value.min_p"),
+        max_odds=get("value.max_odds"),
+        per_fixture=get("value.per_fixture"),
+    )
 
 
 def combo_settings():

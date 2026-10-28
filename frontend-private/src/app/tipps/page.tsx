@@ -215,7 +215,7 @@ function FixturePicks({ f }: { f: Fixture }) {
   return (
     <Card>
       <FixtureHeader f={f} />
-      <PickList picks={f.picks ?? []} combo={f.pick_combo} finished={f.finished} reasons={false} />
+      <PickList picks={f.picks ?? []} combo={f.pick_combo} finished={f.finished} reasons={false} fixture={f} />
       {!f.finished && (f.picks?.length ?? 0) > 0 && (
         <button type="button" onClick={() => setDraft(picksDraft(f))} className="mt-3 text-xs text-emerald-700 hover:underline">Als Kombi-Wette erfassen</button>
       )}

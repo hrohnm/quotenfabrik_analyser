@@ -293,7 +293,7 @@ export type DayCombo = {
   frozen_at: string | null;
 };
 
-export type BetSource = "tageskombi" | "tipps" | "manuell";
+export type BetSource = "tageskombi" | "tipps" | "value" | "wettschein" | "manuell";
 export type BetStatus = "open" | "won" | "lost" | "void";
 
 export type BetLegItem = {
@@ -754,4 +754,56 @@ export type BettingReport = {
     fixtures?: number;
     groups: { group: string; label: string; n: number; payback: number | null; above_pinnacle: number | null; edge_share: number; value_bets: number; value_roi: number | null }[];
   };
+};
+
+/** Value tip: our (blended) probability × Betano odds clearly above 1. */
+export type ValueTip = {
+  market: string;
+  selection: string;
+  line: number | null;
+  group: string | null;
+  group_label: string | null;
+  label: string;
+  /** blend used for the edge: model weight × ours + rest × Pinnacle */
+  probability: number;
+  /** our model (Tippschein decision model where it covers the market, else the goal model) */
+  p_model: number;
+  /** Pinnacle without margin */
+  p_market: number | null;
+  odds: number;
+  fair_odd: number;
+  edge: number;
+  outcome: boolean | null;
+};
+export type ValueSettingsT = { model_weight: number; min_edge: number; min_p: number; max_odds: number; per_fixture: number };
+export type ValueDay = {
+  fixtures_checked: number;
+  settings: ValueSettingsT;
+  fixtures: { fixture: Fixture; source: "fixiert" | "aktuell" | "rückwirkend"; tips: ValueTip[] }[];
+};
+export type ValueResult = {
+  n: number;
+  fixtures: number;
+  odds?: number;
+  hit_rate?: number;
+  expected?: number;
+  edge?: number;
+  roi?: number;
+  roi_ci?: [number, number];
+  profit?: number;
+  clv?: number | null;
+  beat_close?: number | null;
+};
+export type ValueStats = {
+  backtest: {
+    candidates: number;
+    fixtures?: number;
+    from?: string;
+    to?: string;
+    log_loss?: { model: number; market: number; blend: number };
+    settings?: ValueSettingsT;
+    result?: ValueResult;
+    groups?: (ValueResult & { group: string; label: string })[];
+  };
+  live: ValueResult;
 };
