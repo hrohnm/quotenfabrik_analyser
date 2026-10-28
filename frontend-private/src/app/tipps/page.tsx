@@ -13,6 +13,7 @@ import { leagueLogo } from "@/lib/media";
 import { DayCombos } from "@/components/bets/DayCombos";
 import { BetDialog, type BetDraft } from "@/components/bets/BetDialog";
 import { ClvView } from "@/components/picks/ClvView";
+import { CompetitionBadge } from "@/components/CompetitionBadge";
 import { DecisionSheet } from "@/components/decisions/DecisionSheet";
 import { DecisionStatsView } from "@/components/decisions/DecisionStatsView";
 
@@ -189,7 +190,10 @@ function FixtureHeader({ f }: { f: Fixture }) {
         <div className="flex items-center gap-2 text-sm font-medium"><TeamLogo team={f.away} size={18} /><span className="truncate">{f.away.name}</span></div>
       </div>
       <div className="flex shrink-0 flex-col items-end text-right text-xs text-slate-500">
-        <Logo src={f.league?.logo ?? leagueLogo(f.league_id)} alt={f.league?.name ?? "Liga"} size={16} className="mb-1" />
+        <span className="mb-1 flex items-center gap-1.5">
+          {(f.cup || f.league?.type === "cup") && <CompetitionBadge cup international={!!f.cup} />}
+          <Logo src={f.league?.logo ?? leagueLogo(f.league_id)} alt={f.league?.name ?? "Liga"} size={16} />
+        </span>
         {f.finished ? <span className="text-lg font-semibold tabular-nums text-slate-900">{f.score.ft[0]}:{f.score.ft[1]}</span> : <span>{weekday(f.kickoff.slice(0, 10))} {dateShort(f.kickoff)}</span>}
         <div>{f.finished ? dateShort(f.kickoff) : `${time(f.kickoff)} Uhr`}</div>
       </div>

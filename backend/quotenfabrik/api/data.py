@@ -113,3 +113,24 @@ style_data = _StyleData()
 @lru_cache(maxsize=1)
 def team_names() -> dict[int, str]:
     return {int(r.id): r.name for r in df("select id, name from core.teams").itertuples()}
+
+
+_types_lock = threading.Lock()
+_types: tuple[float, dict[int, str]] | None = None
+
+
+def competition_types() -> dict[int, str]:
+    """``league`` (has regular-season matchdays) or ``cup`` (knock-out / group rounds only) per competition,
+    cached for a few minutes. European cups always count as cups."""
+    global _types
+    with _types_lock:
+        if _types is None or time.time() - _types[0] > CACHE_TTL_S:
+            rows = df(
+                """select league_id, bool_or(round like 'Regular Season%') as regular
+                   from core.fixtures group by league_id"""
+            )
+            out = {int(r.league_id): "league" if r.regular else "cup" for r in rows.itertuples()}
+            for lg in app_config.cup_leagues():
+                out[lg.id] = "cup"
+            _types = (time.time(), out)
+        return _types[1]

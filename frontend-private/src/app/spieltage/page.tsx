@@ -8,6 +8,8 @@ import { ScrollToActive } from "@/components/ScrollToActive";
 import { Logo } from "@/components/Logo";
 import { leagueLogo } from "@/lib/media";
 import { PickChips } from "@/components/picks/PickList";
+import { CompetitionBadge, CountryFlag } from "@/components/CompetitionBadge";
+import { groupByCountry, isCup, isInternational } from "@/lib/leagues";
 
 export const dynamic = "force-dynamic";
 
@@ -57,17 +59,31 @@ export default async function MatchdaysPage({ searchParams }: { searchParams: Pr
         </form>
       </div>
 
-      <div className="flex flex-wrap gap-2 text-sm">
-        {[{ id: "", name: "Alle Ligen" }, ...meta.leagues.map((l) => ({ id: String(l.id), name: l.name }))].map((l) => (
-          <Link
-            key={l.id}
-            href={link({ liga: l.id || null })}
-            className={`flex items-center gap-2 rounded-full border px-3 py-1 ${(liga ?? "") === l.id ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-400"}`}
-          >
-            {l.id && <Logo src={leagueLogo(Number(l.id))} alt={l.name} size={16} />}
-            {l.name}
-          </Link>
-        ))}
+      <div className="space-y-2 text-sm">
+        <Link
+          href={link({ liga: null })}
+          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 ${!liga ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-400"}`}
+        >
+          Alle Ligen
+        </Link>
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
+          {groupByCountry(meta.leagues).map((g) => (
+            <div key={g.key} className="flex flex-wrap items-center gap-1.5">
+              <span className="flex items-center gap-1.5 pr-1 text-xs font-semibold text-slate-500"><CountryFlag src={g.flag} label={g.label} />{g.label}</span>
+              {g.leagues.map((l) => (
+                <Link
+                  key={l.id}
+                  href={link({ liga: String(l.id) })}
+                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${liga === String(l.id) ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-400"}`}
+                >
+                  <Logo src={leagueLogo(l.id)} alt={l.name} size={16} />
+                  {l.name}
+                  {isCup(l) && <CompetitionBadge cup international={isInternational(l)} />}
+                </Link>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       <ScrollToActive id="aktiver-tag" />
@@ -109,17 +125,28 @@ export default async function MatchdaysPage({ searchParams }: { searchParams: Pr
               <div className="hidden grid-cols-[60px_1fr_70px_240px] gap-4 pb-2 text-xs font-medium uppercase tracking-wide text-slate-400 md:grid">
                 <span>Anstoß</span><span>Begegnung</span><span className="text-center">Ergebnis</span><span>1 · X · 2 <span className="normal-case tracking-normal">(Betano-Quote)</span></span>
               </div>
-              {leagues.map((l) => (
-                <div key={l.id}>
+              {groupByCountry(leagues).map((g) => (
+                <div key={g.key}>
                   {leagues.length > 1 && (
-                    <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      <Logo src={leagueLogo(l.id)} alt={l.name} size={16} />
-                      <Link href={`/wettbewerb/${l.id}`} className="hover:text-slate-900 hover:underline">{l.name}</Link>
+                    <div className="flex items-center gap-2 border-b border-slate-200 px-2 pb-1 pt-4 text-sm font-semibold text-slate-700">
+                      <CountryFlag src={g.flag} label={g.label} />
+                      {g.label}
                     </div>
                   )}
-                  <div className="divide-y divide-slate-100">
-                    {fixtures.filter((f) => f.league_id === l.id).map((f) => <FixtureRow key={f.id} f={f} />)}
-                  </div>
+                  {g.leagues.map((l) => (
+                    <div key={l.id}>
+                      {leagues.length > 1 && (
+                        <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          <Logo src={leagueLogo(l.id)} alt={l.name} size={16} />
+                          <Link href={`/wettbewerb/${l.id}`} className="hover:text-slate-900 hover:underline">{l.name}</Link>
+                          <CompetitionBadge cup={isCup(l)} international={isInternational(l)} />
+                        </div>
+                      )}
+                      <div className="divide-y divide-slate-100">
+                        {fixtures.filter((f) => f.league_id === l.id).map((f) => <FixtureRow key={f.id} f={f} />)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
@@ -136,7 +163,8 @@ export default async function MatchdaysPage({ searchParams }: { searchParams: Pr
 function CupInfo({ f }: { f: Fixture }) {
   const leg = f.first_leg;
   return (
-    <div className="flex flex-wrap gap-x-2 text-xs text-slate-500">
+    <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+      <CompetitionBadge cup international={f.cup} />
       {f.round_label && <span>{f.round_label}</span>}
       {leg && (
         <span title="Ergebnis des Hinspiels aus Sicht der heutigen Paarung (Heim:Gast); abgerechnet wird nur dieses Spiel nach 90 Minuten">
@@ -159,7 +187,7 @@ function FixtureRow({ f }: { f: Fixture }) {
       <div className="space-y-1">
         <div className="flex items-center gap-2 font-medium"><TeamLogo team={f.home} size={20} />{f.home.name}</div>
         <div className="flex items-center gap-2 font-medium"><TeamLogo team={f.away} size={20} />{f.away.name}</div>
-        {f.cup && <CupInfo f={f} />}
+        {(f.cup || f.league?.type === "cup") && <CupInfo f={f} />}
       </div>
       <div className="text-center text-lg font-semibold tabular-nums">
         {f.finished ? `${f.score.ft[0]}:${f.score.ft[1]}` : <span className="text-slate-300">–:–</span>}

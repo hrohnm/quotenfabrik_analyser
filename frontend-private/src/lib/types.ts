@@ -55,7 +55,7 @@ export type FixtureSummary = {
   decisions?: Decision[];
 };
 
-export type League = { id: number; name: string; logo?: string | null };
+export type League = { id: number; name: string; logo?: string | null; type?: "league" | "cup" };
 
 export type PickReason = { label: string; value: number | null; baseline: number | null; n: number | null; signal: "high" | "low" };
 
@@ -253,7 +253,7 @@ export type FixtureDetail = {
 };
 
 export type Meta = {
-  leagues: { id: number; name: string; country: string; logo?: string }[];
+  leagues: { id: number; name: string; country: string; logo?: string; flag?: string | null; cup?: boolean; type?: "league" | "cup" }[];
   seasons: number[];
   teams: Team[] & { logo_url?: string }[];
   groups: Record<string, string>;
