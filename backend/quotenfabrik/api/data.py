@@ -1,5 +1,6 @@
 """Shared database access helpers for the API."""
 
+import math
 import threading
 import time
 from functools import lru_cache
@@ -54,6 +55,19 @@ def records(frame: pd.DataFrame) -> list[dict]:
             clean[k] = v
         out.append(clean)
     return out
+
+
+def json_safe(value):
+    """Nested dicts/lists with NaN/inf floats and numpy scalars made JSON-safe (NaN, inf -> None)."""
+    if isinstance(value, dict):
+        return {k: json_safe(v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [json_safe(v) for v in value]
+    if hasattr(value, "item") and not isinstance(value, str):
+        value = value.item()
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
 
 
 def chosen_runs_cte(where: str = "") -> str:

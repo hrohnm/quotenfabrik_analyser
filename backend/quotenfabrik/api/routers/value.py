@@ -1,5 +1,6 @@
 """Value tips of a day (frozen, current or retrospective) and their evaluation (backtest and live record)."""
 
+import logging
 from datetime import date
 
 import pandas as pd
@@ -7,12 +8,13 @@ from fastapi import APIRouter, Query
 
 from quotenfabrik import app_config
 from quotenfabrik.analytics import value_tips as vt
-from quotenfabrik.api.data import df, engine
+from quotenfabrik.api.data import df, engine, json_safe
 from quotenfabrik.api.labels import GROUP_LABELS, pick_label
 from quotenfabrik.api.routers.fixtures import FIXTURE_SQL, _clean, _fixture_dict
 from quotenfabrik.api.routers.stats import _Background
 
 router = APIRouter(prefix="/api", tags=["value"])
+log = logging.getLogger(__name__)
 
 
 def _tip(t, home: str, away: str) -> dict:
@@ -65,7 +67,7 @@ def value_day(day: date = Query(..., alias="date"), league: int | None = None) -
             home, away = fx["home"]["name"], fx["away"]["name"]
             out.append({"fixture": fx, "source": source,
                         "tips": [_tip(t, home, away) for t in g.sort_values("edge", ascending=False).itertuples()]})  # fmt: skip
-    return {"fixtures_checked": len(fixtures), "settings": settings.__dict__, "fixtures": out}
+    return json_safe({"fixtures_checked": len(fixtures), "settings": settings.__dict__, "fixtures": out})
 
 
 _backtest = _Background(
@@ -77,5 +79,14 @@ _backtest = _Background(
 
 @router.get("/stats/value")
 def value_stats() -> dict:
-    """Backtest of the value tips (current settings) and the live record of the frozen tips."""
-    return {"backtest": _backtest.get() or {"candidates": 0}, "live": vt.live_record(engine())}
+    """Backtest of the value tips (current settings) and the live record of the frozen tips; a failing part
+    is reported in ``error`` instead of failing the whole response."""
+    backtest = _backtest.get()
+    if backtest is None:
+        backtest = {"candidates": 0, "error": _backtest.error}
+    try:
+        live = vt.live_record(engine())
+    except Exception as exc:  # noqa: BLE001 - shown on the page
+        log.exception("value live record failed")
+        live = {"n": 0, "fixtures": 0, "error": f"{type(exc).__name__}: {exc}"}
+    return json_safe({"backtest": backtest, "live": live})
